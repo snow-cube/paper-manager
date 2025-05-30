@@ -6,25 +6,48 @@
 ## 1. 项目文件结构
 
 ```
-app/
-├── api/                # API路由和处理函数
-│   ├── paper.py       # 论文相关API
-│   └── user.py        # 用户相关API
-├── core/              # 核心配置
-│   ├── config.py      # 应用配置
-│   └── database.py    # 数据库配置
-├── models/            # 数据模型定义
-│   ├── paper.py       # 论文模型
-│   ├── user.py        # 用户模型
-│   ├── author.py      # 作者模型
-│   ├── category.py    # 分类模型
-│   ├── keyword.py     # 关键词模型
-│   ├── team.py        # 团队模型
-│   └── reference.py   # 参考文献模型
-├── schemas/           # 请求/响应模式
-├── services/          # 业务逻辑服务
-│   └── utils.py       # 工具函数
-└── main.py           # 应用入口
+paper-manager-backend/
+├── app/                        # 主应用目录
+│   ├── api/                   # API 路由处理
+│   │   ├── category.py       # 分类相关的 API 端点
+│   │   ├── paper.py          # 论文相关的 API 端点
+│   │   ├── reference.py      # 参考文献相关的 API 端点
+│   │   ├── team.py          # 团队相关的 API 端点
+│   │   └── user.py          # 用户相关的 API 端点
+│   │
+│   ├── core/                  # 核心配置和功能
+│   │   ├── config.py        # 应用配置
+│   │   ├── database.py      # 数据库配置
+│   │   └── dependencies.py   # 依赖注入
+│   │
+│   ├── models/               # 数据模型
+│   │   ├── author.py        # 作者模型
+│   │   ├── category.py      # 分类模型
+│   │   ├── keyword.py       # 关键词模型
+│   │   ├── paper.py         # 论文模型
+│   │   ├── reference.py     # 参考文献模型
+│   │   ├── team.py         # 团队模型
+│   │   └── user.py         # 用户模型
+│   │
+│   ├── services/             # 业务服务
+│   │   └── utils.py        # 工具函数（认证、加密等）
+│   │
+│   ├── schemas/             # Pydantic 模式（如果有）
+│   │   └── paper.py        # 论文相关的数据验证模式
+│   │
+│   ├── __init__.py          # 包初始化文件
+│   └── main.py              # 应用入口点
+│
+├── uploads/                  # 文件上传目录
+│   └── papers/              # 论文文件存储
+│
+├── .env                     # 环境变量配置
+├── .gitignore              # Git 忽略文件
+├── .python-version         # Python 版本配置
+├── README.md               # 项目文档
+├── pyproject.toml          # 项目依赖配置
+├── server.log              # 服务器日志
+└── uv.lock                 # 依赖版本锁定文件
 ```
 
 ## 2. 数据库设计
