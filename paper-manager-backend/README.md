@@ -52,16 +52,33 @@ paper-manager-backend/
 
 ## 2. 数据库设计
 
+明白了，我会按照 README.md 中的表格格式来重新组织数据库表结构的说明：
+
+# 数据库表结构
+
+### User（用户表）
+| 字段 | 类型 | 说明 | 限制条件 |
+|------|------|------|----------|
+| id | Integer | 主键 | 自增 |
+| username | String | 用户名 | 必填，唯一，索引 |
+| email | String | 邮箱 | 必填，唯一，索引 |
+| full_name | String | 全名 | 必填 |
+| hashed_password | String | 加密密码 | 必填 |
+| is_active | Boolean | 是否激活 | 默认True |
+| is_superuser | Boolean | 是否超级用户 | 默认False |
+| created_at | DateTime | 创建时间 | 默认当前时间 |
+| updated_at | DateTime | 更新时间 | 默认当前时间 |
+
 ### Paper（论文表）
 | 字段 | 类型 | 说明 | 限制条件 |
 |------|------|------|----------|
 | id | Integer | 主键 | 自增 |
 | title | String | 论文标题 | 必填，索引 |
-| abstract | String | 摘要 | 可空 |
-| publication_date | DateTime | 发表日期 | 可空 |
-| journal | String | 期刊名称 | 可空 |
-| doi | String | DOI号 | 可空，唯一 |
-| file_path | String | 文件路径 | 可空 |
+| abstract | Text | 摘要 | 可选 |
+| publication_date | DateTime | 发表日期 | 可选 |
+| journal | String | 期刊名称 | 可选 |
+| doi | String | DOI | 可选，唯一 |
+| file_path | String | 文件路径 | 可选 |
 | created_at | DateTime | 创建时间 | 默认当前时间 |
 | updated_at | DateTime | 更新时间 | 默认当前时间 |
 
@@ -70,27 +87,27 @@ paper-manager-backend/
 |------|------|------|----------|
 | id | Integer | 主键 | 自增 |
 | name | String | 作者姓名 | 必填，索引 |
-| email | String | 邮箱 | 可空，唯一 |
-| affiliation | String | 所属机构 | 可空 |
+| email | String | 作者邮箱 | 可选，唯一 |
+| affiliation | String | 所属机构 | 可选 |
 | created_at | DateTime | 创建时间 | 默认当前时间 |
 | updated_at | DateTime | 更新时间 | 默认当前时间 |
-
-### PaperAuthor（论文-作者关联表）
-| 字段 | 类型 | 说明 | 限制条件 |
-|------|------|------|----------|
-| paper_id | Integer | 论文ID | 主键，外键 |
-| author_id | Integer | 作者ID | 主键，外键 |
-| contribution_ratio | Float | 贡献比例 | 默认1.0 |
-| is_corresponding | Boolean | 是否通讯作者 | 默认False |
-| author_order | Integer | 作者顺序 | 必填 |
 
 ### Category（分类表）
 | 字段 | 类型 | 说明 | 限制条件 |
 |------|------|------|----------|
 | id | Integer | 主键 | 自增 |
 | name | String | 分类名称 | 必填，索引 |
-| description | String | 描述 | 可空 |
-| parent_id | Integer | 父分类ID | 可空，外键 |
+| description | Text | 分类描述 | 可选 |
+| parent_id | Integer | 父分类ID | 可选，外键(category.id) |
+
+### Team（团队表）
+| 字段 | 类型 | 说明 | 限制条件 |
+|------|------|------|----------|
+| id | Integer | 主键 | 自增 |
+| name | String | 团队名称 | 必填，索引 |
+| description | Text | 团队描述 | 可选 |
+| created_at | DateTime | 创建时间 | 默认当前时间 |
+| creator_id | Integer | 创建者ID | 必填，外键(user.id) |
 
 ### Keyword（关键词表）
 | 字段 | 类型 | 说明 | 限制条件 |
@@ -99,6 +116,56 @@ paper-manager-backend/
 | name | String | 关键词 | 必填，唯一，索引 |
 | created_at | DateTime | 创建时间 | 默认当前时间 |
 | updated_at | DateTime | 更新时间 | 默认当前时间 |
+
+### ReferencePaper（参考文献表）
+| 字段 | 类型 | 说明 | 限制条件 |
+|------|------|------|----------|
+| id | Integer | 主键 | 自增 |
+| title | String | 标题 | 必填，索引 |
+| authors | String | 作者字符串 | 必填 |
+| doi | String | DOI | 可选，唯一 |
+| file_path | String | 文件路径 | 可选 |
+| created_at | DateTime | 创建时间 | 默认当前时间 |
+| updated_at | DateTime | 更新时间 | 默认当前时间 |
+| team_id | Integer | 所属团队ID | 可选，外键(team.id) |
+| created_by_id | Integer | 创建者ID | 必填，外键(user.id) |
+| category_id | Integer | 分类ID | 可选，外键(category.id) |
+
+### PaperAuthor（论文-作者关联表）
+| 字段 | 类型 | 说明 | 限制条件 |
+|------|------|------|----------|
+| paper_id | Integer | 论文ID | 必填，主键，外键(paper.id) |
+| author_id | Integer | 作者ID | 必填，主键，外键(author.id) |
+| contribution_ratio | Float | 贡献比例 | 默认1.0 |
+| is_corresponding | Boolean | 是否通讯作者 | 默认False |
+| author_order | Integer | 作者顺序 | 必填 |
+
+### PaperCategory（论文-分类关联表）
+| 字段 | 类型 | 说明 | 限制条件 |
+|------|------|------|----------|
+| paper_id | Integer | 论文ID | 必填，主键，外键(paper.id) |
+| category_id | Integer | 分类ID | 必填，主键，外键(category.id) |
+
+### PaperKeyword（论文-关键词关联表）
+| 字段 | 类型 | 说明 | 限制条件 |
+|------|------|------|----------|
+| paper_id | Integer | 论文ID | 必填，主键，外键(paper.id) |
+| keyword_id | Integer | 关键词ID | 必填，主键，外键(keyword.id) |
+
+### TeamUser（团队-用户关联表）
+| 字段 | 类型 | 说明 | 限制条件 |
+|------|------|------|----------|
+| team_id | Integer | 团队ID | 必填，主键，外键(team.id) |
+| user_id | Integer | 用户ID | 必填，主键，外键(user.id) |
+| is_admin | Boolean | 是否团队管理员 | 默认False |
+| joined_at | DateTime | 加入时间 | 默认当前时间 |
+
+### ReferenceKeyword（参考文献-关键词关联表）
+| 字段 | 类型 | 说明 | 限制条件 |
+|------|------|------|----------|
+| reference_id | Integer | 参考文献ID | 必填，主键，外键(referencepaper.id) |
+| keyword_id | Integer | 关键词ID | 必填，主键，外键(keyword.id) |
+
 
 ## 3. API文档
 
