@@ -1,0 +1,245 @@
+INFO:     Will watch for changes in these directories: ['D:\\long\\2\\grade3.2\\Software Engineering\\project\\code\\paper-manager-backend']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [26580] using WatchFiles
+INFO:     Started server process [13036]
+INFO:     Waiting for application startup.
+DEBUG: Starting app.models.__init__.py execution
+DEBUG: Imported .user. Registered tables: ['papercategory', 'paperauthor', 'paperkeyword', 'paper', 'teamuser', 'team', 'user']
+DEBUG: Imported .category. Registered tables: ['papercategory', 'paperauthor', 'paperkeyword', 'paper', 'teamuser', 'team', 'user', 'category']
+DEBUG: Imported .team. Registered tables: ['papercategory', 'paperauthor', 'paperkeyword', 'paper', 'teamuser', 'team', 'user', 'category']
+DEBUG: Imported .paper. (should define PaperKeyword). Registered tables: ['papercategory', 'paperauthor', 'paperkeyword', 'paper', 'teamuser', 'team', 'user', 'category']
+DEBUG: Imported .reference. (should define ReferenceKeyword). Registered tables: ['papercategory', 'paperauthor', 'paperkeyword', 'paper', 'teamuser', 'team', 'user', 'category', 'referencekeyword', 'referencepaper']
+DEBUG: About to import .keyword
+DEBUG: Imported .keyword. Registered tables: ['papercategory', 'paperauthor', 'paperkeyword', 'paper', 'teamuser', 'team', 'user', 'category', 'referencekeyword', 'referencepaper', 'keyword']
+DEBUG: Finished app.models.__init__.py execution
+2025-05-30 17:35:58,605 INFO sqlalchemy.engine.Engine SELECT DATABASE()
+2025-05-30 17:35:58,607 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:35:58,608 INFO sqlalchemy.engine.Engine SELECT @@sql_mode
+2025-05-30 17:35:58,608 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:35:58,608 INFO sqlalchemy.engine.Engine SELECT @@lower_case_table_names
+2025-05-30 17:35:58,608 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:35:58,609 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-05-30 17:35:58,609 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`papercategory`
+2025-05-30 17:35:58,609 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:35:58,610 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`paperauthor`
+2025-05-30 17:35:58,610 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:35:58,611 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`paperkeyword`
+2025-05-30 17:35:58,611 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:35:58,612 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`paper`
+2025-05-30 17:35:58,612 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:35:58,613 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`teamuser`
+2025-05-30 17:35:58,613 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:35:58,614 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`team`
+2025-05-30 17:35:58,614 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:35:58,614 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`user`
+2025-05-30 17:35:58,614 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:35:58,615 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`category`
+2025-05-30 17:35:58,615 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:35:58,616 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`referencekeyword`
+2025-05-30 17:35:58,616 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:35:58,617 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`referencepaper`
+2025-05-30 17:35:58,617 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:35:58,617 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`keyword`
+2025-05-30 17:35:58,618 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:35:58,618 INFO sqlalchemy.engine.Engine COMMIT
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'app\models\keyword.py'. Reloading...
+ INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [13036]
+INFO:     Started server process [26028]
+INFO:     Waiting for application startup.
+DEBUG: Starting app.models.__init__.py execution
+DEBUG: Imported .user. Registered tables: ['papercategory', 'paperauthor', 'paperkeyword', 'paper', 'teamuser', 'team', 'user']
+DEBUG: Imported .category. Registered tables: ['papercategory', 'paperauthor', 'paperkeyword', 'paper', 'teamuser', 'team', 'user', 'category']
+DEBUG: Imported .team. Registered tables: ['papercategory', 'paperauthor', 'paperkeyword', 'paper', 'teamuser', 'team', 'user', 'category']
+DEBUG: Imported .paper. (should define PaperKeyword). Registered tables: ['papercategory', 'paperauthor', 'paperkeyword', 'paper', 'teamuser', 'team', 'user', 'category']
+DEBUG: Imported .reference. (should define ReferenceKeyword). Registered tables: ['papercategory', 'paperauthor', 'paperkeyword', 'paper', 'teamuser', 'team', 'user', 'category', 'referencekeyword', 'referencepaper']
+DEBUG: About to import .keyword
+DEBUG: Imported .keyword. Registered tables: ['papercategory', 'paperauthor', 'paperkeyword', 'paper', 'teamuser', 'team', 'user', 'category', 'referencekeyword', 'referencepaper', 'keyword']
+DEBUG: Finished app.models.__init__.py execution
+2025-05-30 17:40:58,407 INFO sqlalchemy.engine.Engine SELECT DATABASE()
+2025-05-30 17:40:58,407 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:40:58,407 INFO sqlalchemy.engine.Engine SELECT @@sql_mode
+2025-05-30 17:40:58,407 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:40:58,408 INFO sqlalchemy.engine.Engine SELECT @@lower_case_table_names
+2025-05-30 17:40:58,408 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:40:58,408 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-05-30 17:40:58,408 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`papercategory`
+2025-05-30 17:40:58,408 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:40:58,409 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`paperauthor`
+2025-05-30 17:40:58,409 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:40:58,410 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`paperkeyword`
+2025-05-30 17:40:58,410 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:40:58,411 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`paper`
+2025-05-30 17:40:58,411 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:40:58,412 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`teamuser`
+2025-05-30 17:40:58,412 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:40:58,412 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`team`
+2025-05-30 17:40:58,412 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:40:58,413 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`user`
+2025-05-30 17:40:58,413 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:40:58,414 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`category`
+2025-05-30 17:40:58,414 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:40:58,415 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`referencekeyword`
+2025-05-30 17:40:58,415 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:40:58,415 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`referencepaper`
+2025-05-30 17:40:58,415 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:40:58,416 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`keyword`
+2025-05-30 17:40:58,416 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:40:58,417 INFO sqlalchemy.engine.Engine COMMIT
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'app\api\user.py'. Reloading...
+ INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [26028]
+WARNING:  WatchFiles detected changes in 'app\api\user.py'. Reloading...
+ INFO:     Started server process [18760]
+INFO:     Waiting for application startup.
+DEBUG: Starting app.models.__init__.py execution
+DEBUG: Imported .user. Registered tables: ['papercategory', 'paperauthor', 'paperkeyword', 'paper', 'teamuser', 'team', 'user']
+DEBUG: Imported .category. Registered tables: ['papercategory', 'paperauthor', 'paperkeyword', 'paper', 'teamuser', 'team', 'user', 'category']
+DEBUG: Imported .team. Registered tables: ['papercategory', 'paperauthor', 'paperkeyword', 'paper', 'teamuser', 'team', 'user', 'category']
+DEBUG: Imported .paper. (should define PaperKeyword). Registered tables: ['papercategory', 'paperauthor', 'paperkeyword', 'paper', 'teamuser', 'team', 'user', 'category']
+DEBUG: Imported .reference. (should define ReferenceKeyword). Registered tables: ['papercategory', 'paperauthor', 'paperkeyword', 'paper', 'teamuser', 'team', 'user', 'category', 'referencekeyword', 'referencepaper']
+DEBUG: About to import .keyword
+DEBUG: Imported .keyword. Registered tables: ['papercategory', 'paperauthor', 'paperkeyword', 'paper', 'teamuser', 'team', 'user', 'category', 'referencekeyword', 'referencepaper', 'keyword']
+DEBUG: Finished app.models.__init__.py execution
+2025-05-30 17:45:20,155 INFO sqlalchemy.engine.Engine SELECT DATABASE()
+2025-05-30 17:45:20,155 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:20,155 INFO sqlalchemy.engine.Engine SELECT @@sql_mode
+2025-05-30 17:45:20,156 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:20,156 INFO sqlalchemy.engine.Engine SELECT @@lower_case_table_names
+2025-05-30 17:45:20,156 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:20,156 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-05-30 17:45:20,156 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`papercategory`
+2025-05-30 17:45:20,156 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:20,157 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`paperauthor`
+2025-05-30 17:45:20,157 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:20,158 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`paperkeyword`
+2025-05-30 17:45:20,158 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:20,158 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`paper`
+2025-05-30 17:45:20,158 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:20,159 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`teamuser`
+2025-05-30 17:45:20,159 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:20,160 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`team`
+2025-05-30 17:45:20,160 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:20,160 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`user`
+2025-05-30 17:45:20,160 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:20,161 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`category`
+2025-05-30 17:45:20,161 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:20,161 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`referencekeyword`
+2025-05-30 17:45:20,161 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:20,161 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`referencepaper`
+2025-05-30 17:45:20,161 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:20,162 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`keyword`
+2025-05-30 17:45:20,162 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:20,162 INFO sqlalchemy.engine.Engine COMMIT
+INFO:     Application startup complete.
+ERROR:    Traceback (most recent call last):
+  File "C:\Users\long\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\long\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.py", line 687, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\long\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Users\long\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py", line 123, in run
+    raise KeyboardInterrupt()
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\long\2\grade3.2\Software Engineering\project\code\paper-manager-backend\.venv\Lib\site-packages\starlette\routing.py", line 699, in lifespan
+    await receive()
+  File "D:\long\2\grade3.2\Software Engineering\project\code\paper-manager-backend\.venv\Lib\site-packages\uvicorn\lifespan\on.py", line 137, in receive
+    return await self.receive_queue.get()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\long\AppData\Local\Programs\Python\Python312\Lib\asyncio\queues.py", line 158, in get
+    await getter
+asyncio.exceptions.CancelledError
+
+INFO:     Started server process [11344]
+INFO:     Waiting for application startup.
+DEBUG: Starting app.models.__init__.py execution
+DEBUG: Imported .user. Registered tables: ['papercategory', 'paperauthor', 'paperkeyword', 'paper', 'teamuser', 'team', 'user']
+DEBUG: Imported .category. Registered tables: ['papercategory', 'paperauthor', 'paperkeyword', 'paper', 'teamuser', 'team', 'user', 'category']
+DEBUG: Imported .team. Registered tables: ['papercategory', 'paperauthor', 'paperkeyword', 'paper', 'teamuser', 'team', 'user', 'category']
+DEBUG: Imported .paper. (should define PaperKeyword). Registered tables: ['papercategory', 'paperauthor', 'paperkeyword', 'paper', 'teamuser', 'team', 'user', 'category']
+DEBUG: Imported .reference. (should define ReferenceKeyword). Registered tables: ['papercategory', 'paperauthor', 'paperkeyword', 'paper', 'teamuser', 'team', 'user', 'category', 'referencekeyword', 'referencepaper']
+DEBUG: About to import .keyword
+DEBUG: Imported .keyword. Registered tables: ['papercategory', 'paperauthor', 'paperkeyword', 'paper', 'teamuser', 'team', 'user', 'category', 'referencekeyword', 'referencepaper', 'keyword']
+DEBUG: Finished app.models.__init__.py execution
+2025-05-30 17:45:21,044 INFO sqlalchemy.engine.Engine SELECT DATABASE()
+2025-05-30 17:45:21,044 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:21,044 INFO sqlalchemy.engine.Engine SELECT @@sql_mode
+2025-05-30 17:45:21,044 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:21,044 INFO sqlalchemy.engine.Engine SELECT @@lower_case_table_names
+2025-05-30 17:45:21,044 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:21,044 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-05-30 17:45:21,044 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`papercategory`
+2025-05-30 17:45:21,044 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:21,046 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`paperauthor`
+2025-05-30 17:45:21,046 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:21,047 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`paperkeyword`
+2025-05-30 17:45:21,047 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:21,047 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`paper`
+2025-05-30 17:45:21,048 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:21,048 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`teamuser`
+2025-05-30 17:45:21,048 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:21,049 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`team`
+2025-05-30 17:45:21,049 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:21,050 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`user`
+2025-05-30 17:45:21,050 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:21,050 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`category`
+2025-05-30 17:45:21,050 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:21,051 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`referencekeyword`
+2025-05-30 17:45:21,051 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:21,051 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`referencepaper`
+2025-05-30 17:45:21,052 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:21,052 INFO sqlalchemy.engine.Engine DESCRIBE `paper_manager`.`keyword`
+2025-05-30 17:45:21,052 INFO sqlalchemy.engine.Engine [raw sql] {}
+2025-05-30 17:45:21,053 INFO sqlalchemy.engine.Engine COMMIT
+INFO:     Application startup complete.
+ERROR:    Traceback (most recent call last):
+  File "C:\Users\long\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\long\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.py", line 687, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\long\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Users\long\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py", line 123, in run
+    raise KeyboardInterrupt()
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\long\2\grade3.2\Software Engineering\project\code\paper-manager-backend\.venv\Lib\site-packages\starlette\routing.py", line 699, in lifespan
+    await receive()
+  File "D:\long\2\grade3.2\Software Engineering\project\code\paper-manager-backend\.venv\Lib\site-packages\uvicorn\lifespan\on.py", line 137, in receive
+    return await self.receive_queue.get()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\long\AppData\Local\Programs\Python\Python312\Lib\asyncio\queues.py", line 158, in get
+    await getter
+asyncio.exceptions.CancelledError
+
+INFO:     Stopping reloader process [26580]

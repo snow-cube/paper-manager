@@ -1,22 +1,36 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import paper, category, user
-from app.core.database import create_db_and_tables
+from app.core.database import init_db
+from app.api import user, paper, category, team, reference
 
-app = FastAPI()
+app = FastAPI(
+    title="Paper Manager API",
+    description="API for managing academic papers and their authors",
+    version="1.0.0"
+)
 
+# CORS middleware configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # In production, replace with specific origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 创建数据库表
-create_db_and_tables()
+# Include routers
+app.include_router(user.router, prefix="/api/users", tags=["users"])
+app.include_router(paper.router, prefix="/api/papers", tags=["papers"])
+app.include_router(category.router, prefix="/api/categories", tags=["categories"])
+app.include_router(team.router, prefix="/api/teams", tags=["teams"])
+app.include_router(reference.router, prefix="/api/references", tags=["references"])
 
-# 注册路由
-app.include_router(paper.router, prefix="/api/paper", tags=["paper"])
-app.include_router(category.router, prefix="/api/category", tags=["category"])
-app.include_router(user.router, prefix="/api/user", tags=["user"])
+
+@app.on_event("startup")
+async def startup_event():
+    init_db()
+
+
+@app.get("/")
+async def root():
+    return {"message": "Welcome to Paper Manager API"}
