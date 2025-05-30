@@ -1,6 +1,6 @@
 # 后端
 
-数据库 mysql 创建 paper-manager
+数据库 mysql 创建 paper_manager
 启动 uvicorn app.main:app --reload --log-level debug
 
 ## 1. 项目文件结构
