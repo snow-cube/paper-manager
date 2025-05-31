@@ -1,10 +1,16 @@
 from sqlmodel import SQLModel, create_engine, Session
+from .config import settings
 
-DATABASE_URL = "sqlite:///./data/test.db"
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(
+    settings.DATABASE_URL,
+    echo=True,  # Set to False in production
+    pool_pre_ping=True
+)
 
-def create_db_and_tables():
+
+def init_db():
     SQLModel.metadata.create_all(engine)
+
 
 def get_session():
     with Session(engine) as session:
