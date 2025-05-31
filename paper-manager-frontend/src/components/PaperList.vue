@@ -40,18 +40,15 @@
         <div class="meta-item" v-if="paper.year">
           <span class="meta-label">年份:</span>
           <span class="meta-value">{{ paper.year }}</span>
-        </div>
-        <div class="meta-item" v-if="paper.authors">
+        </div>        <div class="meta-item" v-if="paper.authors">
           <span class="meta-label">作者:</span>
-          <span class="meta-value">{{ paper.authors }}</span>
+          <span class="meta-value">{{ getAuthorsText(paper.authors) }}</span>
         </div>
       </div>
 
       <div v-if="paper.abstract" class="paper-abstract">
         <p>{{ truncateText(paper.abstract, 200) }}</p>
-      </div>
-
-      <div v-if="paper.keywords" class="paper-keywords">
+      </div>      <div v-if="paper.keywords" class="paper-keywords">
         <span
           v-for="keyword in getKeywords(paper.keywords)"
           :key="keyword"
@@ -124,13 +121,34 @@ const truncateText = (text, maxLength) => {
   return text.substring(0, maxLength) + "...";
 };
 
+// 处理作者文本
+const getAuthorsText = (authors) => {
+  if (!authors) return '';
+  if (typeof authors === 'string') return authors;
+  if (Array.isArray(authors)) {
+    return authors.map(author => typeof author === 'string' ? author : author.name).join(', ');
+  }
+  return '';
+};
+
 // 获取关键词数组
 const getKeywords = (keywords) => {
   if (!keywords) return [];
-  return keywords
-    .split(",")
-    .map((k) => k.trim())
-    .filter((k) => k.length > 0);
+
+  if (typeof keywords === 'string') {
+    return keywords
+      .split(",")
+      .map((k) => k.trim())
+      .filter((k) => k.length > 0);
+  }
+
+  if (Array.isArray(keywords)) {
+    return keywords.map(keyword =>
+      typeof keyword === 'string' ? keyword : keyword.name
+    ).filter(k => k);
+  }
+
+  return [];
 };
 
 // 格式化日期

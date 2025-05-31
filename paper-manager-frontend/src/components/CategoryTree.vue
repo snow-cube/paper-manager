@@ -7,7 +7,7 @@
       </h3>
       <button
         class="btn btn-sm btn-outline-purple"
-        @click="showAddDialog(null)"
+        @click="showAddDialog()"
         title="添加根分类"
       >
         <span class="btn-icon">➕</span>
@@ -59,20 +59,37 @@
             </span>
             <span class="tree-node-count">{{ totalPapers }}</span>
           </div>
-        </div>
-        <!-- 分类树 -->
+        </div>        <!-- 分类列表 -->
         <div class="tree-list">
-          <CategoryNode
+          <div
             v-for="category in categoryTree"
             :key="category.id"
-            :category="category"
-            :selected-id="props.selectedCategoryId"
-            :level="0"
-            @select="selectCategory"
-            @add-child="showAddDialog"
-            @edit="showEditDialog"
-            @delete="deleteCategory"
-          />
+            class="tree-node"
+            :class="{ 'tree-node-active': props.selectedCategoryId === category.id }"
+            @click="selectCategory(category.id)"
+          >
+            <div class="tree-node-content">
+              <span class="tree-node-icon">📁</span>
+              <span class="tree-node-label">{{ category.name }}</span>
+              <span class="tree-node-count">{{ category.paper_count || 0 }}</span>
+            </div>
+            <div class="tree-node-actions">
+              <button
+                class="tree-action-btn"
+                @click.stop="showEditDialog(category)"
+                title="编辑分类"
+              >
+                ✏️
+              </button>
+              <button
+                class="tree-action-btn"
+                @click.stop="deleteCategory(category)"
+                title="删除分类"
+              >
+                🗑️
+              </button>
+            </div>
+          </div>
         </div>
       </template>
     </div>
@@ -142,16 +159,12 @@
 <script setup>
 import { ref, onMounted, computed, watch } from "vue";
 import {
-  getCategoryTree,
+  getCategories,
   createCategory,
-  updateCategory,
-  deleteCategory as deleteCategoryAPI,
-  getPapersByType,
   getPapers,
 } from "../services/api";
 import { useToast } from "../composables/useToast";
 import { useConfirmDialog } from "../composables/useConfirmDialog";
-import CategoryNode from "./CategoryNode.vue";
 import LoadingSpinner from "./LoadingSpinner.vue";
 import ConfirmDialog from "./ConfirmDialog.vue";
 
@@ -187,7 +200,6 @@ const error = ref(null);
 const showDialog = ref(false);
 const isEditing = ref(false);
 const editingCategoryId = ref(null);
-const parentCategoryId = ref(null);
 
 const categoryForm = ref({
   name: "",
@@ -205,8 +217,8 @@ const loadCategories = async () => {
   error.value = null;
 
   try {
-    const data = await getCategoryTree();
-    categoryTree.value = data.categories || [];
+    const categories = await getCategories();
+    categoryTree.value = categories || [];
 
     // 加载论文统计
     await loadPaperCounts();
@@ -221,25 +233,26 @@ const loadCategories = async () => {
 // 加载论文数量统计
 const loadPaperCounts = async () => {
   try {
-    const papers = props.paperType
-      ? await getPapersByType(props.paperType)
-      : await getPapers(); // 获取所有论文
+    const papers = await getPapers();
 
-    totalPapers.value = papers.length; // 为每个分类计算论文数量
-    const updateCategoryCounts = (categories) => {
-      categories.forEach((category) => {
-        const categoryPapers = papers.filter(
-          (paper) => paper.category_id === category.id
-        );
-        category.paper_count = categoryPapers.length;
+    // 根据paper_type筛选论文
+    const filteredPapers = props.paperType
+      ? papers.filter(paper => paper.paper_type === props.paperType)
+      : papers;
 
-        if (category.children) {
-          updateCategoryCounts(category.children);
+    totalPapers.value = filteredPapers.length;
+
+    // 为每个分类计算论文数量
+    categoryTree.value.forEach((category) => {
+      const categoryPapers = filteredPapers.filter(paper => {
+        // 支持多分类和单分类
+        if (Array.isArray(paper.categories)) {
+          return paper.categories.some(cat => cat.id === category.id);
         }
+        return paper.category_id === category.id;
       });
-    };
-
-    updateCategoryCounts(categoryTree.value);
+      category.paper_count = categoryPapers.length;
+    });
   } catch (err) {
     console.error("加载论文统计失败:", err);
   }
@@ -256,9 +269,8 @@ watch(
 );
 
 // 显示添加分类对话框
-const showAddDialog = (parentId) => {
+const showAddDialog = () => {
   isEditing.value = false;
-  parentCategoryId.value = parentId;
   categoryForm.value = { name: "", description: "" };
   showDialog.value = true;
 };
@@ -279,7 +291,6 @@ const closeCategoryDialog = () => {
   showDialog.value = false;
   categoryForm.value = { name: "", description: "" };
   editingCategoryId.value = null;
-  parentCategoryId.value = null;
 };
 
 // 保存分类
@@ -290,11 +301,7 @@ const saveCategory = async () => {
     if (isEditing.value) {
       await updateCategory(editingCategoryId.value, categoryForm.value);
     } else {
-      const data = {
-        ...categoryForm.value,
-        parent_id: parentCategoryId.value,
-      };
-      await createCategory(data);
+      await createCategory(categoryForm.value);
     }
     await loadCategories();
     closeCategoryDialog();
@@ -494,6 +501,32 @@ defineExpose({
   color: var(--primary-700);
   border-color: var(--primary-300);
   box-shadow: 0 2px 6px rgba(125, 108, 192, 0.08);
+}
+
+.tree-node-actions {
+  display: none;
+  gap: 0.25rem;
+}
+
+.tree-node:hover .tree-node-actions {
+  display: flex;
+}
+
+.tree-action-btn {
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+  opacity: 0.7;
+}
+
+.tree-action-btn:hover {
+  opacity: 1;
+  background: var(--primary-100);
+  transform: scale(1.1);
 }
 
 .tree-list {

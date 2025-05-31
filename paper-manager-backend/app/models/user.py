@@ -1,10 +1,9 @@
 from typing import Optional, List, TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Relationship
-from sqlalchemy.orm import relationship
-from sqlalchemy import Column, Integer, String, ForeignKey
 from datetime import datetime
-from .team import Team, TeamUser
-from .reference import ReferencePaper
+
+# 导入需要在运行时使用的类
+from .team import TeamUser
 
 if TYPE_CHECKING:
     from .team import Team

@@ -59,33 +59,34 @@
           max="2099"
         />
       </div>
-    </div>
-
-    <div class="form-row">
+    </div>    <div class="form-row">
       <div class="form-group">
         <label class="form-label">作者</label>
-        <UserSelect v-model="form.author_ids" />
+        <input
+          v-model="form.author_names"
+          class="form-input"
+          placeholder="请输入作者（用逗号分隔多个作者）"
+        />
       </div>
       <div class="form-group">
         <label class="form-label" for="category">分类</label>
-        <select id="category" v-model="form.category_id" class="form-select">
-          <option value="">请选择分类</option>
+        <select v-model="form.category_ids" class="form-select" multiple>
           <option
-            v-for="cat in flatCategories"
+            v-for="cat in categories"
             :key="cat.id"
             :value="cat.id"
-            :style="{ paddingLeft: `${cat.level * 1.5}rem` }"
           >
-            {{ "  ".repeat(cat.level) }}{{ cat.name }}
+            {{ cat.name }}
           </option>
         </select>
+        <small class="form-hint">按住Ctrl键可选择多个分类</small>
       </div>
     </div>
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">关键词</label>
         <input
-          v-model="form.keywords"
+          v-model="form.keyword_names"
           class="form-input"
           placeholder="用逗号分隔多个关键词"
         />
@@ -239,13 +240,12 @@
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
 import {
-  getCategoryTree,
+  getCategories,
   uploadPaper,
   createPaper,
   updatePaper,
 } from "../services/api";
 import { useToast } from "../composables/useToast";
-import UserSelect from "./UserSelect.vue";
 
 const props = defineProps({
   paper: {
@@ -266,9 +266,9 @@ const form = ref({
   title: "",
   journal: "",
   year: new Date().getFullYear(),
-  author_ids: [],
-  category_id: "",
-  keywords: "",
+  author_names: "",
+  category_ids: [],
+  keyword_names: "",
   abstract: "",
   paper_type: props.paperType || "",
   doi: "",
@@ -285,21 +285,6 @@ const submitting = ref(false);
 
 const isEdit = computed(() => !!props.paper);
 
-// 将分类树扁平化为选择列表
-const flatCategories = computed(() => {
-  const flatten = (cats, level = 0) => {
-    const result = [];
-    for (const cat of cats) {
-      result.push({ ...cat, level });
-      if (cat.children && cat.children.length > 0) {
-        result.push(...flatten(cat.children, level + 1));
-      }
-    }
-    return result;
-  };
-  return flatten(categories.value);
-});
-
 // 初始化表单数据
 const initializeForm = () => {
   if (props.paper) {
@@ -309,6 +294,19 @@ const initializeForm = () => {
         form.value[key] = props.paper[key];
       }
     });
+
+    // 转换特殊字段格式
+    if (props.paper.authors && Array.isArray(props.paper.authors)) {
+      form.value.author_names = props.paper.authors.map(a => a.name || a).join(', ');
+    }
+
+    if (props.paper.keywords && Array.isArray(props.paper.keywords)) {
+      form.value.keyword_names = props.paper.keywords.map(k => k.name || k).join(', ');
+    }
+
+    if (props.paper.categories && Array.isArray(props.paper.categories)) {
+      form.value.category_ids = props.paper.categories.map(c => c.id || c);
+    }
   } else if (props.paperType) {
     // 新建模式：设置论文类型
     form.value.paper_type = props.paperType;
@@ -329,8 +327,7 @@ watch(
 
 onMounted(async () => {
   try {
-    const data = await getCategoryTree();
-    categories.value = data.categories || [];
+    categories.value = await getCategories();
   } catch (error) {
     console.error("加载分类失败:", error);
     categories.value = [];
@@ -360,9 +357,9 @@ const resetForm = () => {
     title: "",
     journal: "",
     year: new Date().getFullYear(),
-    author_ids: [],
-    category_id: "",
-    keywords: "",
+    author_names: "",
+    category_ids: [],
+    keyword_names: "",
     abstract: "",
     paper_type: props.paperType || "",
     doi: "",
@@ -388,34 +385,55 @@ const handleSubmit = async () => {
 
   submitting.value = true;
   try {
+    // 准备提交数据
+    const submitData = { ...form.value };
+
+    // 处理作者名称（转换为数组）
+    if (typeof submitData.author_names === 'string') {
+      submitData.author_names = submitData.author_names
+        .split(',')
+        .map(name => name.trim())
+        .filter(name => name.length > 0);
+    }
+
+    // 处理关键词（转换为数组）
+    if (typeof submitData.keyword_names === 'string') {
+      submitData.keyword_names = submitData.keyword_names
+        .split(',')
+        .map(keyword => keyword.trim())
+        .filter(keyword => keyword.length > 0);
+    }
+
     if (isEdit.value) {
       // 编辑模式：更新论文
-      const data = { ...form.value };
-      // 移除不需要的字段
-      delete data.paper_type; // 编辑时不允许修改论文类型
-      await updatePaper(props.paper.id, data);
+      delete submitData.paper_type; // 编辑时不允许修改论文类型
+      await updatePaper(props.paper.id, submitData);
       showToast("论文更新成功！", "success");
     } else {
       // 新建模式：创建论文或上传文件
       if (file.value) {
         // 有文件：使用 uploadPaper
         const formData = new FormData();
-        for (const key in form.value) {
-          if (form.value[key] !== null && form.value[key] !== "") {
-            if (key === "author_ids") {
-              form.value[key].forEach((id) =>
-                formData.append("author_ids", id)
-              );
+
+        // 添加论文数据
+        Object.keys(submitData).forEach(key => {
+          if (submitData[key] !== null && submitData[key] !== '') {
+            if (Array.isArray(submitData[key])) {
+              // 数组类型的字段
+              submitData[key].forEach(item => {
+                formData.append(key, item);
+              });
             } else {
-              formData.append(key, form.value[key]);
+              formData.append(key, submitData[key]);
             }
           }
-        }
+        });
+
         formData.append("file", file.value);
         await uploadPaper(formData);
       } else {
         // 无文件：使用 createPaper
-        await createPaper(form.value);
+        await createPaper(submitData);
       }
       showToast("论文添加成功！", "success");
       resetForm();
@@ -424,7 +442,7 @@ const handleSubmit = async () => {
     emit("saved");
   } catch (error) {
     console.error("提交论文失败:", error);
-    showToast("提交失败，请重试", "error");
+    showToast(error.response?.data?.detail || "提交失败，请重试", "error");
   } finally {
     submitting.value = false;
   }

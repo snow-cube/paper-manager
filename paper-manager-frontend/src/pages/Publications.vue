@@ -64,10 +64,8 @@
               >
                 发表论文
               </button>
-            </div>
-
-            <div v-else class="papers-grid">
-              <PublishedPaperCard
+            </div>            <div v-else class="papers-grid">
+              <PaperCard
                 v-for="paper in filteredPapers"
                 :key="paper.id"
                 :paper="paper"
@@ -115,9 +113,9 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
-import { getPapersByType, deletePaper } from "../services/api";
+import { getPapers, deletePaper } from "../services/api";
 import CategoryTree from "../components/CategoryTree.vue";
-import PublishedPaperCard from "../components/PublishedPaperCard.vue";
+import PaperCard from "../components/PaperCard.vue";
 import PaperForm from "../components/PaperForm.vue";
 import PaperDetail from "../components/PaperDetail.vue";
 import Modal from "../components/Modal.vue";
@@ -136,15 +134,38 @@ const viewingPaper = ref(null);
 const currentPage = ref(1);
 const itemsPerPage = 12;
 
+// 辅助函数：处理作者数据
+const getAuthorsText = (authors) => {
+  if (!authors) return '';
+  if (typeof authors === 'string') return authors;
+  if (Array.isArray(authors)) {
+    return authors.map(author => typeof author === 'string' ? author : author.name).join(', ');
+  }
+  return '';
+};
+
+// 辅助函数：处理关键词数据
+const getKeywordsText = (keywords) => {
+  if (!keywords) return '';
+  if (typeof keywords === 'string') return keywords;
+  if (Array.isArray(keywords)) {
+    return keywords.map(keyword => typeof keyword === 'string' ? keyword : keyword.name).join(', ');
+  }
+  return '';
+};
+
 // 计算属性
 const filteredPapers = computed(() => {
-  let filtered = papers.value;
+  let filtered = papers.value.filter(paper => paper.paper_type === 'published');
 
   // 分类筛选
   if (selectedCategoryId.value) {
-    filtered = filtered.filter(
-      (paper) => paper.category_id === selectedCategoryId.value
-    );
+    filtered = filtered.filter(paper => {
+      if (Array.isArray(paper.categories)) {
+        return paper.categories.some(cat => cat.id === selectedCategoryId.value);
+      }
+      return paper.category_id === selectedCategoryId.value;
+    });
   }
 
   // 搜索筛选
@@ -153,9 +174,9 @@ const filteredPapers = computed(() => {
     filtered = filtered.filter(
       (paper) =>
         paper.title.toLowerCase().includes(query) ||
-        paper.authors.toLowerCase().includes(query) ||
-        paper.keywords.toLowerCase().includes(query) ||
-        paper.abstract.toLowerCase().includes(query) ||
+        getAuthorsText(paper.authors).toLowerCase().includes(query) ||
+        getKeywordsText(paper.keywords).toLowerCase().includes(query) ||
+        (paper.abstract && paper.abstract.toLowerCase().includes(query)) ||
         (paper.journal && paper.journal.toLowerCase().includes(query))
     );
   }
@@ -167,12 +188,15 @@ const filteredPapers = computed(() => {
 });
 
 const totalPages = computed(() => {
-  let filtered = papers.value;
+  let filtered = papers.value.filter(paper => paper.paper_type === 'published');
 
   if (selectedCategoryId.value) {
-    filtered = filtered.filter(
-      (paper) => paper.category_id === selectedCategoryId.value
-    );
+    filtered = filtered.filter(paper => {
+      if (Array.isArray(paper.categories)) {
+        return paper.categories.some(cat => cat.id === selectedCategoryId.value);
+      }
+      return paper.category_id === selectedCategoryId.value;
+    });
   }
 
   if (searchQuery.value.trim()) {
@@ -180,9 +204,9 @@ const totalPages = computed(() => {
     filtered = filtered.filter(
       (paper) =>
         paper.title.toLowerCase().includes(query) ||
-        paper.authors.toLowerCase().includes(query) ||
-        paper.keywords.toLowerCase().includes(query) ||
-        paper.abstract.toLowerCase().includes(query) ||
+        getAuthorsText(paper.authors).toLowerCase().includes(query) ||
+        getKeywordsText(paper.keywords).toLowerCase().includes(query) ||
+        (paper.abstract && paper.abstract.toLowerCase().includes(query)) ||
         (paper.journal && paper.journal.toLowerCase().includes(query))
     );
   }
@@ -194,9 +218,9 @@ const totalPages = computed(() => {
 const loadPapers = async () => {
   loading.value = true;
   try {
-    papers.value = await getPapersByType("published");
+    papers.value = await getPapers();
   } catch (error) {
-    console.error("Failed to load publications:", error);
+    console.error("Failed to load papers:", error);
     showToast("加载发表论文失败", "error");
   } finally {
     loading.value = false;

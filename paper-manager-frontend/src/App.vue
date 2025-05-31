@@ -6,25 +6,48 @@
           <div class="logo">
             <span class="logo-icon">📚</span>
             <span class="logo-text">科研论文管理系统</span>
-          </div>
-          <nav class="nav">
+          </div>          <nav class="nav">
             <RouterLink to="/" class="nav-link">
               <span class="nav-icon">🏠</span>
               首页
             </RouterLink>
-            <RouterLink to="/literature" class="nav-link">
-              <span class="nav-icon">📚</span>
-              文献管理
-            </RouterLink>
-            <RouterLink to="/publications" class="nav-link">
-              <span class="nav-icon">🎓</span>
-              发表论文
-            </RouterLink>
-            <RouterLink to="/categories" class="nav-link">
-              <span class="nav-icon">🏷️</span>
-              分类管理
-            </RouterLink>
+            <template v-if="isAuthenticated">
+              <RouterLink to="/literature" class="nav-link">
+                <span class="nav-icon">📚</span>
+                文献管理
+              </RouterLink>
+              <RouterLink to="/publications" class="nav-link">
+                <span class="nav-icon">🎓</span>
+                发表论文
+              </RouterLink>
+              <RouterLink to="/teams" class="nav-link">
+                <span class="nav-icon">👥</span>
+                团队管理
+              </RouterLink>
+              <RouterLink to="/categories" class="nav-link">
+                <span class="nav-icon">🏷️</span>
+                分类管理
+              </RouterLink>
+            </template>
           </nav>
+          <div class="user-section">
+            <template v-if="isAuthenticated">
+              <div class="user-info">
+                <span class="user-icon">👤</span>
+                <span class="user-name">{{ user?.username || '用户' }}</span>
+              </div>
+              <button @click="handleLogout" class="logout-btn">
+                <span class="logout-icon">🚪</span>
+                退出
+              </button>
+            </template>
+            <template v-else>
+              <RouterLink to="/login" class="login-btn">
+                <span class="login-icon">🔑</span>
+                登录
+              </RouterLink>
+            </template>
+          </div>
         </div>
       </div>
     </header>
@@ -48,12 +71,20 @@
 
 <script setup>
 import { RouterLink, RouterView } from "vue-router";
+import { computed } from "vue";
 import ToastContainer from "./components/ToastContainer.vue";
 import ErrorBoundary from "./components/ErrorBoundary.vue";
+import { useAuth } from "./composables/useAuth";
+
+const { user, isAuthenticated, logout } = useAuth();
 
 const handleRetry = () => {
   // 这里可以添加重试逻辑，比如重新加载数据
   console.log('Application retry triggered');
+};
+
+const handleLogout = async () => {
+  await logout();
 };
 </script>
 
@@ -151,6 +182,70 @@ const handleRetry = () => {
   display: none;
 }
 
+.user-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--primary-50);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--primary-200);
+}
+
+.user-icon {
+  font-size: 1.125rem;
+}
+
+.user-name {
+  font-weight: 500;
+  color: var(--primary-700);
+}
+
+.logout-btn, .login-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--border-radius);
+  font-weight: 500;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.logout-btn {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger-light);
+}
+
+.logout-btn:hover {
+  background: var(--color-danger);
+  color: var(--white);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.login-btn {
+  background: var(--primary-500);
+  color: var(--white);
+  border: 1px solid var(--primary-600);
+}
+
+.login-btn:hover {
+  background: var(--primary-600);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(125, 108, 192, 0.3);
+}
+
 .main {
   flex: 1;
   width: 100%;
@@ -194,6 +289,17 @@ const handleRetry = () => {
 
   .nav-icon {
     font-size: 1rem;
+  }
+
+  .user-section {
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+    align-items: center;
+  }
+
+  .user-info {
+    justify-content: center;
   }
 }
 </style>

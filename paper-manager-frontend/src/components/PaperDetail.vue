@@ -12,11 +12,10 @@
 
     <div class="detail-content">
       <div class="detail-section">
-        <h3 class="section-title">基本信息</h3>
-        <div class="info-grid">
+        <h3 class="section-title">基本信息</h3>        <div class="info-grid">
           <div class="info-item">
             <label>作者：</label>
-            <span>{{ paper.authors }}</span>
+            <span>{{ authorsText }}</span>
           </div>
 
           <div v-if="paper.journal" class="info-item">
@@ -51,9 +50,7 @@
 
           <div class="info-item">
             <label>分类：</label>
-            <span class="category">{{
-              getCategoryName(paper.category_id)
-            }}</span>
+            <span class="category">{{ categoriesText }}</span>
           </div>
         </div>
       </div>
@@ -63,9 +60,7 @@
         <div class="abstract-content">
           {{ paper.abstract }}
         </div>
-      </div>
-
-      <div v-if="paper.keywords" class="detail-section">
+      </div>      <div v-if="paper.keywords" class="detail-section">
         <h3 class="section-title">关键词</h3>
         <div class="keywords-container">
           <span
@@ -188,9 +183,44 @@ const { showToast } = useToast();
 const showPreview = ref(false);
 const previewUrl = ref("");
 
+// 计算作者文本
+const authorsText = computed(() => {
+  if (!props.paper.authors) return '';
+  if (typeof props.paper.authors === 'string') return props.paper.authors;
+  if (Array.isArray(props.paper.authors)) {
+    return props.paper.authors
+      .map(author => typeof author === 'string' ? author : author.name)
+      .join(', ');
+  }
+  return '';
+});
+
+// 计算分类文本
+const categoriesText = computed(() => {
+  if (!props.paper.categories) {
+    return props.paper.category_id ? getCategoryName(props.paper.category_id) : '';
+  }
+  if (Array.isArray(props.paper.categories)) {
+    return props.paper.categories.map(cat => cat.name).join(', ');
+  }
+  return '';
+});
+
+// 处理关键词列表
 const keywordList = computed(() => {
   if (!props.paper.keywords) return [];
-  return props.paper.keywords.split(",").map((k) => k.trim());
+
+  if (typeof props.paper.keywords === 'string') {
+    return props.paper.keywords.split(",").map((k) => k.trim()).filter(k => k);
+  }
+
+  if (Array.isArray(props.paper.keywords)) {
+    return props.paper.keywords.map(keyword =>
+      typeof keyword === 'string' ? keyword : keyword.name
+    ).filter(k => k);
+  }
+
+  return [];
 });
 
 const formatDate = (dateString) => {

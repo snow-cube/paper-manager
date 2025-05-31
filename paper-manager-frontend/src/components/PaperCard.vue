@@ -1,9 +1,8 @@
 <template>
-  <div class="paper-card">
-    <div class="paper-header">
-      <div class="paper-type-badge literature">
-        <span class="badge-icon">📚</span>
-        文献
+  <div class="paper-card">    <div class="paper-header">
+      <div :class="['paper-type-badge', paper.paper_type]">
+        <span class="badge-icon">{{ paper.paper_type === 'published' ? '🎓' : '📚' }}</span>
+        {{ paper.paper_type === 'published' ? '发表论文' : '文献' }}
       </div>
       <div class="paper-actions">
         <button
@@ -31,12 +30,10 @@
     </div>
 
     <div class="paper-content" @click="$emit('view', paper)">
-      <h3 class="paper-title">{{ paper.title }}</h3>
-
-      <div class="paper-meta">
+      <h3 class="paper-title">{{ paper.title }}</h3>      <div class="paper-meta">
         <div class="meta-item">
           <span class="meta-label">作者:</span>
-          <span class="meta-value">{{ paper.authors }}</span>
+          <span class="meta-value">{{ authorsDisplay }}</span>
         </div>
 
         <div v-if="paper.journal" class="meta-item">
@@ -62,7 +59,7 @@
         >
       </div>
 
-      <div v-if="paper.keywords" class="paper-keywords">
+      <div v-if="keywordList.length > 0" class="paper-keywords">
         <span v-for="keyword in keywordList" :key="keyword" class="keyword-tag">
           {{ keyword }}
         </span>
@@ -72,7 +69,7 @@
     <div class="paper-footer">
       <div class="paper-category">
         <span class="category-icon">🏷️</span>
-        {{ getCategoryName(paper.category_id) }}
+        {{ categoriesDisplay }}
       </div>
       <div class="paper-date">
         <span class="date-icon">📅</span>
@@ -97,6 +94,31 @@ defineEmits(["edit", "delete", "view"]);
 
 const { getCategoryName } = useCategories();
 
+const authorsDisplay = computed(() => {
+  if (!props.paper.authors) return "未知作者";
+  if (Array.isArray(props.paper.authors)) {
+    return props.paper.authors.map(author =>
+      typeof author === 'object' ? author.name : author
+    ).join(', ');
+  }
+  return props.paper.authors;
+});
+
+const categoriesDisplay = computed(() => {
+  if (!props.paper.categories || props.paper.categories.length === 0) {
+    return "未分类";
+  }
+
+  if (Array.isArray(props.paper.categories)) {
+    return props.paper.categories.map(category =>
+      typeof category === 'object' ? category.name : getCategoryName(category)
+    ).join(', ');
+  }
+
+  // 兼容旧版本的单一分类ID
+  return getCategoryName(props.paper.category_id);
+});
+
 const truncatedAbstract = computed(() => {
   if (!props.paper.abstract) return "";
   return props.paper.abstract.length > 150
@@ -106,6 +128,14 @@ const truncatedAbstract = computed(() => {
 
 const keywordList = computed(() => {
   if (!props.paper.keywords) return [];
+
+  if (Array.isArray(props.paper.keywords)) {
+    return props.paper.keywords.map(keyword =>
+      typeof keyword === 'object' ? keyword.name : keyword
+    ).slice(0, 5);
+  }
+
+  // 兼容字符串格式的关键词
   return props.paper.keywords
     .split(",")
     .map((k) => k.trim())
@@ -167,6 +197,16 @@ const formatDate = (dateString) => {
   box-shadow: 0 3px 8px rgba(125, 108, 192, 0.15);
 }
 
+.paper-type-badge.published {
+  background: linear-gradient(
+    135deg,
+    #059669 0%,
+    #047857 100%
+  );
+  color: var(--white);
+  box-shadow: 0 3px 8px rgba(5, 150, 105, 0.15);
+}
+
 .badge-icon {
   font-size: 0.9rem;
 }
@@ -208,7 +248,10 @@ const formatDate = (dateString) => {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  line-clamp: 2;
   overflow: hidden;
+  /* Fallback for browsers that don't support -webkit-line-clamp */
+  max-height: calc(1.4em * 2); /* line-height * number of lines */
 }
 
 .paper-meta {

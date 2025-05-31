@@ -1,16 +1,15 @@
 from typing import Optional, List, TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Relationship
 from datetime import datetime
+
+# 导入需要在运行时使用的类
 from .paper import PaperCategory
-from sqlalchemy import Column, Integer
 
 if TYPE_CHECKING:
-    from .paper import Paper, PaperCategory
+    from .paper import Paper
     from .reference import ReferencePaper
 
 class Category(SQLModel, table=True):
-    __tablename__ = "category"
-    
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(index=True)
     description: Optional[str] = None
@@ -34,7 +33,7 @@ class Category(SQLModel, table=True):
     paper_links: List[PaperCategory] = Relationship(
         back_populates="category"
     )
-    
+
     reference_papers: List["ReferencePaper"] = Relationship(back_populates="category")
 
 
