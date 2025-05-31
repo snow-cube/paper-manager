@@ -1,26 +1,25 @@
 <template>
   <div class="paper-list">
-    <div
-      v-for="paper in papers"
-      :key="paper.id"
-      class="paper-card"
-    >
+    <div v-for="paper in papers" :key="paper.id" class="paper-card">
       <div class="paper-header">
         <h3 class="paper-title">{{ paper.title }}</h3>
         <div class="paper-actions">
           <button
+            class="action-btn action-btn-view"
+            @click="viewPaper(paper)"
+            title="查看详情"
+          >
+            👁️
+          </button>
+          <button
             v-if="paper.file_url"
-            class="action-btn"
+            class="action-btn action-btn-download"
             @click="downloadPaper(paper)"
             title="下载论文"
           >
             📄
           </button>
-          <button
-            class="action-btn"
-            @click="editPaper(paper)"
-            title="编辑论文"
-          >
+          <button class="action-btn" @click="editPaper(paper)" title="编辑论文">
             ✏️
           </button>
           <button
@@ -70,7 +69,8 @@
           添加于 {{ formatDate(paper.created_at) }}
         </div>
       </div>
-    </div>    <div v-if="papers.length === 0" class="empty-message">
+    </div>
+    <div v-if="papers.length === 0" class="empty-message">
       <p>暂无论文数据</p>
     </div>
 
@@ -90,19 +90,22 @@
 </template>
 
 <script setup>
-import { deletePaper as deletePaperAPI, downloadPaper as downloadPaperAPI } from '../services/api';
-import { useToast } from '../composables/useToast';
-import { useConfirmDialog } from '../composables/useConfirmDialog';
-import ConfirmDialog from './ConfirmDialog.vue';
+import {
+  deletePaper as deletePaperAPI,
+  downloadPaper as downloadPaperAPI,
+} from "../services/api";
+import { useToast } from "../composables/useToast";
+import { useConfirmDialog } from "../composables/useConfirmDialog";
+import ConfirmDialog from "./ConfirmDialog.vue";
 
 const props = defineProps({
   papers: {
     type: Array,
-    default: () => []
-  }
+    default: () => [],
+  },
 });
 
-const emit = defineEmits(['paper-updated', 'paper-deleted']);
+const emit = defineEmits(["paper-updated", "paper-deleted", "view-paper"]);
 
 const { showToast } = useToast();
 const {
@@ -111,68 +114,76 @@ const {
   cancelDialog,
   closeDialog,
   confirmDelete,
-  setLoading
+  setLoading,
 } = useConfirmDialog();
 
 // 截断文本
 const truncateText = (text, maxLength) => {
-  if (!text) return '';
+  if (!text) return "";
   if (text.length <= maxLength) return text;
-  return text.substring(0, maxLength) + '...';
+  return text.substring(0, maxLength) + "...";
 };
 
 // 获取关键词数组
 const getKeywords = (keywords) => {
   if (!keywords) return [];
-  return keywords.split(',').map(k => k.trim()).filter(k => k.length > 0);
+  return keywords
+    .split(",")
+    .map((k) => k.trim())
+    .filter((k) => k.length > 0);
 };
 
 // 格式化日期
 const formatDate = (dateString) => {
-  if (!dateString) return '';
+  if (!dateString) return "";
   const date = new Date(dateString);
-  return date.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
+  return date.toLocaleDateString("zh-CN", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   });
 };
 
 // 下载论文
 const downloadPaper = async (paper) => {
   if (!paper.file_url) {
-    showToast('该论文没有可下载的文件', 'warning');
+    showToast("该论文没有可下载的文件", "warning");
     return;
   }
 
   try {
-    showToast('正在准备下载论文...', 'info');
+    showToast("正在准备下载论文...", "info");
 
     const response = await downloadPaperAPI(paper.id);
 
     // 创建下载链接
-    const blob = new Blob([response.data], { type: 'application/pdf' });
+    const blob = new Blob([response.data], { type: "application/pdf" });
     const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
-    link.download = `${paper.title}.pdf` || 'paper.pdf';
+    link.download = `${paper.title}.pdf` || "paper.pdf";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
 
-    showToast('论文下载成功', 'success');
+    showToast("论文下载成功", "success");
   } catch (error) {
-    console.error('下载论文失败:', error);
-    showToast('下载论文失败，请重试', 'error');
+    console.error("下载论文失败:", error);
+    showToast("下载论文失败，请重试", "error");
   }
 };
 
 // 编辑论文
 const editPaper = (paper) => {
   // TODO: 实现编辑功能
-  console.log('Edit paper:', paper);
-  showToast('编辑功能将在后续版本中实现', 'info');
+  console.log("Edit paper:", paper);
+  showToast("编辑功能将在后续版本中实现", "info");
+};
+
+// 查看论文详情
+const viewPaper = (paper) => {
+  emit("view-paper", paper);
 };
 
 // 删除论文
@@ -183,13 +194,14 @@ const deletePaper = async (paper) => {
     setLoading(true);
     await deletePaperAPI(paper.id);
 
-    emit('paper-deleted', paper.id);
-    showToast('论文删除成功', 'success');
+    emit("paper-deleted", paper.id);
+    showToast("论文删除成功", "success");
     closeDialog();
   } catch (error) {
-    if (error !== false) { // 用户没有取消操作
-      console.error('删除论文失败:', error);
-      showToast('删除论文失败，请重试', 'error');
+    if (error !== false) {
+      // 用户没有取消操作
+      console.error("删除论文失败:", error);
+      showToast("删除论文失败，请重试", "error");
     }
     setLoading(false);
   }
@@ -238,30 +250,6 @@ const deletePaper = async (paper) => {
   display: flex;
   gap: 0.5rem;
   flex-shrink: 0;
-}
-
-.action-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: var(--border-radius);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  transition: all 0.2s ease;
-  font-size: 0.875rem;
-}
-
-.action-btn:hover {
-  background: var(--color-background-soft);
-}
-
-.action-btn-danger:hover {
-  background: var(--error-50);
-  color: var(--error-600);
 }
 
 .paper-meta {

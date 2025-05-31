@@ -16,41 +16,40 @@
         <h4 v-if="title" class="toast-title">{{ title }}</h4>
         <p class="toast-message">{{ message }}</p>
       </div>
-      <button class="toast-close" @click="close" aria-label="关闭">
-        ×
-      </button>
+      <button class="toast-close" @click="close" aria-label="关闭">×</button>
     </div>
   </Teleport>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted } from "vue";
 
 const props = defineProps({
   type: {
     type: String,
-    default: 'info',
-    validator: (value) => ['success', 'error', 'warning', 'info'].includes(value)
+    default: "info",
+    validator: (value) =>
+      ["success", "error", "warning", "info"].includes(value),
   },
   title: {
     type: String,
-    default: ''
+    default: "",
   },
   message: {
     type: String,
-    required: true
+    required: true,
   },
   duration: {
     type: Number,
-    default: 4000
+    default: 4000,
   },
   closable: {
     type: Boolean,
-    default: true
-  }
+    default: true,
+  },
 });
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(["close"]);
 
 const visible = ref(true);
 const show = ref(false);
@@ -60,7 +59,7 @@ const close = () => {
   show.value = false;
   setTimeout(() => {
     visible.value = false;
-    emit('close');
+    emit("close");
   }, 300);
 };
 
@@ -90,18 +89,19 @@ onUnmounted(() => {
   right: 2rem;
   max-width: 400px;
   min-width: 300px;
-  padding: 1rem;
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow-lg);
+  padding: 1.25rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(125, 108, 192, 0.12);
   z-index: 1000;
   display: flex;
   align-items: flex-start;
-  gap: 0.75rem;
+  gap: 0.9rem;
   cursor: pointer;
   transform: translateX(100%);
   opacity: 0;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid;
+  backdrop-filter: blur(8px);
 }
 
 .toast-show {
@@ -110,25 +110,25 @@ onUnmounted(() => {
 }
 
 .toast-success {
-  background: var(--success-50);
+  background: linear-gradient(to right, var(--success-50), var(--white));
   border-color: var(--success-200);
   color: var(--success-800);
 }
 
 .toast-error {
-  background: var(--error-50);
+  background: linear-gradient(to right, var(--error-50), var(--white));
   border-color: var(--error-200);
   color: var(--error-800);
 }
 
 .toast-warning {
-  background: var(--warning-50);
+  background: linear-gradient(to right, var(--warning-50), var(--white));
   border-color: var(--warning-200);
   color: var(--warning-800);
 }
 
 .toast-info {
-  background: var(--primary-50);
+  background: linear-gradient(to right, var(--primary-50), var(--white));
   border-color: var(--primary-200);
   color: var(--primary-800);
 }
@@ -159,27 +159,29 @@ onUnmounted(() => {
 }
 
 .toast-close {
-  background: none;
-  border: none;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(125, 108, 192, 0.08);
   font-size: 1.25rem;
   font-weight: bold;
   cursor: pointer;
   color: inherit;
-  opacity: 0.6;
-  transition: opacity 0.2s ease;
+  opacity: 0.7;
+  transition: all 0.3s ease;
   padding: 0;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 2px;
+  border-radius: 50%;
   flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(125, 108, 192, 0.08);
 }
 
 .toast-close:hover {
   opacity: 1;
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(125, 108, 192, 0.08);
+  transform: rotate(90deg);
 }
 
 @media (max-width: 768px) {

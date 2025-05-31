@@ -2,7 +2,7 @@
   <form @submit.prevent="handleSubmit" class="paper-form">
     <div class="form-header">
       <h2 class="form-title">
-        {{ isEdit ? '编辑论文' : '添加论文' }}
+        {{ isEdit ? "编辑论文" : "添加论文" }}
       </h2>
     </div>
 
@@ -68,11 +68,7 @@
       </div>
       <div class="form-group">
         <label class="form-label" for="category">分类</label>
-        <select
-          id="category"
-          v-model="form.category_id"
-          class="form-select"
-        >
+        <select id="category" v-model="form.category_id" class="form-select">
           <option value="">请选择分类</option>
           <option
             v-for="cat in flatCategories"
@@ -80,11 +76,12 @@
             :value="cat.id"
             :style="{ paddingLeft: `${cat.level * 1.5}rem` }"
           >
-            {{ '  '.repeat(cat.level) }}{{ cat.name }}
+            {{ "  ".repeat(cat.level) }}{{ cat.name }}
           </option>
         </select>
       </div>
-    </div>    <div class="form-row">
+    </div>
+    <div class="form-row">
       <div class="form-group">
         <label class="form-label">关键词</label>
         <input
@@ -210,23 +207,21 @@
           <label for="file-input" class="file-label">
             <span class="file-icon">📄</span>
             <span class="file-text">
-              {{ file ? file.name : '选择文件或拖拽到此处' }}
+              {{ file ? file.name : "选择文件或拖拽到此处" }}
             </span>
           </label>
           <div v-if="file" class="file-info">
             <span class="file-size">{{ formatFileSize(file.size) }}</span>
-            <button type="button" class="file-remove" @click="removeFile">×</button>
+            <button type="button" class="file-remove" @click="removeFile">
+              ×
+            </button>
           </div>
         </div>
       </div>
     </div>
 
     <div class="form-actions">
-      <button
-        type="button"
-        class="btn btn-secondary"
-        @click="resetForm"
-      >
+      <button type="button" class="btn btn-secondary" @click="resetForm">
         重置
       </button>
       <button
@@ -235,7 +230,7 @@
         :disabled="!form.title.trim() || submitting"
       >
         <span v-if="submitting" class="btn-spinner">⟳</span>
-        {{ submitting ? '提交中...' : '添加论文' }}
+        {{ submitting ? "提交中..." : "添加论文" }}
       </button>
     </div>
   </form>
@@ -243,19 +238,24 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
-import { getCategoryTree, uploadPaper, createPaper, updatePaper } from "../services/api";
+import {
+  getCategoryTree,
+  uploadPaper,
+  createPaper,
+  updatePaper,
+} from "../services/api";
 import { useToast } from "../composables/useToast";
 import UserSelect from "./UserSelect.vue";
 
 const props = defineProps({
   paper: {
     type: Object,
-    default: null
+    default: null,
   },
   paperType: {
     type: String,
-    default: null
-  }
+    default: null,
+  },
 });
 
 const emit = defineEmits(["saved", "cancel"]);
@@ -276,7 +276,7 @@ const form = ref({
   pages: "",
   impact_factor: "",
   notes: "",
-  url: ""
+  url: "",
 });
 
 const categories = ref([]);
@@ -304,7 +304,7 @@ const flatCategories = computed(() => {
 const initializeForm = () => {
   if (props.paper) {
     // 编辑模式：填充现有数据
-    Object.keys(form.value).forEach(key => {
+    Object.keys(form.value).forEach((key) => {
       if (props.paper[key] !== undefined) {
         form.value[key] = props.paper[key];
       }
@@ -317,18 +317,22 @@ const initializeForm = () => {
 
 // 监听 props 变化
 watch(() => props.paper, initializeForm, { immediate: true });
-watch(() => props.paperType, () => {
-  if (!isEdit.value && props.paperType) {
-    form.value.paper_type = props.paperType;
-  }
-}, { immediate: true });
+watch(
+  () => props.paperType,
+  () => {
+    if (!isEdit.value && props.paperType) {
+      form.value.paper_type = props.paperType;
+    }
+  },
+  { immediate: true }
+);
 
 onMounted(async () => {
   try {
     const data = await getCategoryTree();
     categories.value = data.categories || [];
   } catch (error) {
-    console.error('加载分类失败:', error);
+    console.error("加载分类失败:", error);
     categories.value = [];
   }
 });
@@ -339,16 +343,16 @@ const onFileChange = (e) => {
 
 const removeFile = () => {
   file.value = null;
-  const fileInput = document.getElementById('file-input');
-  if (fileInput) fileInput.value = '';
+  const fileInput = document.getElementById("file-input");
+  if (fileInput) fileInput.value = "";
 };
 
 const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 Bytes';
+  if (bytes === 0) return "0 Bytes";
   const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const sizes = ["Bytes", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 };
 
 const resetForm = () => {
@@ -366,19 +370,19 @@ const resetForm = () => {
     pages: "",
     impact_factor: "",
     notes: "",
-    url: ""
+    url: "",
   };
   removeFile();
 };
 
 const handleSubmit = async () => {
   if (!form.value.title.trim()) {
-    showToast('请输入论文标题', 'warning');
+    showToast("请输入论文标题", "warning");
     return;
   }
 
   if (!form.value.paper_type) {
-    showToast('请选择论文类型', 'warning');
+    showToast("请选择论文类型", "warning");
     return;
   }
 
@@ -390,16 +394,18 @@ const handleSubmit = async () => {
       // 移除不需要的字段
       delete data.paper_type; // 编辑时不允许修改论文类型
       await updatePaper(props.paper.id, data);
-      showToast('论文更新成功！', 'success');
+      showToast("论文更新成功！", "success");
     } else {
       // 新建模式：创建论文或上传文件
       if (file.value) {
         // 有文件：使用 uploadPaper
         const formData = new FormData();
         for (const key in form.value) {
-          if (form.value[key] !== null && form.value[key] !== '') {
-            if (key === 'author_ids') {
-              form.value[key].forEach(id => formData.append('author_ids', id));
+          if (form.value[key] !== null && form.value[key] !== "") {
+            if (key === "author_ids") {
+              form.value[key].forEach((id) =>
+                formData.append("author_ids", id)
+              );
             } else {
               formData.append(key, form.value[key]);
             }
@@ -411,14 +417,14 @@ const handleSubmit = async () => {
         // 无文件：使用 createPaper
         await createPaper(form.value);
       }
-      showToast('论文添加成功！', 'success');
+      showToast("论文添加成功！", "success");
       resetForm();
     }
 
     emit("saved");
   } catch (error) {
-    console.error('提交论文失败:', error);
-    showToast('提交失败，请重试', 'error');
+    console.error("提交论文失败:", error);
+    showToast("提交失败，请重试", "error");
   } finally {
     submitting.value = false;
   }
@@ -430,7 +436,8 @@ const handleSubmit = async () => {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  max-width: 800px;
+  max-width: 900px;
+  width: 100%;
   margin: 0 auto;
   padding: 2rem;
 }
@@ -479,15 +486,15 @@ const handleSubmit = async () => {
   gap: 1rem;
   grid-template-columns: 1fr;
 }
-
 .form-row:has(.form-group:nth-child(2)) {
   grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
 }
-
 .form-group {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  width: 100%;
 }
 
 .form-label {
@@ -496,7 +503,9 @@ const handleSubmit = async () => {
   font-size: 0.875rem;
 }
 
-.form-input, .form-select, .form-textarea {
+.form-input,
+.form-select,
+.form-textarea {
   padding: 0.75rem;
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius);
@@ -504,7 +513,9 @@ const handleSubmit = async () => {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.form-input:focus, .form-select:focus, .form-textarea:focus {
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--primary-100);
@@ -603,8 +614,12 @@ const handleSubmit = async () => {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* 响应式设计 */

@@ -1,5 +1,9 @@
 <template>
-  <div v-if="visible" class="confirm-dialog-overlay" @click="handleOverlayClick">
+  <div
+    v-if="visible"
+    class="confirm-dialog-overlay"
+    @click="handleOverlayClick"
+  >
     <div class="confirm-dialog" @click.stop>
       <div class="confirm-dialog-header">
         <h3>{{ title }}</h3>
@@ -29,68 +33,71 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch } from "vue";
 
 const props = defineProps({
   visible: {
     type: Boolean,
-    default: false
+    default: false,
   },
   title: {
     type: String,
-    default: '确认操作'
+    default: "确认操作",
   },
   message: {
     type: String,
-    required: true
+    required: true,
   },
   confirmText: {
     type: String,
-    default: '确认'
+    default: "确认",
   },
   cancelText: {
     type: String,
-    default: '取消'
+    default: "取消",
   },
   loading: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 });
 
-const emit = defineEmits(['confirm', 'cancel', 'close']);
+const emit = defineEmits(["confirm", "cancel", "close"]);
 
 const handleConfirm = () => {
-  emit('confirm');
+  emit("confirm");
 };
 
 const handleCancel = () => {
-  emit('cancel');
-  emit('close');
+  emit("cancel");
+  emit("close");
 };
 
 const handleOverlayClick = () => {
   if (!props.loading) {
-    emit('close');
+    emit("close");
   }
 };
 
 // 处理ESC键关闭对话框
 const handleKeydown = (event) => {
-  if (event.key === 'Escape' && props.visible && !props.loading) {
-    emit('close');
+  if (event.key === "Escape" && props.visible && !props.loading) {
+    emit("close");
   }
 };
 
-watch(() => props.visible, (newVisible) => {
-  if (newVisible) {
-    document.addEventListener('keydown', handleKeydown);
-    document.body.style.overflow = 'hidden';
-  } else {
-    document.removeEventListener('keydown', handleKeydown);
-    document.body.style.overflow = '';
+watch(
+  () => props.visible,
+  (newVisible) => {
+    if (newVisible) {
+      document.addEventListener("keydown", handleKeydown);
+      document.body.style.overflow = "hidden";
+    } else {
+      document.removeEventListener("keydown", handleKeydown);
+      document.body.style.overflow = "";
+    }
   }
-});
+);
 </script>
 
 <style scoped>
@@ -171,6 +178,9 @@ watch(() => props.visible, (newVisible) => {
 
 .btn-secondary:hover:not(:disabled) {
   background-color: #ebebeb;
+  color: #333;
+  border-color: #ccc;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .btn-danger {
@@ -180,6 +190,9 @@ watch(() => props.visible, (newVisible) => {
 
 .btn-danger:hover:not(:disabled) {
   background-color: #c82333;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
 }
 
 .loading-spinner {

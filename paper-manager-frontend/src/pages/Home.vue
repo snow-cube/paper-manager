@@ -1,5 +1,6 @@
 <template>
-  <div class="home">    <div class="hero">
+  <div class="home">
+    <div class="hero">
       <div class="hero-background">
         <div class="hero-shape"></div>
         <div class="hero-dots"></div>
@@ -11,9 +12,16 @@
         </div>
         <h1 class="hero-title">
           欢迎使用
-          <span class="gradient-text">科研论文管理系统</span>
+          <span class="gradient-text" data-text="科研论文管理系统"
+            >科研论文管理系统</span
+          >
         </h1>
-        <p class="hero-subtitle">高效管理您的学术研究资料，让知识更有序，助力科研创新</p>        <div class="hero-actions">
+        <p class="hero-subtitle">
+          高效管理您的学术研究资料，让知识更有序，助力科研创新
+        </p>
+        <div style="height: 40px"></div>
+        <!-- 添加空间距 -->
+        <div class="hero-actions">
           <RouterLink to="/literature" class="btn btn-primary btn-lg">
             <span class="btn-icon">📚</span>
             文献管理
@@ -24,7 +32,8 @@
           </RouterLink>
         </div>
       </div>
-    </div>    <div class="features">
+    </div>
+    <div class="features">
       <div class="feature-card">
         <div class="feature-icon">📚</div>
         <h3>文献管理</h3>
@@ -72,7 +81,7 @@ import { getPapers, getCategories, getUsers } from "../services/api";
 const stats = ref({
   papers: 0,
   categories: 0,
-  authors: 0
+  authors: 0,
 });
 
 const loading = ref(true);
@@ -82,16 +91,16 @@ onMounted(async () => {
     const [papers, categories, users] = await Promise.all([
       getPapers(),
       getCategories(),
-      getUsers()
+      getUsers(),
     ]);
 
     stats.value = {
       papers: papers?.length || 0,
       categories: categories?.length || 0,
-      authors: users?.length || 0
+      authors: users?.length || 0,
     };
   } catch (error) {
-    console.log('Failed to load stats:', error);
+    console.log("Failed to load stats:", error);
   } finally {
     loading.value = false;
   }
@@ -109,10 +118,17 @@ onMounted(async () => {
   position: relative;
   text-align: center;
   margin-bottom: 4rem;
-  padding: 4rem 2rem;
-  background: linear-gradient(135deg, var(--primary-50) 0%, var(--white) 50%, var(--primary-100) 100%);
+  padding: 5rem 2rem;
+  background: linear-gradient(
+    135deg,
+    var(--primary-50) 0%,
+    var(--white) 50%,
+    var(--primary-100) 100%
+  );
   border-radius: var(--border-radius-lg);
   overflow: hidden;
+  box-shadow: 0 8px 24px rgba(125, 108, 192, 0.08);
+  border: 1px solid var(--primary-200);
 }
 
 .hero-background {
@@ -127,10 +143,11 @@ onMounted(async () => {
   right: -20%;
   width: 60%;
   height: 120%;
-  background: linear-gradient(45deg, var(--primary-200), var(--primary-100));
+  background: linear-gradient(45deg, var(--primary-300), var(--primary-200));
   border-radius: 50%;
-  opacity: 0.3;
+  opacity: 0.25;
   animation: float 6s ease-in-out infinite;
+  filter: blur(40px);
 }
 
 .hero-dots {
@@ -139,7 +156,7 @@ onMounted(async () => {
   left: 10%;
   width: 100px;
   height: 100px;
-  background: radial-gradient(circle, var(--primary-300) 2px, transparent 2px);
+  background: radial-gradient(circle, var(--primary-400) 2px, transparent 2px);
   background-size: 20px 20px;
   opacity: 0.4;
 }
@@ -160,8 +177,8 @@ onMounted(async () => {
   border-radius: 50px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--color-primary);
-  box-shadow: var(--shadow);
+  color: var(--primary-700);
+  box-shadow: 0 3px 8px rgba(125, 108, 192, 0.1);
   margin-bottom: 2rem;
   border: 1px solid var(--primary-200);
 }
@@ -176,20 +193,37 @@ onMounted(async () => {
   color: var(--color-heading);
   margin-bottom: 1.5rem;
   line-height: 1.1;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, var(--primary-600), var(--primary-400));
+  background: linear-gradient(135deg, var(--primary-700), var(--primary-500));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  position: relative;
+  display: inline-block;
+}
+
+.gradient-text::after {
+  content: attr(data-text);
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: -1;
+  background: linear-gradient(135deg, var(--primary-700), var(--primary-500));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: blur(6px);
+  opacity: 0.25;
 }
 
 .hero-subtitle {
   font-size: 1.25rem;
   color: var(--color-text);
   max-width: 600px;
-  margin: 0 auto 2.5rem;
+  margin: 0 auto 1.5rem; /* 减小底部边距，因为我们添加了专门的间距div */
   line-height: 1.6;
 }
 
@@ -201,61 +235,95 @@ onMounted(async () => {
 }
 
 .btn-lg {
-  padding: 1rem 2rem;
-  font-size: 1rem;
+  padding: 1.2rem 2.4rem;
+  font-size: 1.1rem;
   font-weight: 600;
-  border-radius: 12px;
-  min-width: 200px;
+  border-radius: 14px;
+  min-width: 220px;
+  letter-spacing: 0.03em;
+  box-shadow: 0 4px 16px rgba(125, 108, 192, 0.18);
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary-600), var(--primary-500));
+  background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
   border: none;
   color: var(--white);
-  box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
+}
+
+.btn-primary::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--primary-700), var(--primary-800));
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.3s ease;
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, var(--primary-700), var(--primary-600));
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(14, 165, 233, 0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(125, 108, 192, 0.25);
+  color: var(--white);
+}
+
+.btn-primary:hover::before {
+  opacity: 1;
 }
 
 .btn-outline {
-  background: var(--white);
-  border: 2px solid var(--primary-200);
-  color: var(--color-primary);
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid var(--primary-300);
+  color: var(--primary-700);
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(5px);
+}
+
+.btn-outline::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--primary-100);
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: -1;
 }
 
 .btn-outline:hover {
-  background: var(--primary-50);
-  border-color: var(--primary-300);
-  transform: translateY(-2px);
+  background: transparent;
+  border-color: var(--primary-400);
+  transform: translateY(-4px);
+  color: var(--primary-800);
+  box-shadow: 0 10px 30px rgba(124, 58, 237, 0.2);
 }
 
-.btn-icon {
-  font-size: 1.25rem;
+.btn-outline:hover::before {
+  transform: scaleX(1);
+  transform-origin: left;
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-20px) rotate(5deg); }
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(5deg);
+  }
 }
 
-.hero-title {
-  font-size: 3rem;
-  font-weight: 700;
-  color: var(--color-heading);
-  margin-bottom: 1rem;
-  line-height: 1.2;
-}
-
-.hero-subtitle {
-  font-size: 1.25rem;
-  color: var(--color-text);
-  max-width: 600px;
-  margin: 0 auto;
-}
+/* 删除重复的hero-title和hero-subtitle定义 */
 
 .features {
   display: grid;
@@ -266,18 +334,19 @@ onMounted(async () => {
 
 .feature-card {
   background: var(--white);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--primary-200);
   border-radius: var(--border-radius-lg);
   padding: 2.5rem;
   text-align: center;
-  box-shadow: var(--shadow-sm);
-  transition: all 0.3s ease;
+  box-shadow: 0 5px 20px rgba(124, 58, 237, 0.08);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  backdrop-filter: blur(5px);
 }
 
 .feature-card::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -285,7 +354,7 @@ onMounted(async () => {
   height: 4px;
   background: linear-gradient(90deg, var(--primary-500), var(--primary-400));
   transform: scaleX(0);
-  transition: transform 0.3s ease;
+  transition: transform 0.4s ease;
 }
 
 .feature-card:hover::before {
@@ -293,15 +362,19 @@ onMounted(async () => {
 }
 
 .feature-card:hover {
-  transform: translateY(-8px);
-  box-shadow: var(--shadow-lg);
-  border-color: var(--primary-200);
+  transform: translateY(-12px);
+  box-shadow: 0 15px 30px rgba(124, 58, 237, 0.15);
+  border-color: var(--primary-300);
 }
 
 .feature-icon {
   font-size: 3.5rem;
   margin-bottom: 1.5rem;
   display: block;
+  background: linear-gradient(135deg, var(--primary-500), var(--primary-400));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .feature-card h3 {
@@ -321,23 +394,60 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 2rem;
-  background: linear-gradient(135deg, var(--primary-50), var(--color-background-soft));
+  background: linear-gradient(
+    135deg,
+    var(--primary-50),
+    var(--white),
+    var(--primary-100)
+  );
   padding: 3rem 2rem;
   border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--primary-100);
+  box-shadow: 0 10px 30px rgba(124, 58, 237, 0.1);
+  border: 1px solid var(--primary-200);
+  position: relative;
+  overflow: hidden;
+}
+
+.stats::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 100%;
+  height: 200%;
+  background: radial-gradient(circle, var(--primary-200) 0%, transparent 70%);
+  opacity: 0.4;
+  filter: blur(60px);
 }
 
 .stat-item {
   text-align: center;
+  position: relative;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.5);
+  padding: 2rem;
+  border-radius: var(--border-radius);
+  backdrop-filter: blur(5px);
+  box-shadow: 0 5px 15px rgba(124, 58, 237, 0.08);
+  border: 1px solid var(--primary-100);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(124, 58, 237, 0.15);
 }
 
 .stat-number {
-  font-size: 3rem;
+  font-size: 3.5rem;
   font-weight: 800;
-  color: var(--color-primary);
+  background: linear-gradient(135deg, var(--primary-700), var(--primary-500));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin-bottom: 0.5rem;
-  text-shadow: 0 2px 4px rgba(14, 165, 233, 0.1);
+  text-shadow: 0 2px 10px rgba(124, 58, 237, 0.2);
+  line-height: 1.1;
 }
 
 .stat-label {

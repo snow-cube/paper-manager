@@ -14,17 +14,17 @@
 defineProps({
   size: {
     type: String,
-    default: 'medium',
-    validator: (value) => ['small', 'medium', 'large'].includes(value)
+    default: "medium",
+    validator: (value) => ["small", "medium", "large"].includes(value),
   },
   message: {
     type: String,
-    default: ''
+    default: "",
   },
   overlay: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 });
 </script>
 
@@ -43,8 +43,8 @@ defineProps({
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(4px);
+  background: rgba(249, 248, 255, 0.9);
+  backdrop-filter: blur(6px);
   z-index: 1000;
 }
 
@@ -71,9 +71,10 @@ defineProps({
 .spinner-circle {
   position: absolute;
   border: 3px solid var(--primary-200);
-  border-top: 3px solid var(--primary-500);
+  border-top: 3px solid var(--primary-600);
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin 1.2s cubic-bezier(0.5, 0.1, 0.5, 0.9) infinite;
+  box-shadow: 0 0 8px rgba(125, 108, 192, 0.08);
 }
 
 .spinner.small .spinner-circle {
@@ -114,15 +115,20 @@ defineProps({
 }
 
 .loading-message {
-  color: var(--color-text);
-  font-size: 0.875rem;
+  color: var(--primary-700);
+  font-size: 0.95rem;
   font-weight: 500;
   margin: 0;
   text-align: center;
+  text-shadow: 0 1px 2px rgba(125, 108, 192, 0.08);
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 </style>

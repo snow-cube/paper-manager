@@ -9,9 +9,7 @@
           <span v-if="retrying" class="loading-spinner"></span>
           重试
         </button>
-        <button @click="reload" class="btn btn-secondary">
-          刷新页面
-        </button>
+        <button @click="reload" class="btn btn-secondary">刷新页面</button>
       </div>
       <details v-if="errorDetails" class="error-details">
         <summary>错误详情</summary>
@@ -23,27 +21,27 @@
 </template>
 
 <script setup>
-import { ref, onErrorCaptured } from 'vue';
-import { useToast } from '../composables/useToast';
+import { ref, onErrorCaptured } from "vue";
+import { useToast } from "../composables/useToast";
 
 const props = defineProps({
   fallbackMessage: {
     type: String,
-    default: '应用程序遇到了意外错误'
+    default: "应用程序遇到了意外错误",
   },
   showDetails: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 });
 
-const emit = defineEmits(['error', 'retry']);
+const emit = defineEmits(["error", "retry"]);
 
 const { showToast } = useToast();
 
 const hasError = ref(false);
-const errorMessage = ref('');
-const errorDetails = ref('');
+const errorMessage = ref("");
+const errorDetails = ref("");
 const retrying = ref(false);
 
 const handleError = (error, instance, info) => {
@@ -55,12 +53,12 @@ const handleError = (error, instance, info) => {
   }
 
   // 发送错误事件
-  emit('error', { error, instance, info });
+  emit("error", { error, instance, info });
 
   // 显示错误通知
-  showToast('应用程序出现错误', 'error');
+  showToast("应用程序出现错误", "error");
 
-  console.error('Error Boundary caught an error:', error, info);
+  console.error("Error Boundary caught an error:", error, info);
 
   return false; // 阻止错误继续传播
 };
@@ -70,20 +68,20 @@ const retry = async () => {
 
   try {
     // 触发重试事件
-    emit('retry');
+    emit("retry");
 
     // 模拟一个短暂的延迟
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     // 重置错误状态
     hasError.value = false;
-    errorMessage.value = '';
-    errorDetails.value = '';
+    errorMessage.value = "";
+    errorDetails.value = "";
 
-    showToast('重试成功', 'success');
+    showToast("重试成功", "success");
   } catch (error) {
-    console.error('Retry failed:', error);
-    showToast('重试失败，请稍后再试', 'error');
+    console.error("Retry failed:", error);
+    showToast("重试失败，请稍后再试", "error");
   } finally {
     retrying.value = false;
   }
@@ -98,12 +96,12 @@ onErrorCaptured(handleError);
 
 // 全局错误处理
 const setupGlobalErrorHandler = () => {
-  window.addEventListener('error', (event) => {
-    handleError(event.error, null, 'Global error handler');
+  window.addEventListener("error", (event) => {
+    handleError(event.error, null, "Global error handler");
   });
 
-  window.addEventListener('unhandledrejection', (event) => {
-    handleError(event.reason, null, 'Unhandled promise rejection');
+  window.addEventListener("unhandledrejection", (event) => {
+    handleError(event.reason, null, "Unhandled promise rejection");
   });
 };
 
@@ -179,6 +177,9 @@ setupGlobalErrorHandler();
 
 .btn-primary:hover:not(:disabled) {
   background-color: #0056b3;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
 }
 
 .btn-secondary {
@@ -188,6 +189,9 @@ setupGlobalErrorHandler();
 
 .btn-secondary:hover:not(:disabled) {
   background-color: #545b62;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(108, 117, 125, 0.3);
 }
 
 .loading-spinner {

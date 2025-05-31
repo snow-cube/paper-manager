@@ -35,9 +35,9 @@
               />
               <span class="search-icon">🔍</span>
             </div>
-            <button @click="showAddForm = true" class="btn btn-primary">
+            <button @click="showAddForm = true" class="btn btn-outline-purple">
               <span class="btn-icon">➕</span>
-              添加论文
+              发表论文
             </button>
           </div>
 
@@ -50,9 +50,19 @@
             <div v-else-if="filteredPapers.length === 0" class="empty-state">
               <div class="empty-icon">🎓</div>
               <h3>暂无发表论文</h3>
-              <p>{{ searchQuery ? '没有找到匹配的论文' : '开始记录您的第一篇发表论文' }}</p>
-              <button v-if="!searchQuery" @click="showAddForm = true" class="btn btn-primary">
-                添加论文
+              <p>
+                {{
+                  searchQuery
+                    ? "没有找到匹配的论文"
+                    : "开始记录您的第一篇发表论文"
+                }}
+              </p>
+              <button
+                v-if="!searchQuery"
+                @click="showAddForm = true"
+                class="btn btn-outline-purple"
+              >
+                发表论文
               </button>
             </div>
 
@@ -92,30 +102,33 @@
         @cancel="closeForm"
       />
     </Modal>
-
     <!-- 论文详情模态框 -->
-    <Modal v-if="viewingPaper" @close="viewingPaper = null">
-      <PaperDetail :paper="viewingPaper" />
+    <Modal v-if="viewingPaper" @close="closeViewPaper">
+      <PaperDetail
+        :paper="viewingPaper"
+        @edit="handleEditPaper"
+        @close="closeViewPaper"
+      />
     </Modal>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
-import { getPapersByType, deletePaper } from '../services/api';
-import CategoryTree from '../components/CategoryTree.vue';
-import PublishedPaperCard from '../components/PublishedPaperCard.vue';
-import PaperForm from '../components/PaperForm.vue';
-import PaperDetail from '../components/PaperDetail.vue';
-import Modal from '../components/Modal.vue';
-import { useToast } from '../composables/useToast';
+import { ref, computed, onMounted, watch } from "vue";
+import { getPapersByType, deletePaper } from "../services/api";
+import CategoryTree from "../components/CategoryTree.vue";
+import PublishedPaperCard from "../components/PublishedPaperCard.vue";
+import PaperForm from "../components/PaperForm.vue";
+import PaperDetail from "../components/PaperDetail.vue";
+import Modal from "../components/Modal.vue";
+import { useToast } from "../composables/useToast";
 
 const { showToast } = useToast();
 
 // 响应式数据
 const papers = ref([]);
 const loading = ref(false);
-const searchQuery = ref('');
+const searchQuery = ref("");
 const selectedCategoryId = ref(null);
 const showAddForm = ref(false);
 const editingPaper = ref(null);
@@ -129,18 +142,21 @@ const filteredPapers = computed(() => {
 
   // 分类筛选
   if (selectedCategoryId.value) {
-    filtered = filtered.filter(paper => paper.category_id === selectedCategoryId.value);
+    filtered = filtered.filter(
+      (paper) => paper.category_id === selectedCategoryId.value
+    );
   }
 
   // 搜索筛选
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase();
-    filtered = filtered.filter(paper =>
-      paper.title.toLowerCase().includes(query) ||
-      paper.authors.toLowerCase().includes(query) ||
-      paper.keywords.toLowerCase().includes(query) ||
-      paper.abstract.toLowerCase().includes(query) ||
-      (paper.journal && paper.journal.toLowerCase().includes(query))
+    filtered = filtered.filter(
+      (paper) =>
+        paper.title.toLowerCase().includes(query) ||
+        paper.authors.toLowerCase().includes(query) ||
+        paper.keywords.toLowerCase().includes(query) ||
+        paper.abstract.toLowerCase().includes(query) ||
+        (paper.journal && paper.journal.toLowerCase().includes(query))
     );
   }
 
@@ -154,17 +170,20 @@ const totalPages = computed(() => {
   let filtered = papers.value;
 
   if (selectedCategoryId.value) {
-    filtered = filtered.filter(paper => paper.category_id === selectedCategoryId.value);
+    filtered = filtered.filter(
+      (paper) => paper.category_id === selectedCategoryId.value
+    );
   }
 
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase();
-    filtered = filtered.filter(paper =>
-      paper.title.toLowerCase().includes(query) ||
-      paper.authors.toLowerCase().includes(query) ||
-      paper.keywords.toLowerCase().includes(query) ||
-      paper.abstract.toLowerCase().includes(query) ||
-      (paper.journal && paper.journal.toLowerCase().includes(query))
+    filtered = filtered.filter(
+      (paper) =>
+        paper.title.toLowerCase().includes(query) ||
+        paper.authors.toLowerCase().includes(query) ||
+        paper.keywords.toLowerCase().includes(query) ||
+        paper.abstract.toLowerCase().includes(query) ||
+        (paper.journal && paper.journal.toLowerCase().includes(query))
     );
   }
 
@@ -175,10 +194,10 @@ const totalPages = computed(() => {
 const loadPapers = async () => {
   loading.value = true;
   try {
-    papers.value = await getPapersByType('published');
+    papers.value = await getPapersByType("published");
   } catch (error) {
-    console.error('Failed to load publications:', error);
-    showToast('加载发表论文失败', 'error');
+    console.error("Failed to load publications:", error);
+    showToast("加载发表论文失败", "error");
   } finally {
     loading.value = false;
   }
@@ -203,10 +222,10 @@ const handleDelete = async (paper) => {
     try {
       await deletePaper(paper.id);
       await loadPapers();
-      showToast('论文删除成功', 'success');
+      showToast("论文删除成功", "success");
     } catch (error) {
-      console.error('Failed to delete paper:', error);
-      showToast('删除论文失败', 'error');
+      console.error("Failed to delete paper:", error);
+      showToast("删除论文失败", "error");
     }
   }
 };
@@ -215,10 +234,22 @@ const handleView = (paper) => {
   viewingPaper.value = paper;
 };
 
+// 关闭论文详情
+const closeViewPaper = () => {
+  viewingPaper.value = null;
+};
+
+// 编辑论文
+const handleEditPaper = (paper) => {
+  closeViewPaper();
+  editingPaper.value = paper;
+  showAddForm.value = true;
+};
+
 const handlePaperSaved = () => {
   closeForm();
   loadPapers();
-  showToast(editingPaper.value ? '论文更新成功' : '论文添加成功', 'success');
+  showToast(editingPaper.value ? "论文更新成功" : "论文添加成功", "success");
 };
 
 const closeForm = () => {
@@ -273,7 +304,7 @@ onMounted(() => {
 
 .content-layout {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 320px 1fr;
   gap: 2rem;
   align-items: start;
 }
@@ -372,8 +403,12 @@ onMounted(() => {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .empty-state {
@@ -421,42 +456,16 @@ onMounted(() => {
 }
 
 .page-btn:hover {
-  background: var(--color-bg-soft);
+  background: var(--gray-200);
+  color: var(--gray-800);
+  border-color: var(--gray-300);
+  box-shadow: var(--shadow-sm);
 }
 
 .page-btn.active {
   background: var(--color-primary);
   color: var(--white);
   border-color: var(--color-primary);
-}
-
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: var(--border-radius);
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  text-decoration: none;
-}
-
-.btn-primary {
-  background: var(--color-primary);
-  color: var(--white);
-}
-
-.btn-primary:hover {
-  background: var(--color-primary-dark);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-}
-
-.btn-icon {
-  font-size: 1rem;
 }
 
 @media (max-width: 768px) {

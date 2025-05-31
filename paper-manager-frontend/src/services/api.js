@@ -22,7 +22,7 @@ export const deletePaper = async (id) =>
 // Download paper file
 export const downloadPaper = async (id) => {
   const response = await api.get(`/paper/${id}/download`, {
-    responseType: 'blob'
+    responseType: "blob",
   });
   return response;
 };

@@ -15,18 +15,19 @@
         <span :class="expanded ? 'rotate-90' : ''">▶</span>
       </button>
       <span v-else class="node-spacer"></span>
-
       <!-- 分类图标和名称 -->
       <span class="node-icon">📁</span>
       <span class="node-label">{{ category.name }}</span>
 
       <!-- 论文数量 -->
-      <span class="node-count">{{ category.paper_count || 0 }}</span>
+      <span class="node-count" v-if="category.paper_count !== undefined">{{
+        category.paper_count
+      }}</span>
 
-      <!-- 操作按钮 -->
+      <!-- 操作按钮 - 重新定位至右侧 -->
       <div class="node-actions" @click.stop>
         <button
-          class="action-btn"
+          class="action-btn btn-outline-purple"
           @click="$emit('add-child', category.id)"
           title="添加子分类"
         >
@@ -67,24 +68,24 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed } from "vue";
 
 const props = defineProps({
   category: {
     type: Object,
-    required: true
+    required: true,
   },
   selectedId: {
     type: [Number, String],
-    default: null
+    default: null,
   },
   level: {
     type: Number,
-    default: 0
-  }
+    default: 0,
+  },
 });
 
-defineEmits(['select', 'add-child', 'edit', 'delete']);
+defineEmits(["select", "add-child", "edit", "delete"]);
 
 const expanded = ref(true);
 
@@ -112,6 +113,7 @@ const toggleExpanded = () => {
   border-radius: var(--border-radius);
   margin: 0.125rem 0;
   position: relative;
+  overflow: visible; /* 允许操作按钮溢出容器 */
 }
 
 .node-content:hover {
@@ -120,6 +122,8 @@ const toggleExpanded = () => {
 
 .node-content:hover .node-actions {
   opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
 }
 
 .node-active {
@@ -175,6 +179,7 @@ const toggleExpanded = () => {
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
+  min-width: 0; /* 允许文本收缩 */
 }
 
 .node-active .node-label {
@@ -191,6 +196,9 @@ const toggleExpanded = () => {
   font-weight: 500;
   min-width: 1.5rem;
   text-align: center;
+  margin-left: auto; /* 推到最右侧 */
+  z-index: 5; /* 确保在悬停时仍然可见，但低于操作按钮 */
+  position: relative; /* 需要z-index生效 */
 }
 
 .node-active .node-count {
@@ -202,11 +210,20 @@ const toggleExpanded = () => {
   display: flex;
   gap: 0.25rem;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  position: absolute;
+  right: 2.5rem; /* 更靠右的位置，靠近论文数量但不重叠 */
+  background: rgba(255, 255, 255, 0.95); /* 半透明背景 */
+  padding: 0.125rem;
+  border-radius: var(--border-radius);
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(125, 108, 192, 0.12);
+  transform: translateX(10px); /* 初始状态稍微偏右 */
 }
 
 .action-btn {
-  background: none;
+  background: var(--white);
   border: none;
   cursor: pointer;
   padding: 0.25rem;
@@ -216,7 +233,22 @@ const toggleExpanded = () => {
   justify-content: center;
   width: 1.5rem;
   height: 1.5rem;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(125, 108, 192, 0.08);
+}
+
+.action-btn.btn-outline-purple {
+  background: var(--white);
+  color: var(--primary-700);
+  border: 1px solid var(--primary-600);
+  box-shadow: 0 1px 3px rgba(125, 108, 192, 0.08);
+}
+
+.action-btn.btn-outline-purple:hover {
+  background: var(--primary-50);
+  color: var(--primary-800);
+  border-color: var(--primary-700);
+  box-shadow: 0 2px 5px rgba(125, 108, 192, 0.12);
 }
 
 .action-btn:hover {
@@ -244,7 +276,7 @@ const toggleExpanded = () => {
 }
 
 .node-content[style*="padding-left"]::before {
-  content: '';
+  content: "";
   position: absolute;
   left: calc(var(--level, 0) * 1.5rem + 0.375rem);
   top: 50%;

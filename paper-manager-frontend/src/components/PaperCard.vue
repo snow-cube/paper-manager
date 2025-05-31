@@ -6,13 +6,25 @@
         文献
       </div>
       <div class="paper-actions">
-        <button @click="$emit('view', paper)" class="action-btn view-btn" title="查看详情">
+        <button
+          @click="$emit('view', paper)"
+          class="action-btn view-btn"
+          title="查看详情"
+        >
           👁️
         </button>
-        <button @click="$emit('edit', paper)" class="action-btn edit-btn" title="编辑">
+        <button
+          @click="$emit('edit', paper)"
+          class="action-btn edit-btn"
+          title="编辑"
+        >
           ✏️
         </button>
-        <button @click="$emit('delete', paper)" class="action-btn delete-btn" title="删除">
+        <button
+          @click="$emit('delete', paper)"
+          class="action-btn delete-btn"
+          title="删除"
+        >
           🗑️
         </button>
       </div>
@@ -45,15 +57,13 @@
 
       <div v-if="paper.abstract" class="paper-abstract">
         {{ truncatedAbstract }}
-        <span v-if="paper.abstract.length > 150" class="read-more">... 查看更多</span>
+        <span v-if="paper.abstract.length > 150" class="read-more"
+          >... 查看更多</span
+        >
       </div>
 
       <div v-if="paper.keywords" class="paper-keywords">
-        <span
-          v-for="keyword in keywordList"
-          :key="keyword"
-          class="keyword-tag"
-        >
+        <span v-for="keyword in keywordList" :key="keyword" class="keyword-tag">
           {{ keyword }}
         </span>
       </div>
@@ -73,22 +83,22 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import { useCategories } from '../composables/useCategories';
+import { computed } from "vue";
+import { useCategories } from "../composables/useCategories";
 
 const props = defineProps({
   paper: {
     type: Object,
-    required: true
-  }
+    required: true,
+  },
 });
 
-defineEmits(['edit', 'delete', 'view']);
+defineEmits(["edit", "delete", "view"]);
 
 const { getCategoryName } = useCategories();
 
 const truncatedAbstract = computed(() => {
-  if (!props.paper.abstract) return '';
+  if (!props.paper.abstract) return "";
   return props.paper.abstract.length > 150
     ? props.paper.abstract.substring(0, 150)
     : props.paper.abstract;
@@ -96,15 +106,18 @@ const truncatedAbstract = computed(() => {
 
 const keywordList = computed(() => {
   if (!props.paper.keywords) return [];
-  return props.paper.keywords.split(',').map(k => k.trim()).slice(0, 5);
+  return props.paper.keywords
+    .split(",")
+    .map((k) => k.trim())
+    .slice(0, 5);
 });
 
 const formatDate = (dateString) => {
-  if (!dateString) return '';
-  return new Date(dateString).toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
+  if (!dateString) return "";
+  return new Date(dateString).toLocaleDateString("zh-CN", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   });
 };
 </script>
@@ -112,17 +125,18 @@ const formatDate = (dateString) => {
 <style scoped>
 .paper-card {
   background: var(--white);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--primary-200);
   border-radius: var(--border-radius-lg);
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  box-shadow: 0 4px 6px rgba(125, 108, 192, 0.04);
 }
 
 .paper-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
-  border-color: var(--color-primary-light);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(125, 108, 192, 0.12);
+  border-color: var(--primary-300);
 }
 
 .paper-header {
@@ -144,12 +158,17 @@ const formatDate = (dateString) => {
 }
 
 .paper-type-badge.literature {
-  background: linear-gradient(135deg, #43cea2 0%, #185a9d 100%);
+  background: linear-gradient(
+    135deg,
+    var(--primary-600) 0%,
+    var(--primary-700) 100%
+  );
   color: var(--white);
+  box-shadow: 0 3px 8px rgba(125, 108, 192, 0.15);
 }
 
 .badge-icon {
-  font-size: 0.8rem;
+  font-size: 0.9rem;
 }
 
 .paper-actions {
@@ -163,34 +182,16 @@ const formatDate = (dateString) => {
   opacity: 1;
 }
 
-.action-btn {
-  background: transparent;
-  border: none;
-  padding: 0.4rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.action-btn:hover {
-  background: var(--color-bg-soft);
-  transform: scale(1.1);
-}
-
 .view-btn:hover {
-  background: rgba(45, 91, 255, 0.1);
+  background: rgba(125, 108, 192, 0.08);
 }
 
 .edit-btn:hover {
-  background: rgba(255, 193, 7, 0.1);
+  background: rgba(125, 108, 192, 0.06);
 }
 
 .delete-btn:hover {
-  background: rgba(220, 53, 69, 0.1);
+  background: rgba(220, 53, 69, 0.08);
 }
 
 .paper-content {
@@ -254,47 +255,64 @@ const formatDate = (dateString) => {
 }
 
 .read-more {
-  color: var(--color-primary);
-  font-weight: 500;
+  color: var(--primary-600);
+  font-weight: 600;
 }
 
 .paper-keywords {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 0.5rem;
   margin-bottom: 1rem;
 }
 
 .keyword-tag {
-  background: var(--color-primary-light);
-  color: var(--color-primary-dark);
-  padding: 0.2rem 0.6rem;
+  background: var(--primary-100);
+  color: var(--primary-700);
+  padding: 0.25rem 0.7rem;
   border-radius: 12px;
   font-size: 0.75rem;
   font-weight: 500;
+  transition: all 0.3s ease;
+  border: 1px solid var(--primary-200);
+  box-shadow: 0 2px 4px rgba(125, 108, 192, 0.08);
+}
+
+.keyword-tag:hover {
+  background: var(--primary-200);
+  transform: translateY(-2px);
+  box-shadow: 0 3px 6px rgba(125, 108, 192, 0.12);
 }
 
 .paper-footer {
-  padding: 0.75rem 1.5rem;
-  background: var(--color-bg-soft);
-  border-top: 1px solid var(--color-border);
+  padding: 0.85rem 1.5rem;
+  background: linear-gradient(
+    to right,
+    var(--primary-50),
+    var(--white),
+    var(--primary-50)
+  );
+  border-top: 1px solid var(--primary-100);
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-size: 0.8rem;
+  backdrop-filter: blur(5px);
 }
 
 .paper-category,
 .paper-date {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
-  color: var(--color-text-soft);
+  gap: 0.4rem;
+  color: var(--primary-700);
+  font-weight: 500;
 }
 
 .category-icon,
 .date-icon {
-  font-size: 0.9rem;
+  font-size: 1rem;
+  color: var(--primary-500);
 }
 
 @media (max-width: 480px) {

@@ -29,26 +29,28 @@
 defineProps({
   title: {
     type: String,
-    default: ''
+    default: "",
   },
   subtitle: {
     type: String,
-    default: ''
+    default: "",
   },
   icon: {
     type: String,
-    default: ''
+    default: "",
   },
   maxWidth: {
     type: String,
-    default: '1200px'
-  }
+    default: "1200px",
+  },
 });
 </script>
 
 <style scoped>
 .page-layout {
-  min-height: calc(100vh - var(--header-height, 80px) - var(--footer-height, 60px));
+  min-height: calc(
+    100vh - var(--header-height, 80px) - var(--footer-height, 60px)
+  );
 }
 
 .page-container {
@@ -63,15 +65,38 @@ defineProps({
   justify-content: space-between;
   gap: 2rem;
   margin-bottom: 3rem;
-  padding: 2rem;
-  background: linear-gradient(135deg, var(--primary-50), var(--color-background-soft));
+  padding: 2.5rem;
+  background: linear-gradient(
+    135deg,
+    var(--primary-50),
+    var(--white),
+    var(--primary-100)
+  );
   border-radius: var(--border-radius-lg);
-  border: 1px solid var(--primary-100);
+  border: 1px solid var(--primary-200);
+  box-shadow: 0 10px 30px rgba(124, 58, 237, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.page-header::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 100%;
+  height: 200%;
+  background: radial-gradient(circle, var(--primary-200) 0%, transparent 70%);
+  opacity: 0.4;
+  filter: blur(60px);
+  z-index: 0;
 }
 
 .page-header-content {
   flex: 1;
   text-align: center;
+  position: relative;
+  z-index: 1;
 }
 
 .page-title {
@@ -79,7 +104,7 @@ defineProps({
   font-weight: 800;
   color: var(--color-heading);
   margin: 0 0 0.75rem 0;
-  background: linear-gradient(135deg, var(--primary-600), var(--primary-400));
+  background: linear-gradient(135deg, var(--primary-700), var(--primary-500));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -88,11 +113,12 @@ defineProps({
   justify-content: center;
   gap: 0.75rem;
   line-height: 1.2;
+  text-shadow: 0 4px 10px rgba(124, 58, 237, 0.2);
 }
 
 .page-icon {
-  font-size: 0.8em;
-  filter: drop-shadow(0 2px 4px rgba(14, 165, 233, 0.2));
+  font-size: 0.9em;
+  filter: drop-shadow(0 2px 8px rgba(124, 58, 237, 0.3));
 }
 
 .page-subtitle {

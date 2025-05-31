@@ -6,7 +6,7 @@
         分类目录
       </h3>
       <button
-        class="btn btn-sm btn-primary"
+        class="btn btn-sm btn-outline-purple"
         @click="showAddDialog(null)"
         title="添加根分类"
       >
@@ -31,7 +31,8 @@
       </div>
 
       <!-- 分类内容 -->
-      <template v-else>        <!-- 全部论文选项 -->
+      <template v-else>
+        <!-- 全部论文选项 -->
         <div
           class="tree-node tree-node-all"
           :class="{ 'tree-node-active': props.selectedCategoryId === null }"
@@ -39,15 +40,27 @@
         >
           <div class="tree-node-content">
             <span class="tree-node-icon">
-              {{ props.paperType === 'published' ? '🎓' : props.paperType === 'literature' ? '📚' : '📄' }}
+              {{
+                props.paperType === "published"
+                  ? "🎓"
+                  : props.paperType === "literature"
+                  ? "📚"
+                  : "📄"
+              }}
             </span>
             <span class="tree-node-label">
-              {{ props.paperType === 'published' ? '全部发表论文' :
-                 props.paperType === 'literature' ? '全部文献' : '全部论文' }}
+              {{
+                props.paperType === "published"
+                  ? "全部发表论文"
+                  : props.paperType === "literature"
+                  ? "全部文献"
+                  : "全部论文"
+              }}
             </span>
             <span class="tree-node-count">{{ totalPapers }}</span>
           </div>
-        </div>        <!-- 分类树 -->
+        </div>
+        <!-- 分类树 -->
         <div class="tree-list">
           <CategoryNode
             v-for="category in categoryTree"
@@ -61,43 +74,57 @@
             @delete="deleteCategory"
           />
         </div>
-      </template>    </div>
+      </template>
+    </div>
 
     <!-- 添加/编辑分类对话框 -->
     <Teleport to="body">
-      <div v-if="showDialog" class="dialog-overlay" @click="closeCategoryDialog">
+      <div
+        v-if="showDialog"
+        class="dialog-overlay"
+        @click="closeCategoryDialog"
+      >
         <div class="dialog" @click.stop>
           <div class="dialog-header">
-            <h4>{{ isEditing ? '编辑分类' : '添加分类' }}</h4>
+            <h4>{{ isEditing ? "编辑分类" : "添加分类" }}</h4>
             <button class="dialog-close" @click="closeCategoryDialog">×</button>
           </div>
-        <div class="dialog-body">
-          <div class="form-group">
-            <label class="form-label">分类名称</label>
-            <input
-              v-model="categoryForm.name"
-              class="form-input"
-              placeholder="请输入分类名称"
-              @keyup.enter="saveCategory"
-            />
+          <div class="dialog-body">
+            <div class="form-group">
+              <label class="form-label">分类名称</label>
+              <input
+                v-model="categoryForm.name"
+                class="form-input"
+                placeholder="请输入分类名称"
+                @keyup.enter="saveCategory"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">描述</label>
+              <textarea
+                v-model="categoryForm.description"
+                class="form-textarea"
+                placeholder="请输入分类描述（可选）"
+                rows="3"
+              ></textarea>
+            </div>
           </div>
-          <div class="form-group">
-            <label class="form-label">描述</label>
-            <textarea
-              v-model="categoryForm.description"
-              class="form-textarea"
-              placeholder="请输入分类描述（可选）"
-              rows="3"
-            ></textarea>
+          <div class="dialog-footer">
+            <button class="btn btn-secondary" @click="closeCategoryDialog">
+              取消
+            </button>
+            <button
+              class="btn btn-primary"
+              @click="saveCategory"
+              :disabled="!categoryForm.name.trim()"
+            >
+              {{ isEditing ? "保存" : "添加" }}
+            </button>
           </div>
         </div>
-        <div class="dialog-footer">
-          <button class="btn btn-secondary" @click="closeCategoryDialog">取消</button>
-          <button class="btn btn-primary" @click="saveCategory" :disabled="!categoryForm.name.trim()">
-            {{ isEditing ? '保存' : '添加' }}          </button>        </div>
       </div>
-    </div>
-    </Teleport>    <!-- 确认对话框 -->
+    </Teleport>
+    <!-- 确认对话框 -->
     <ConfirmDialog
       :visible="dialogState.visible"
       :title="dialogState.title"
@@ -113,26 +140,33 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
-import { getCategoryTree, createCategory, updateCategory, deleteCategory as deleteCategoryAPI, getPapersByType } from '../services/api';
-import { useToast } from '../composables/useToast';
-import { useConfirmDialog } from '../composables/useConfirmDialog';
-import CategoryNode from './CategoryNode.vue';
-import LoadingSpinner from './LoadingSpinner.vue';
-import ConfirmDialog from './ConfirmDialog.vue';
+import { ref, onMounted, computed, watch } from "vue";
+import {
+  getCategoryTree,
+  createCategory,
+  updateCategory,
+  deleteCategory as deleteCategoryAPI,
+  getPapersByType,
+  getPapers,
+} from "../services/api";
+import { useToast } from "../composables/useToast";
+import { useConfirmDialog } from "../composables/useConfirmDialog";
+import CategoryNode from "./CategoryNode.vue";
+import LoadingSpinner from "./LoadingSpinner.vue";
+import ConfirmDialog from "./ConfirmDialog.vue";
 
 const props = defineProps({
   selectedCategoryId: {
     type: [Number, String],
-    default: null
+    default: null,
   },
   paperType: {
     type: String,
-    default: null // 'literature', 'published' 或 null (显示所有类型)
-  }
+    default: null, // 'literature', 'published' 或 null (显示所有类型)
+  },
 });
 
-const emit = defineEmits(['select']);
+const emit = defineEmits(["select"]);
 
 const { showToast } = useToast();
 const {
@@ -141,7 +175,7 @@ const {
   cancelDialog,
   closeDialog: closeConfirmDialog,
   confirmDelete,
-  setLoading
+  setLoading,
 } = useConfirmDialog();
 
 const categoryTree = ref([]);
@@ -156,13 +190,13 @@ const editingCategoryId = ref(null);
 const parentCategoryId = ref(null);
 
 const categoryForm = ref({
-  name: '',
-  description: ''
+  name: "",
+  description: "",
 });
 
 // 选择分类
 const selectCategory = (categoryId) => {
-  emit('select', categoryId);
+  emit("select", categoryId);
 };
 
 // 加载分类数据和论文统计
@@ -177,8 +211,8 @@ const loadCategories = async () => {
     // 加载论文统计
     await loadPaperCounts();
   } catch (err) {
-    console.error('加载分类失败:', err);
-    error.value = '加载分类失败，请重试';
+    console.error("加载分类失败:", err);
+    error.value = "加载分类失败，请重试";
   } finally {
     loading.value = false;
   }
@@ -189,15 +223,15 @@ const loadPaperCounts = async () => {
   try {
     const papers = props.paperType
       ? await getPapersByType(props.paperType)
-      : []; // 如果没有指定类型，这里可以调用获取所有论文的API
+      : await getPapers(); // 获取所有论文
 
-    totalPapers.value = papers.length;
-
-    // 为每个分类计算论文数量
+    totalPapers.value = papers.length; // 为每个分类计算论文数量
     const updateCategoryCounts = (categories) => {
-      categories.forEach(category => {
-        const categoryPapers = papers.filter(paper => paper.category_id === category.id);
-        category.paperCount = categoryPapers.length;
+      categories.forEach((category) => {
+        const categoryPapers = papers.filter(
+          (paper) => paper.category_id === category.id
+        );
+        category.paper_count = categoryPapers.length;
 
         if (category.children) {
           updateCategoryCounts(category.children);
@@ -207,22 +241,25 @@ const loadPaperCounts = async () => {
 
     updateCategoryCounts(categoryTree.value);
   } catch (err) {
-    console.error('加载论文统计失败:', err);
+    console.error("加载论文统计失败:", err);
   }
 };
 
 // 监听 paperType 变化，重新加载统计
-watch(() => props.paperType, () => {
-  if (categoryTree.value.length > 0) {
-    loadPaperCounts();
+watch(
+  () => props.paperType,
+  () => {
+    if (categoryTree.value.length > 0) {
+      loadPaperCounts();
+    }
   }
-});
+);
 
 // 显示添加分类对话框
 const showAddDialog = (parentId) => {
   isEditing.value = false;
   parentCategoryId.value = parentId;
-  categoryForm.value = { name: '', description: '' };
+  categoryForm.value = { name: "", description: "" };
   showDialog.value = true;
 };
 
@@ -232,7 +269,7 @@ const showEditDialog = (category) => {
   editingCategoryId.value = category.id;
   categoryForm.value = {
     name: category.name,
-    description: category.description || ''
+    description: category.description || "",
   };
   showDialog.value = true;
 };
@@ -240,7 +277,7 @@ const showEditDialog = (category) => {
 // 关闭分类对话框
 const closeCategoryDialog = () => {
   showDialog.value = false;
-  categoryForm.value = { name: '', description: '' };
+  categoryForm.value = { name: "", description: "" };
   editingCategoryId.value = null;
   parentCategoryId.value = null;
 };
@@ -255,22 +292,23 @@ const saveCategory = async () => {
     } else {
       const data = {
         ...categoryForm.value,
-        parent_id: parentCategoryId.value
+        parent_id: parentCategoryId.value,
       };
       await createCategory(data);
-    }    await loadCategories();
+    }
+    await loadCategories();
     closeCategoryDialog();
-    showToast(isEditing.value ? '分类更新成功' : '分类创建成功', 'success');
+    showToast(isEditing.value ? "分类更新成功" : "分类创建成功", "success");
   } catch (error) {
-    console.error('保存分类失败:', error);
-    showToast('保存分类失败，请重试', 'error');
+    console.error("保存分类失败:", error);
+    showToast("保存分类失败，请重试", "error");
   }
 };
 
 // 删除分类
 const deleteCategory = async (categoryId) => {
   try {
-    await confirmDelete('这个分类（删除后其子分类也会被删除）');
+    await confirmDelete("这个分类（删除后其子分类也会被删除）");
 
     setLoading(true);
     await deleteCategoryAPI(categoryId);
@@ -279,12 +317,14 @@ const deleteCategory = async (categoryId) => {
     // 如果删除的是当前选中的分类，重置选择
     if (selectedCategoryId.value === categoryId) {
       selectCategory(null);
-    }      showToast('分类删除成功', 'success');
+    }
+    showToast("分类删除成功", "success");
     closeConfirmDialog(); // 关闭确认对话框
   } catch (error) {
-    if (error !== false) { // 用户没有取消操作
-      console.error('删除分类失败:', error);
-      showToast('删除分类失败，请重试', 'error');
+    if (error !== false) {
+      // 用户没有取消操作
+      console.error("删除分类失败:", error);
+      showToast("删除分类失败，请重试", "error");
     }
     setLoading(false);
   }
@@ -297,7 +337,7 @@ onMounted(() => {
 defineExpose({
   loadCategories,
   selectCategory,
-  categoryTree
+  categoryTree,
 });
 </script>
 
@@ -307,8 +347,9 @@ defineExpose({
   display: flex;
   flex-direction: column;
   background: var(--white);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--primary-200);
   border-radius: var(--border-radius);
+  box-shadow: 0 4px 6px rgba(125, 108, 192, 0.04);
 }
 
 .tree-header {
@@ -316,8 +357,8 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   padding: 1rem;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-background-soft);
+  border-bottom: 1px solid var(--primary-100);
+  background: linear-gradient(to right, var(--primary-50), var(--white));
 }
 
 .tree-title {
@@ -378,23 +419,37 @@ defineExpose({
 
 .tree-node {
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.3s ease;
+  position: relative;
 }
 
 .tree-node:hover {
-  background: var(--color-background-soft);
+  background: var(--primary-50);
 }
 
 .tree-node-active {
   background: var(--primary-50);
-  border-right: 3px solid var(--color-primary);
+  border-right: 3px solid var(--primary-600);
+}
+
+.tree-node-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 3px;
+  background: var(--primary-400);
+  opacity: 0.5;
 }
 
 .tree-node-all {
   margin: 0 0.5rem 0.5rem;
   padding: 0.75rem;
   border-radius: var(--border-radius);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--primary-200);
+  background: linear-gradient(to right, var(--primary-50), var(--white));
+  box-shadow: 0 2px 4px rgba(125, 108, 192, 0.04);
 }
 
 .tree-node-content {
@@ -417,16 +472,28 @@ defineExpose({
 
 .tree-node-count {
   font-size: 0.75rem;
-  background: var(--color-background-mute);
-  color: var(--color-text-light);
+  background: var(--white);
+  color: var(--primary-600);
   padding: 0.125rem 0.5rem;
   border-radius: 50px;
   font-weight: 500;
+  border: 1px solid var(--primary-200);
+  box-shadow: 0 2px 4px rgba(125, 108, 192, 0.04);
+  transition: all 0.3s ease;
+}
+
+.tree-node:hover .tree-node-count {
+  background: var(--white);
+  color: var(--primary-700);
+  border-color: var(--primary-300);
+  box-shadow: 0 2px 6px rgba(125, 108, 192, 0.08);
 }
 
 .tree-node-active .tree-node-count {
   background: var(--white);
-  color: var(--color-primary);
+  color: var(--primary-700);
+  border-color: var(--primary-300);
+  box-shadow: 0 2px 6px rgba(125, 108, 192, 0.08);
 }
 
 .tree-list {
@@ -448,7 +515,8 @@ defineExpose({
 }
 
 .error-icon {
-  font-size: 2rem;  margin-bottom: 0.5rem;
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
 }
 </style>
 
@@ -461,21 +529,23 @@ defineExpose({
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(125, 108, 192, 0.15);
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999; /* 提高z-index确保对话框显示在其他元素之上 */
+  z-index: 9999;
 }
 
 .dialog {
   background: var(--white);
   border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 12px 40px rgba(125, 108, 192, 0.2);
   width: 90%;
   max-width: 400px;
   max-height: 90vh;
   overflow: hidden;
+  border: 1px solid var(--primary-200);
 }
 
 .dialog-header {
@@ -483,35 +553,39 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-background-soft);
+  border-bottom: 1px solid var(--primary-100);
+  background: linear-gradient(to right, var(--primary-50), var(--white));
 }
 
 .dialog-header h4 {
   margin: 0;
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--color-heading);
+  color: var(--primary-800);
 }
 
 .dialog-close {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
+  background: var(--primary-50);
+  border: 1px solid var(--primary-200);
+  font-size: 1.25rem;
   cursor: pointer;
-  color: var(--color-text-light);
+  color: var(--primary-600);
   padding: 0;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--border-radius);
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(125, 108, 192, 0.08);
 }
 
 .dialog-close:hover {
-  background: var(--color-border);
-  color: var(--color-text);
+  background: var(--primary-100);
+  color: var(--primary-700);
+  transform: rotate(90deg);
+  box-shadow: 0 3px 8px rgba(125, 108, 192, 0.12);
 }
 
 .dialog-body {
@@ -523,7 +597,7 @@ defineExpose({
   gap: 0.75rem;
   justify-content: flex-end;
   padding: 1rem 1.5rem;
-  border-top: 1px solid var(--color-border);
-  background: var(--color-background-soft);
+  border-top: 1px solid var(--primary-100);
+  background: linear-gradient(to right, var(--primary-50), var(--white));
 }
 </style>

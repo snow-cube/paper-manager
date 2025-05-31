@@ -5,15 +5,15 @@
         <h1 class="page-title">📄 论文管理</h1>
         <p class="page-subtitle">管理您的学术研究论文</p>
       </div>
-
       <!-- 添加论文按钮 -->
       <div class="page-actions">
         <button
-          class="btn btn-primary"
+          class="btn btn-outline-purple"
+          :class="{ 'is-active': showAddForm }"
           @click="showAddForm = !showAddForm"
         >
-          <span class="btn-icon">{{ showAddForm ? '➖' : '➕' }}</span>
-          {{ showAddForm ? '收起表单' : '添加论文' }}
+          <span class="btn-icon">{{ showAddForm ? "✕" : "+" }}</span>
+          {{ showAddForm ? "收起表单" : "添加论文" }}
         </button>
       </div>
     </div>
@@ -45,8 +45,11 @@
         <div class="content-header">
           <div class="content-title">
             <h2>{{ currentCategoryName }}</h2>
-            <span class="paper-count">共 {{ filteredPapers.length }} 篇论文</span>
-          </div>          <!-- 搜索和筛选 -->
+            <span class="paper-count"
+              >共 {{ filteredPapers.length }} 篇论文</span
+            >
+          </div>
+          <!-- 搜索和筛选 -->
           <div class="content-actions">
             <div class="search-box">
               <input
@@ -71,7 +74,7 @@
               :disabled="loading"
               title="刷新列表"
             >
-              <span class="btn-icon" :class="{ 'rotating': loading }">🔄</span>
+              <span class="btn-icon" :class="{ rotating: loading }">🔄</span>
               刷新
             </button>
           </div>
@@ -97,21 +100,22 @@
           <!-- 空状态 -->
           <div v-else-if="filteredPapers.length === 0" class="empty-state">
             <div class="empty-icon">📄</div>
-            <h3>{{ searchQuery ? '未找到匹配的论文' : '暂无论文' }}</h3>
+            <h3>{{ searchQuery ? "未找到匹配的论文" : "暂无论文" }}</h3>
             <p>
-              {{ searchQuery
-                ? '试试调整搜索关键词或选择其他分类'
-                : selectedCategoryId
-                  ? '此分类下暂无论文，您可以添加新论文'
-                  : '开始添加您的第一篇论文吧'
+              {{
+                searchQuery
+                  ? "试试调整搜索关键词或选择其他分类"
+                  : selectedCategoryId
+                  ? "此分类下暂无论文，您可以添加新论文"
+                  : "开始添加您的第一篇论文吧"
               }}
             </p>
             <button
               v-if="!showAddForm"
-              class="btn btn-primary"
+              class="btn btn-outline-purple"
               @click="showAddForm = true"
             >
-              <span class="btn-icon">➕</span>
+              <span class="btn-icon">+</span>
               添加论文
             </button>
           </div>
@@ -122,11 +126,21 @@
               :papers="filteredPapers"
               @paper-updated="refresh"
               @paper-deleted="refresh"
+              @view-paper="handleViewPaper"
             />
           </div>
         </div>
       </div>
     </div>
+
+    <!-- 论文详情模态框 -->
+    <Modal v-if="viewingPaper" @close="closeViewPaper">
+      <PaperDetail
+        :paper="viewingPaper"
+        @edit="handleEditPaper"
+        @close="closeViewPaper"
+      />
+    </Modal>
   </div>
 </template>
 
@@ -136,6 +150,8 @@ import PaperList from "../components/PaperList.vue";
 import PaperForm from "../components/PaperForm.vue";
 import CategoryTree from "../components/CategoryTree.vue";
 import LoadingSpinner from "../components/LoadingSpinner.vue";
+import Modal from "../components/Modal.vue";
+import PaperDetail from "../components/PaperDetail.vue";
 import { getPapers } from "../services/api";
 import { useToast } from "../composables/useToast";
 
@@ -144,15 +160,16 @@ const loading = ref(true);
 const error = ref(null);
 const showAddForm = ref(false);
 const selectedCategoryId = ref(null);
-const searchQuery = ref('');
+const searchQuery = ref("");
 const categoryTreeRef = ref(null);
+const viewingPaper = ref(null);
 
 const { showToast } = useToast();
 
 // 当前分类名称
 const currentCategoryName = computed(() => {
   if (selectedCategoryId.value === null) {
-    return '📚 全部论文';
+    return "📚 全部论文";
   }
 
   // 递归查找分类名称
@@ -169,8 +186,11 @@ const currentCategoryName = computed(() => {
     return null;
   };
 
-  const categoryName = findCategoryName(categoryTreeRef.value?.categoryTree || [], selectedCategoryId.value);
-  return categoryName ? `📁 ${categoryName}` : '📁 已选择分类';
+  const categoryName = findCategoryName(
+    categoryTreeRef.value?.categoryTree || [],
+    selectedCategoryId.value
+  );
+  return categoryName ? `📁 ${categoryName}` : "📁 已选择分类";
 });
 
 // 过滤后的论文列表
@@ -179,15 +199,17 @@ const filteredPapers = computed(() => {
 
   // 按分类筛选
   if (selectedCategoryId.value !== null) {
-    result = result.filter(paper => {
+    result = result.filter((paper) => {
       // 支持单分类字段
       if (paper.category_id === selectedCategoryId.value) {
         return true;
       }
       // 支持多分类数组
       if (paper.categories && Array.isArray(paper.categories)) {
-        return paper.categories.some(cat =>
-          cat.id === selectedCategoryId.value || cat === selectedCategoryId.value
+        return paper.categories.some(
+          (cat) =>
+            cat.id === selectedCategoryId.value ||
+            cat === selectedCategoryId.value
         );
       }
       return false;
@@ -197,11 +219,12 @@ const filteredPapers = computed(() => {
   // 按搜索关键词筛选
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase().trim();
-    result = result.filter(paper =>
-      paper.title?.toLowerCase().includes(query) ||
-      paper.authors?.toLowerCase().includes(query) ||
-      paper.abstract?.toLowerCase().includes(query) ||
-      paper.keywords?.toLowerCase().includes(query)
+    result = result.filter(
+      (paper) =>
+        paper.title?.toLowerCase().includes(query) ||
+        paper.authors?.toLowerCase().includes(query) ||
+        paper.abstract?.toLowerCase().includes(query) ||
+        paper.keywords?.toLowerCase().includes(query)
     );
   }
 
@@ -211,7 +234,7 @@ const filteredPapers = computed(() => {
 // 处理分类选择
 const handleCategorySelected = (categoryId) => {
   selectedCategoryId.value = categoryId;
-  console.log('Selected category:', categoryId);
+  console.log("Selected category:", categoryId);
 };
 
 // 刷新论文列表 - 改进版本
@@ -224,13 +247,13 @@ const refresh = async () => {
 
     // 如果是首次加载且有数据，显示成功消息
     if (data && data.length > 0) {
-      showToast(`成功加载 ${data.length} 篇论文`, 'success');
+      showToast(`成功加载 ${data.length} 篇论文`, "success");
     }
   } catch (err) {
-    console.error('加载论文失败:', err);
-    error.value = err.message || '加载论文失败，请重试';
+    console.error("加载论文失败:", err);
+    error.value = err.message || "加载论文失败，请重试";
     papers.value = [];
-    showToast('加载论文数据失败，请检查网络连接', 'error');
+    showToast("加载论文数据失败，请检查网络连接", "error");
   } finally {
     loading.value = false;
   }
@@ -241,7 +264,7 @@ const handlePaperSubmitted = async () => {
   showAddForm.value = false;
 
   // 显示成功反馈
-  showToast('正在更新论文列表...', 'info');
+  showToast("正在更新论文列表...", "info");
 
   // 不显示全局loading，因为这是增量更新
   try {
@@ -252,10 +275,10 @@ const handlePaperSubmitted = async () => {
       categoryTreeRef.value.loadCategories();
     }
 
-    showToast('论文列表更新成功', 'success');
+    showToast("论文列表更新成功", "success");
   } catch (error) {
-    console.error('刷新数据失败:', error);
-    showToast('更新论文列表失败，请手动刷新页面', 'error');
+    console.error("刷新数据失败:", error);
+    showToast("更新论文列表失败，请手动刷新页面", "error");
   }
 };
 
@@ -263,14 +286,31 @@ const handlePaperSubmitted = async () => {
 const handleSearch = () => {
   // 搜索逻辑已在 computed 中处理
   if (searchQuery.value.trim()) {
-    showToast(`找到 ${filteredPapers.value.length} 个搜索结果`, 'info', 2000);
+    showToast(`找到 ${filteredPapers.value.length} 个搜索结果`, "info", 2000);
   }
 };
 
 // 清空搜索
 const clearSearch = () => {
-  searchQuery.value = '';
-  showToast('已清空搜索条件', 'info', 2000);
+  searchQuery.value = "";
+  showToast("已清空搜索条件", "info", 2000);
+};
+
+// 查看论文详情
+const handleViewPaper = (paper) => {
+  viewingPaper.value = paper;
+};
+
+// 关闭论文详情
+const closeViewPaper = () => {
+  viewingPaper.value = null;
+};
+
+// 编辑论文
+const handleEditPaper = (paper) => {
+  closeViewPaper();
+  // 这里可以添加编辑论文的逻辑
+  showToast("编辑功能将在后续版本中实现", "info");
 };
 
 onMounted(() => {
@@ -292,7 +332,11 @@ onMounted(() => {
   gap: 2rem;
   margin-bottom: 2rem;
   padding: 2rem;
-  background: linear-gradient(135deg, var(--primary-50), var(--color-background-soft));
+  background: linear-gradient(
+    135deg,
+    var(--primary-50),
+    var(--color-background-soft)
+  );
   border-radius: var(--border-radius-lg);
   border: 1px solid var(--primary-100);
 }
@@ -338,7 +382,7 @@ onMounted(() => {
 
 .main-content {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 320px 1fr;
   gap: 2rem;
   align-items: start;
   min-height: 600px;
@@ -551,14 +595,20 @@ onMounted(() => {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* 响应式设计 */
 @media (max-width: 1200px) {
   .main-content {
-    grid-template-columns: 250px 1fr;
+    grid-template-columns: 300px 1fr;
   }
 
   .search-box {
