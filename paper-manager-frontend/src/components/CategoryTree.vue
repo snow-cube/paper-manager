@@ -61,35 +61,17 @@
           </div>
         </div>        <!-- 分类列表 -->
         <div class="tree-list">
-          <div
+          <CategoryNode
             v-for="category in categoryTree"
             :key="category.id"
-            class="tree-node"
-            :class="{ 'tree-node-active': props.selectedCategoryId === category.id }"
-            @click="selectCategory(category.id)"
-          >
-            <div class="tree-node-content">
-              <span class="tree-node-icon">📁</span>
-              <span class="tree-node-label">{{ category.name }}</span>
-              <span class="tree-node-count">{{ category.paper_count || 0 }}</span>
-            </div>
-            <div class="tree-node-actions">
-              <button
-                class="tree-action-btn"
-                @click.stop="showEditDialog(category)"
-                title="编辑分类"
-              >
-                ✏️
-              </button>
-              <button
-                class="tree-action-btn"
-                @click.stop="deleteCategory(category)"
-                title="删除分类"
-              >
-                🗑️
-              </button>
-            </div>
-          </div>
+            :category="category"
+            :selected-id="props.selectedCategoryId"
+            :level="0"
+            @select="selectCategory"
+            @add-child="handleAddChild"
+            @edit="showEditDialog"
+            @delete="handleDeleteCategory"
+          />
         </div>
       </template>
     </div>
@@ -101,9 +83,14 @@
         class="dialog-overlay"
         @click="closeCategoryDialog"
       >
-        <div class="dialog" @click.stop>
-          <div class="dialog-header">
-            <h4>{{ isEditing ? "编辑分类" : "添加分类" }}</h4>
+        <div class="dialog" @click.stop>          <div class="dialog-header">
+            <h4>{{
+              isEditing
+                ? "编辑分类"
+                : parentCategoryId
+                  ? "添加子分类"
+                  : "添加分类"
+            }}</h4>
             <button class="dialog-close" @click="closeCategoryDialog">×</button>
           </div>
           <div class="dialog-body">
@@ -161,12 +148,15 @@ import { ref, onMounted, computed, watch } from "vue";
 import {
   getCategories,
   createCategory,
+  updateCategory,
+  deleteCategory as deleteCategoryAPI,
   getPapers,
 } from "../services/api";
 import { useToast } from "../composables/useToast";
 import { useConfirmDialog } from "../composables/useConfirmDialog";
 import LoadingSpinner from "./LoadingSpinner.vue";
 import ConfirmDialog from "./ConfirmDialog.vue";
+import CategoryNode from "./CategoryNode.vue";
 
 const props = defineProps({
   selectedCategoryId: {
@@ -200,6 +190,7 @@ const error = ref(null);
 const showDialog = ref(false);
 const isEditing = ref(false);
 const editingCategoryId = ref(null);
+const parentCategoryId = ref(null);
 
 const categoryForm = ref({
   name: "",
@@ -211,6 +202,36 @@ const selectCategory = (categoryId) => {
   emit("select", categoryId);
 };
 
+// 将扁平化分类列表转换为树形结构
+const buildCategoryTree = (categories) => {
+  const categoryMap = new Map();
+  const rootCategories = [];
+
+  // 创建所有分类的映射
+  categories.forEach(category => {
+    categoryMap.set(category.id, { ...category, children: [] });
+  });
+
+  // 构建树形结构
+  categories.forEach(category => {
+    const categoryNode = categoryMap.get(category.id);
+    if (category.parent_id) {
+      const parent = categoryMap.get(category.parent_id);
+      if (parent) {
+        parent.children.push(categoryNode);
+      } else {
+        // 如果父分类不存在，则作为根分类
+        rootCategories.push(categoryNode);
+      }
+    } else {
+      // 根分类
+      rootCategories.push(categoryNode);
+    }
+  });
+
+  return rootCategories;
+};
+
 // 加载分类数据和论文统计
 const loadCategories = async () => {
   loading.value = true;
@@ -218,7 +239,8 @@ const loadCategories = async () => {
 
   try {
     const categories = await getCategories();
-    categoryTree.value = categories || [];
+    // 将扁平化列表转换为树形结构
+    categoryTree.value = buildCategoryTree(categories || []);
 
     // 加载论文统计
     await loadPaperCounts();
@@ -228,6 +250,25 @@ const loadCategories = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+// 递归计算分类树中每个节点的论文数量
+const calculatePaperCounts = (categories, papers) => {
+  categories.forEach((category) => {
+    const categoryPapers = papers.filter(paper => {
+      // 支持多分类和单分类
+      if (Array.isArray(paper.categories)) {
+        return paper.categories.some(cat => cat.id === category.id);
+      }
+      return paper.category_id === category.id;
+    });
+    category.paper_count = categoryPapers.length;
+
+    // 递归处理子分类
+    if (category.children && category.children.length > 0) {
+      calculatePaperCounts(category.children, papers);
+    }
+  });
 };
 
 // 加载论文数量统计
@@ -242,17 +283,8 @@ const loadPaperCounts = async () => {
 
     totalPapers.value = filteredPapers.length;
 
-    // 为每个分类计算论文数量
-    categoryTree.value.forEach((category) => {
-      const categoryPapers = filteredPapers.filter(paper => {
-        // 支持多分类和单分类
-        if (Array.isArray(paper.categories)) {
-          return paper.categories.some(cat => cat.id === category.id);
-        }
-        return paper.category_id === category.id;
-      });
-      category.paper_count = categoryPapers.length;
-    });
+    // 递归计算所有分类的论文数量
+    calculatePaperCounts(categoryTree.value, filteredPapers);
   } catch (err) {
     console.error("加载论文统计失败:", err);
   }
@@ -271,13 +303,43 @@ watch(
 // 显示添加分类对话框
 const showAddDialog = () => {
   isEditing.value = false;
+  parentCategoryId.value = null;
   categoryForm.value = { name: "", description: "" };
   showDialog.value = true;
+};
+
+// 显示添加子分类对话框
+const showAddChildDialog = (parentCategory) => {
+  isEditing.value = false;
+  parentCategoryId.value = parentCategory.id;
+  categoryForm.value = { name: "", description: "" };
+  showDialog.value = true;
+};
+
+// 处理从 CategoryNode 传来的添加子分类事件
+const handleAddChild = (categoryId) => {
+  // 从 categoryTree 中找到对应的 category 对象
+  const findCategory = (categories, id) => {
+    for (const category of categories) {
+      if (category.id === id) return category;
+      if (category.children) {
+        const found = findCategory(category.children, id);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  const parentCategory = findCategory(categoryTree.value, categoryId);
+  if (parentCategory) {
+    showAddChildDialog(parentCategory);
+  }
 };
 
 // 显示编辑分类对话框
 const showEditDialog = (category) => {
   isEditing.value = true;
+  parentCategoryId.value = null;
   editingCategoryId.value = category.id;
   categoryForm.value = {
     name: category.name,
@@ -291,6 +353,7 @@ const closeCategoryDialog = () => {
   showDialog.value = false;
   categoryForm.value = { name: "", description: "" };
   editingCategoryId.value = null;
+  parentCategoryId.value = null;
 };
 
 // 保存分类
@@ -301,7 +364,11 @@ const saveCategory = async () => {
     if (isEditing.value) {
       await updateCategory(editingCategoryId.value, categoryForm.value);
     } else {
-      await createCategory(categoryForm.value);
+      const data = {
+        ...categoryForm.value,
+        parent_id: parentCategoryId.value,
+      };
+      await createCategory(data);
     }
     await loadCategories();
     closeCategoryDialog();
@@ -312,17 +379,37 @@ const saveCategory = async () => {
   }
 };
 
+// 处理从 CategoryNode 传来的删除分类事件
+const handleDeleteCategory = (categoryId) => {
+  // 从 categoryTree 中找到对应的 category 对象
+  const findCategory = (categories, id) => {
+    for (const category of categories) {
+      if (category.id === id) return category;
+      if (category.children) {
+        const found = findCategory(category.children, id);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  const category = findCategory(categoryTree.value, categoryId);
+  if (category) {
+    deleteCategory(category);
+  }
+};
+
 // 删除分类
-const deleteCategory = async (categoryId) => {
+const deleteCategory = async (category) => {
   try {
     await confirmDelete("这个分类（删除后其子分类也会被删除）");
 
     setLoading(true);
-    await deleteCategoryAPI(categoryId);
+    await deleteCategoryAPI(category.id);
     await loadCategories();
 
     // 如果删除的是当前选中的分类，重置选择
-    if (selectedCategoryId.value === categoryId) {
+    if (props.selectedCategoryId === category.id) {
       selectCategory(null);
     }
     showToast("分类删除成功", "success");
@@ -463,6 +550,8 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  padding: 0.75rem;
+  position: relative;
 }
 
 .tree-node-icon {
@@ -506,6 +595,7 @@ defineExpose({
 .tree-node-actions {
   display: none;
   gap: 0.25rem;
+  margin-left: 0.5rem;
 }
 
 .tree-node:hover .tree-node-actions {
@@ -527,6 +617,11 @@ defineExpose({
   opacity: 1;
   background: var(--primary-100);
   transform: scale(1.1);
+}
+
+.tree-action-btn-add:hover {
+  background: var(--success-100);
+  color: var(--success-600);
 }
 
 .tree-list {

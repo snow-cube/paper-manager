@@ -156,6 +156,14 @@ export const createCategory = async (categoryData) =>
 export const getCategory = async (categoryId) =>
   (await api.get(`/categories/${categoryId}`)).data;
 
+// 更新分类
+export const updateCategory = async (categoryId, categoryData) =>
+  (await api.patch(`/categories/${categoryId}`, categoryData)).data;
+
+// 删除分类
+export const deleteCategory = async (categoryId) =>
+  (await api.delete(`/categories/${categoryId}`)).data;
+
 // ==================== 团队管理 APIs ====================
 // 获取团队列表
 export const getTeams = async () =>

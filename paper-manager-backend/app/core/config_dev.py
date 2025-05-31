@@ -6,6 +6,10 @@ from pathlib import Path
 from dataclasses import dataclass
 from typing import Optional
 import os
+from dotenv import load_dotenv
+
+# 加载 .env 文件
+load_dotenv()
 
 
 @dataclass
@@ -37,11 +41,6 @@ class DevConfig:
         self.secret_key = os.getenv("SECRET_KEY", "dev-secret-key-12345")
         self.algorithm = "HS256"  # 标准值，无需配置
         self.token_expire_minutes = int(os.getenv("TOKEN_EXPIRE_MINUTES", "60"))
-
-        # 服务器配置 - 支持自定义端口
-        self.host = os.getenv("HOST", "127.0.0.1")
-        self.port = int(os.getenv("PORT", "8000"))
-        self.debug = os.getenv("DEBUG", "true").lower() in ("true", "1", "yes")
 
         # 确保目录存在
         self._setup()
