@@ -1,10 +1,23 @@
 from typing import Optional, List, TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Relationship
 from datetime import datetime
+from enum import Enum
 
 if TYPE_CHECKING:
-    from .user import User
+    from .user import User, UserRead
     from .reference import ReferencePaper
+
+
+class TeamRole(str, Enum):
+    """团队角色枚举"""
+    OWNER = "owner"  # 创建者/拥有者
+    ADMIN = "admin"  # 管理员
+    MEMBER = "member"  # 普通成员
+
+    @property
+    def is_admin(self) -> bool:
+        """是否具有管理员权限"""
+        return self in (TeamRole.OWNER, TeamRole.ADMIN)
 
 
 class TeamUser(SQLModel, table=True):
@@ -15,18 +28,25 @@ class TeamUser(SQLModel, table=True):
     user_id: Optional[int] = Field(
         default=None, foreign_key="user.id", primary_key=True
     )
-    is_admin: bool = Field(default=False)  # 是否为团队管理员
+    role: TeamRole = Field(default=TeamRole.MEMBER)  # 团队中的角色
     joined_at: datetime = Field(default_factory=datetime.utcnow)
 
     team: "Team" = Relationship(back_populates="member_links")
     user: "User" = Relationship(back_populates="team_links")
 
+    @property
+    def is_admin(self) -> bool:
+        """是否具有管理员权限（包括拥有者）"""
+        return self.role.is_admin
+
 
 class Team(SQLModel, table=True):
+    """团队表"""
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(index=True)
     description: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)  # 添加更新时间
     creator_id: int = Field(foreign_key="user.id")  # 创建者ID
 
     # Relationships
@@ -39,18 +59,23 @@ class Team(SQLModel, table=True):
 
 
 class TeamCreate(SQLModel):
+    """创建团队的请求模型"""
     name: str
     description: Optional[str] = None
 
 
 class TeamRead(SQLModel):
+    """团队信息返回模型"""
     id: int
     name: str
     description: Optional[str] = None
     created_at: datetime
+    updated_at: datetime
     creator_id: int
+    member_count: Optional[int] = None  # 成员数量
 
 
 class TeamUpdate(SQLModel):
+    """更新团队的请求模型"""
     name: Optional[str] = None
     description: Optional[str] = None 

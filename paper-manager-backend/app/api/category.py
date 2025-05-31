@@ -6,6 +6,8 @@ from app.core.database import get_session
 from app.models.category import Category, CategoryCreate, CategoryRead, CategoryUpdate
 from app.models.user import User
 from app.api.user import get_current_user
+from app.models.paper import PaperCategory
+from app.models.reference import ReferencePaper
 
 router = APIRouter()
 
@@ -97,6 +99,21 @@ def delete_category(
             status_code=400,
             detail="Cannot delete category with child categories"
         )
+    
+    # Remove category links from papers
+    paper_links = session.exec(
+        select(PaperCategory).where(PaperCategory.category_id == category_id)
+    ).all()
+    for link in paper_links:
+        session.delete(link)
+    
+    # Update reference papers to remove this category
+    reference_papers = session.exec(
+        select(ReferencePaper).where(ReferencePaper.category_id == category_id)
+    ).all()
+    for ref_paper in reference_papers:
+        ref_paper.category_id = None
+        session.add(ref_paper)
     
     session.delete(category)
     session.commit()

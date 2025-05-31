@@ -3,6 +3,7 @@ from sqlmodel import Session, select
 from typing import List, Optional
 import os
 from datetime import datetime
+from fastapi.responses import FileResponse
 
 from app.core.database import get_session
 from app.models.paper import (
@@ -475,3 +476,190 @@ def calculate_paper_workload(
         })
     
     return {"paper_id": paper_id, "workloads": workloads}
+
+@router.get("/authors/workload/by-name")
+def calculate_author_workload_by_name(
+    author_name: str,
+    session: Session = Depends(get_session)
+):
+    """通过作者名字计算其所有论文工作量"""
+    # 查找作者
+    author = session.exec(
+        select(Author).where(Author.name == author_name)
+    ).first()
+    
+    if not author:
+        raise HTTPException(status_code=404, detail=f"Author '{author_name}' not found")
+    
+    # 获取作者的所有论文关联
+    author_papers = session.exec(
+        select(PaperAuthor).where(PaperAuthor.author_id == author.id)
+    ).all()
+    
+    # 计算每篇论文的工作量
+    paper_workloads = []
+    for paper_link in author_papers:
+        paper = session.get(Paper, paper_link.paper_id)
+        if paper:
+            # 这里可以根据期刊等级来确定论文类型
+            # 目前简单地将所有论文视为SCI_Q1
+            paper_type = "SCI_Q1"  # 这里可以添加逻辑来确定论文类型
+            
+            workload = calculate_workload(
+                contribution_ratio=paper_link.contribution_ratio,
+                paper_type=paper_type
+            )
+            
+            paper_workloads.append({
+                "paper_id": paper.id,
+                "paper_title": paper.title,
+                "contribution_ratio": paper_link.contribution_ratio,
+                "is_corresponding": paper_link.is_corresponding,
+                "author_order": paper_link.author_order,
+                "workload": workload,
+                "publication_date": paper.publication_date,
+                "journal": paper.journal
+            })
+    
+    # 按发表日期排序
+    paper_workloads.sort(key=lambda x: x["publication_date"] if x["publication_date"] else datetime.min)
+    
+    total_workload = sum(pw["workload"] for pw in paper_workloads)
+    
+    return {
+        "author_id": author.id,
+        "author_name": author.name,
+        "total_workload": total_workload,
+        "paper_workloads": paper_workloads
+    }
+
+@router.get("/{paper_id}/download")
+async def download_paper_by_id(
+    paper_id: int,
+    session: Session = Depends(get_session)
+):
+    """通过ID下载论文PDF文件"""
+    paper = session.get(Paper, paper_id)
+    if not paper:
+        raise HTTPException(status_code=404, detail="Paper not found")
+    
+    # 检查文件是否存在
+    if not paper.file_path or not os.path.exists(paper.file_path):
+        raise HTTPException(
+            status_code=404,
+            detail="PDF file not found for this paper"
+        )
+    
+    # 构建文件名
+    filename = f"{paper.title}.pdf"
+    
+    return FileResponse(
+        paper.file_path,
+        filename=filename,
+        media_type="application/pdf"
+    )
+
+
+@router.get("/download/by-title")
+async def download_paper_by_title(
+    title: str,
+    session: Session = Depends(get_session)
+):
+    """通过标题下载论文PDF文件"""
+    # 查找论文
+    paper = session.exec(
+        select(Paper).where(Paper.title == title)
+    ).first()
+    
+    if not paper:
+        raise HTTPException(
+            status_code=404,
+            detail="Paper not found with the specified title"
+        )
+    
+    # 检查文件是否存在
+    if not paper.file_path or not os.path.exists(paper.file_path):
+        raise HTTPException(
+            status_code=404,
+            detail="PDF file not found for this paper"
+        )
+    
+    # 构建文件名
+    filename = f"{paper.title}.pdf"
+    
+    return FileResponse(
+        paper.file_path,
+        filename=filename,
+        media_type="application/pdf"
+    )
+
+@router.get("/authors/collaboration-network")
+def get_author_collaboration_network(
+    author_name: str,
+    session: Session = Depends(get_session)
+):
+    """获取作者的合作关系网络"""
+    # 查找作者
+    author = session.exec(
+        select(Author).where(Author.name == author_name)
+    ).first()
+    
+    if not author:
+        raise HTTPException(status_code=404, detail=f"Author '{author_name}' not found")
+    
+    # 获取作者参与的所有论文
+    author_papers = session.exec(
+        select(PaperAuthor).where(PaperAuthor.author_id == author.id)
+    ).all()
+    
+    # 用于存储合作关系的字典
+    collaborations = {}
+    
+    # 遍历每篇论文，查找合作者
+    for paper_link in author_papers:
+        # 获取这篇论文的所有作者
+        coauthors = session.exec(
+            select(PaperAuthor, Author)
+            .join(Author)
+            .where(
+                PaperAuthor.paper_id == paper_link.paper_id,
+                PaperAuthor.author_id != author.id  # 排除作者本人
+            )
+        ).all()
+        
+        # 统计合作次数
+        for coauthor_link, coauthor in coauthors:
+            if coauthor.name not in collaborations:
+                collaborations[coauthor.name] = {
+                    "author_id": coauthor.id,
+                    "name": coauthor.name,
+                    "collaboration_count": 1,
+                    "papers": [{
+                        "paper_id": paper_link.paper_id,
+                        "author_order": coauthor_link.author_order,
+                        "is_corresponding": coauthor_link.is_corresponding
+                    }]
+                }
+            else:
+                collaborations[coauthor.name]["collaboration_count"] += 1
+                collaborations[coauthor.name]["papers"].append({
+                    "paper_id": paper_link.paper_id,
+                    "author_order": coauthor_link.author_order,
+                    "is_corresponding": coauthor_link.is_corresponding
+                })
+    
+    # 将合作者列表按合作次数降序排序
+    sorted_collaborators = sorted(
+        collaborations.values(),
+        key=lambda x: x["collaboration_count"],
+        reverse=True
+    )
+    
+    return {
+        "author": {
+            "id": author.id,
+            "name": author.name
+        },
+        "total_collaborators": len(sorted_collaborators),
+        "collaborators": sorted_collaborators
+    }

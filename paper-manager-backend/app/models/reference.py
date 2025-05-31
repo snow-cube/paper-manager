@@ -64,4 +64,5 @@ class ReferenceUpdate(SQLModel):
     authors: Optional[str] = None
     doi: Optional[str] = None
     file_path: Optional[str] = None
+    category_id: Optional[int] = None  # 添加分类ID字段
     keyword_names: Optional[List[str]] = None  # 更新关键字列表 

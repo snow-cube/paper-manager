@@ -18,7 +18,7 @@ paper-manager-backend/
 │   ├── core/                  # 核心配置和功能
 │   │   ├── config.py        # 应用配置
 │   │   ├── database.py      # 数据库配置
-│   │   └── dependencies.py   # 依赖注入
+│   │   └── security.py      # 安全相关配置
 │   │
 │   ├── models/               # 数据模型
 │   │   ├── author.py        # 作者模型
@@ -30,24 +30,23 @@ paper-manager-backend/
 │   │   └── user.py         # 用户模型
 │   │
 │   ├── services/             # 业务服务
-│   │   └── utils.py        # 工具函数（认证、加密等）
-│   │
-│   ├── schemas/             # Pydantic 模式（如果有）
-│   │   └── paper.py        # 论文相关的数据验证模式
+│   │   └── utils.py        # 工具函数（工作量计算等）
 │   │
 │   ├── __init__.py          # 包初始化文件
 │   └── main.py              # 应用入口点
 │
 ├── uploads/                  # 文件上传目录
-│   └── papers/              # 论文文件存储
+│   ├── papers/              # 论文文件存储
+│   └── teams/               # 团队文件存储
+│       └── references/      # 参考文献文件存储
 │
 ├── .env                     # 环境变量配置
 ├── .gitignore              # Git 忽略文件
-├── .python-version         # Python 版本配置
 ├── README.md               # 项目文档
-├── pyproject.toml          # 项目依赖配置
-├── server.log              # 服务器日志
-└── uv.lock                 # 依赖版本锁定文件
+├── requirements.txt        # 项目依赖
+└── alembic/                # 数据库迁移
+    ├── versions/          # 迁移版本
+    └── env.py            # 迁移环境配置
 ```
 
 ## 2. 数据库设计
@@ -103,7 +102,19 @@ paper-manager-backend/
 | name | String | 团队名称 | 必填，索引 |
 | description | Text | 团队描述 | 可选 |
 | created_at | DateTime | 创建时间 | 默认当前时间 |
+| updated_at | DateTime | 更新时间 | 默认当前时间 |
 | creator_id | Integer | 创建者ID | 必填，外键(user.id) |
+| max_members | Integer | 最大成员数 | 可选 |
+| is_active | Boolean | 是否激活 | 默认True |
+| last_active_at | DateTime | 最后活动时间 | 可选 |
+
+### TeamUser（团队-用户关联表）
+| 字段 | 类型 | 说明 | 限制条件 |
+|------|------|------|----------|
+| team_id | Integer | 团队ID | 必填，主键，外键(team.id) |
+| user_id | Integer | 用户ID | 必填，主键，外键(user.id) |
+| role | Enum | 用户角色 | 必填，枚举(MEMBER/ADMIN) |
+| joined_at | DateTime | 加入时间 | 默认当前时间 |
 
 ### Keyword（关键词表）
 | 字段 | 类型 | 说明 | 限制条件 |
@@ -112,20 +123,6 @@ paper-manager-backend/
 | name | String | 关键词 | 必填，唯一，索引 |
 | created_at | DateTime | 创建时间 | 默认当前时间 |
 | updated_at | DateTime | 更新时间 | 默认当前时间 |
-
-### ReferencePaper（参考文献表）
-| 字段 | 类型 | 说明 | 限制条件 |
-|------|------|------|----------|
-| id | Integer | 主键 | 自增 |
-| title | String | 标题 | 必填，索引 |
-| authors | String | 作者字符串 | 必填 |
-| doi | String | DOI | 可选，唯一 |
-| file_path | String | 文件路径 | 可选 |
-| created_at | DateTime | 创建时间 | 默认当前时间 |
-| updated_at | DateTime | 更新时间 | 默认当前时间 |
-| team_id | Integer | 所属团队ID | 可选，外键(team.id) |
-| created_by_id | Integer | 创建者ID | 必填，外键(user.id) |
-| category_id | Integer | 分类ID | 可选，外键(category.id) |
 
 ### PaperAuthor（论文-作者关联表）
 | 字段 | 类型 | 说明 | 限制条件 |
@@ -146,22 +143,27 @@ paper-manager-backend/
 | 字段 | 类型 | 说明 | 限制条件 |
 |------|------|------|----------|
 | paper_id | Integer | 论文ID | 必填，主键，外键(paper.id) |
-| keyword_id | Integer | 关键词ID | 必填，主键，外键(keyword.id) |
+| keyword_id | Integer | 关键词ID | 必填主键，外键(keyword.id) |
 
-### TeamUser（团队-用户关联表）
+### ReferencePaper（参考文献表）
 | 字段 | 类型 | 说明 | 限制条件 |
 |------|------|------|----------|
-| team_id | Integer | 团队ID | 必填，主键，外键(team.id) |
-| user_id | Integer | 用户ID | 必填，主键，外键(user.id) |
-| is_admin | Boolean | 是否团队管理员 | 默认False |
-| joined_at | DateTime | 加入时间 | 默认当前时间 |
+| id | Integer | 主键 | 自增 |
+| title | String | 标题 | 必填，索引 |
+| authors | String | 作者字符串 | 必填 |
+| doi | String | DOI | 可选，唯一 |
+| file_path | String | 文件路径 | 可选 |
+| created_at | DateTime | 创建时间 | 默认当前时间 |
+| updated_at | DateTime | 更新时间 | 默认当前时间 |
+| team_id | Integer | 所属团队ID | 必填，外键(team.id) |
+| created_by_id | Integer | 创建者ID | 必填，外键(user.id) |
+| category_id | Integer | 分类ID | 可选，外键(category.id) |
 
 ### ReferenceKeyword（参考文献-关键词关联表）
 | 字段 | 类型 | 说明 | 限制条件 |
 |------|------|------|----------|
 | reference_id | Integer | 参考文献ID | 必填，主键，外键(referencepaper.id) |
 | keyword_id | Integer | 关键词ID | 必填，主键，外键(keyword.id) |
-
 
 ## 3. API文档
 
@@ -351,6 +353,118 @@ GET /api/papers/{paper_id}/workload
 **错误码：**
 - 404: 论文不存在
 
+#### 计算作者工作量（通过ID）
+```
+GET /api/papers/authors/{author_id}/workload
+```
+
+**参数：**
+- author_id: 作者ID（路径参数）
+
+**返回值：**
+```json
+{
+    "author_id": 0,
+    "author_name": "string",
+    "total_workload": 0.0,
+    "paper_workloads": [
+        {
+            "paper_id": 0,
+            "paper_title": "string",
+            "contribution_ratio": 0.0,
+            "is_corresponding": false,
+            "author_order": 0,
+            "workload": 0.0,
+            "publication_date": "datetime",
+            "journal": "string"
+        }
+    ]
+}
+```
+
+**错误码：**
+- 404: 作者不存在
+
+#### 计算作者工作量（通过名字）
+```
+GET /api/papers/authors/workload/by-name
+```
+
+**查询参数：**
+- author_name: 作者名字
+
+**返回值：**
+与通过ID计算工作量的返回值相同
+
+**错误码：**
+- 404: 作者不存在
+
+#### 下载论文（通过ID）
+```
+GET /api/papers/{paper_id}/download
+```
+
+**参数：**
+- paper_id: 论文ID（路径参数）
+
+**返回值：**
+- 文件流（application/pdf）
+
+**错误码：**
+- 404: 论文不存在
+- 404: PDF文件不存在
+
+#### 下载论文（通过标题）
+```
+GET /api/papers/download/by-title
+```
+
+**查询参数：**
+- title: 论文标题
+
+**返回值：**
+- 文件流（application/pdf）
+
+**错误码：**
+- 404: 论文不存在
+- 404: PDF文件不存在
+
+#### 获取作者合作网络
+```
+GET /api/papers/authors/collaboration-network
+```
+
+**查询参数：**
+- author_name: 作者名字
+
+**返回值：**
+```json
+{
+    "author": {
+        "id": 0,
+        "name": "string"
+    },
+    "total_collaborators": 0,
+    "collaborators": [
+        {
+            "author_id": 0,
+            "name": "string",
+            "collaboration_count": 0,
+            "papers": [
+                {
+                    "paper_id": 0,
+                    "author_order": 0,
+                    "is_corresponding": false
+                }
+            ]
+        }
+    ]
+}
+```
+
+**错误码：**
+- 404: 作者不存在
+
 
 ### 用户相关API
 
@@ -503,7 +617,7 @@ POST /api/categories/
 {
     "name": "string",        // 必填，分类名称
     "description": "string", // 可选，分类描述
-    "parent_id": 0          // 可选，父分类ID
+    "parent_id": 0          // 必填，父分类，如果没有，填null
 }
 ```
 
@@ -514,8 +628,6 @@ POST /api/categories/
     "name": "string",
     "description": "string",
     "parent_id": 0,
-    "created_at": "datetime",
-    "updated_at": "datetime"
 }
 ```
 
@@ -539,8 +651,6 @@ GET /api/categories/
         "name": "string",
         "description": "string",
         "parent_id": 0,
-        "created_at": "datetime",
-        "updated_at": "datetime"
     }
 ]
 ```
@@ -550,47 +660,45 @@ GET /api/categories/
 GET /api/categories/{category_id}
 ```
 
-**参数：**
-- category_id: 分类ID（路径参数）
+### 团队相关API
 
-**返回值：**
-同CategoryRead
-
-**错误码：**
-- 404: 分类不存在
-
-#### 更新分类
+#### 创建团队
 ```
-PATCH /api/categories/{category_id}
+POST /api/teams/
 ```
 
-**参数：**
-- category_id: 分类ID（路径参数）
-
-**请求体（CategoryUpdate）：**
+**请求体（TeamCreate）：**
 ```json
 {
-    "name": "string",        // 可选
-    "description": "string", // 可选
-    "parent_id": 0          // 可选
+    "name": "string",        // 必填，团队名称
+    "description": "string"  // 可选，团队描述
 }
 ```
 
-**返回值：**
-同CategoryRead
-
-**错误码：**
-- 400: 分类不能作为自己的父分类
-- 404: 分类不存在
-- 404: 父分类不存在
-
-#### 删除分类
+**返回值（TeamRead）：**
+```json
+{
+    "id": 0,
+    "name": "string",
+    "description": "string",
+    "creator_id": 0,
+    "created_at": "datetime",
+    "updated_at": "datetime",
+    "member_count": 0,
+    "max_members": 0,
+    "is_active": true,
+    "last_active_at": "datetime"
+}
 ```
-DELETE /api/categories/{category_id}
+
+#### 添加团队成员
+```
+POST /api/teams/{team_id}/members/{username}
 ```
 
 **参数：**
-- category_id: 分类ID（路径参数）
+- team_id: 团队ID（路径参数）
+- username: 用户名（路径参数）
 
 **返回值：**
 ```json
@@ -600,13 +708,121 @@ DELETE /api/categories/{category_id}
 ```
 
 **错误码：**
-- 400: 不能删除有子分类的分类
-- 404: 分类不存在
+- 403: 无权限（非管理员）
+- 404: 用户不存在
+- 400: 用户已是团队成员
 
+#### 获取团队成员列表
+```
+GET /api/teams/{team_id}/members
+```
 
-### 团队相关API
+**参数：**
+- team_id: 团队ID（路径参数）
 
-#### 获取用户所在团队列表
+**返回值（List[TeamMemberRead]）：**
+```json
+[
+    {
+        "id": 0,
+        "username": "string",
+        "email": "string",
+        "full_name": "string",
+        "is_active": true,
+        "is_superuser": false,
+        "created_at": "datetime",
+        "updated_at": "datetime",
+        "role": "string",
+        "joined_at": "datetime",
+        "is_admin": true
+    }
+]
+```
+
+**错误码：**
+- 403: 无权限（非团队成员）
+
+#### 移除团队成员
+```
+DELETE /api/teams/{team_id}/members/{user_id}
+```
+
+**参数：**
+- team_id: 团队ID（路径参数）
+- user_id: 用户ID（路径参数）
+
+**返回值：**
+```json
+{
+    "ok": true
+}
+```
+
+**错误码：**
+- 403: 无权限（非管理员）
+- 404: 用户不是团队成员
+- 400: 不能移除自己或团队拥有者
+
+#### 获取团队信息
+```
+GET /api/teams/{team_id}
+```
+
+**参数：**
+- team_id: 团队ID（路径参数）
+
+**返回值：**
+同TeamRead
+
+**错误码：**
+- 403: 无权限（非团队成员）
+- 404: 团队不存在
+
+#### 更新团队信息
+```
+PATCH /api/teams/{team_id}
+```
+
+**参数：**
+- team_id: 团队ID（路径参数）
+
+**请求体（TeamUpdate）：**
+```json
+{
+    "name": "string",        // 可选
+    "description": "string", // 可选
+    "max_members": 0,        // 可选
+    "is_active": true       // 可选
+}
+```
+
+**返回值：**
+同TeamRead
+
+**错误码：**
+- 403: 无权限（非管理员）
+- 404: 团队不存在
+
+#### 删除团队
+```
+DELETE /api/teams/{team_id}
+```
+
+**参数：**
+- team_id: 团队ID（路径参数）
+
+**返回值：**
+```json
+{
+    "ok": true
+}
+```
+
+**错误码：**
+- 403: 无权限（非团队拥有者）
+- 404: 团队不存在
+
+#### 获取团队列表
 ```
 GET /api/teams/
 ```
@@ -618,110 +834,223 @@ GET /api/teams/
         "id": 0,
         "name": "string",
         "description": "string",
+        "creator_id": 0,
         "created_at": "datetime",
-        "updated_at": "datetime"
+        "updated_at": "datetime",
+        "member_count": 0,
+        "max_members": 0,
+        "is_active": true,
+        "last_active_at": "datetime"
+    }
+]
+```
+
+#### 更新成员角色
+```
+PATCH /api/teams/{team_id}/members/{user_id}/role
+```
+
+**参数：**
+- team_id: 团队ID（路径参数）
+- user_id: 用户ID（路径参数）
+- role: 新角色（查询参数，MEMBER/ADMIN）
+
+**返回值：**
+```json
+{
+    "ok": true
+}
+```
+
+**错误码：**
+- 403: 无权限（非管理员）
+- 404: 用户不是团队成员
+- 400: 不能更改团队拥有者的角色
+
+### 参考文献相关API
+
+#### 创建参考文献
+```
+POST /api/references/
+```
+
+**请求体（ReferenceCreate）：**
+```json
+{
+    "title": "string",           // 必填，标题
+    "authors": "string",         // 必填，作者字符串
+    "doi": "string",            // 可选，DOI
+    "team_id": 0,               // 必填，团队ID
+    "category_id": 0,           // 可选，分类ID
+    "keyword_names": ["string"]  // 可选，关键词列表
+}
+```
+
+**返回值（ReferenceRead）：**
+```json
+{
+    "id": 0,
+    "title": "string",
+    "authors": "string",
+    "doi": "string",
+    "file_path": "string",
+    "created_at": "datetime",
+    "updated_at": "datetime",
+    "team_id": 0,
+    "created_by_id": 0,
+    "category_id": 0,
+    "keywords": ["string"]
+}
+```
+
+**错误码：**
+- 403: 无权限（非团队成员）
+- 404: 团队或分类不存在
+- 400: DOI已存在
+
+#### 获取参考文献列表
+```
+GET /api/references/
+```
+
+**查询参数：**
+- team_id: 团队ID（必填）
+- category_id: 分类ID（可选）
+- keyword: 关键词（可选）
+- skip: 跳过记录数（默认0）
+- limit: 返回记录数（默认100）
+
+**返回值：**
+```json
+[
+    {
+        "id": 0,
+        "title": "string",
+        "authors": "string",
+        "doi": "string",
+        "file_path": "string",
+        "created_at": "datetime",
+        "updated_at": "datetime",
+        "team_id": 0,
+        "created_by_id": 0,
+        "category_id": 0,
+        "keywords": ["string"]
     }
 ]
 ```
 
 **错误码：**
-- 401: 未认证
+- 403: 无权限（非团队成员）
 
-### 工作量计算相关
-
-#### 计算论文工作量
+#### 获取单个参考文献
 ```
-GET /api/papers/{paper_id}/workload
+GET /api/references/{reference_id}
 ```
 
 **参数：**
-- paper_id: 论文ID（路径参数）
+- reference_id: 参考文献ID（路径参数）
+
+**返回值：**
+同ReferenceRead
+
+**错误码：**
+- 403: 无权限（非团队成员）
+- 404: 参考文献不存在
+
+#### 更新参考文献
+```
+PATCH /api/references/{reference_id}
+```
+
+**参数：**
+- reference_id: 参考文献ID（路径参数）
+
+**请求体（ReferenceUpdate）：**
+```json
+{
+    "title": "string",           // 可选
+    "authors": "string",         // 可选
+    "doi": "string",            // 可选
+    "category_id": 0,           // 可选
+    "keyword_names": ["string"]  // 可选
+}
+```
+
+**返回值：**
+同ReferenceRead
+
+**错误码：**
+- 403: 无权限（非团队成员）
+- 404: 参考文献或分类不存在
+
+#### 删除参考文献
+```
+DELETE /api/references/{reference_id}
+```
+
+**参数：**
+- reference_id: 参考文献ID（路径参数）
 
 **返回值：**
 ```json
 {
-    "paper_id": 0,
-    "workloads": [
-        {
-            "author_id": 0,
-            "contribution_ratio": 0.0,
-            "workload": 0.0
-        }
-    ]
+    "ok": true
 }
 ```
 
 **错误码：**
-- 404: 论文不存在
+- 403: 无权限（非团队成员）
+- 404: 参考文献不存在
 
-### 文件上传相关
-
-#### 上传论文文件
+#### 上传参考文献文件
 ```
-POST /api/papers/{paper_id}/upload
+POST /api/references/{reference_id}/upload
 ```
 
 **参数：**
-- paper_id: 论文ID（路径参数）
+- reference_id: 参考文献ID（路径参数）
 - file: 文件（multipart/form-data）
 
 **返回值：**
 ```json
 {
-    "paper_id": 0,
     "filename": "string",
     "file_path": "string"
 }
 ```
 
 **错误码：**
-- 404: 论文不存在
-- 403: 无权限（非作者）
+- 403: 无权限（非团队成员）
+- 404: 参考文献不存在
+- 400: 不支持的文件类型
 
-### 安全性说明
-
-1. 认证机制：
-   - 使用 OAuth2 密码模式进行认证
-   - 返回 JWT token，有效期可配置
-   - 所有需要认证的接口都需要在请求头中携带 token
-
-2. 权限控制：
-   - 用户分为普通用户和管理员（superuser）
-   - 只有管理员可以修改用户信息
-   - 分类管理需要管理员权限
-
-3. 数据验证：
-   - 用户名和邮箱唯一性检查
-   - DOI 唯一性检查
-   - 分类的循环引用检查
-
-### 错误处理
-
-所有API都可能返回以下错误：
-
-1. 认证相关：
-   - 401 Unauthorized: 未认证或token无效
-   - 403 Forbidden: 无权限访问
-
-2. 请求相关：
-   - 400 Bad Request: 请求参数错误
-   - 404 Not Found: 资源不存在
-   - 409 Conflict: 资源冲突（如重复的用户名）
-
-3. 服务器相关：
-   - 500 Internal Server Error: 服务器内部错误
-
-每个错误响应都包含详细的错误信息：
-```json
-{
-    "detail": "错误描述信息"
-}
+#### 下载参考文献（通过ID）
+```
+GET /api/references/{reference_id}/download
 ```
 
-### 数据模型关系
+**参数：**
+- reference_id: 参考文献ID（路径参数）
 
-1. 论文与作者：多对多关系（通过 PaperAuthor 表）
-2. 论文与分类：多对多关系（通过 PaperCategory 表）
-3. 论文与关键词：多对多关系（通过 PaperKeyword 表）
-4. 分类与分类：自引用关系（parent_id）
-5. 用户与团队：多对多关系（通过 TeamUser 表）
+**返回值：**
+- 文件流（application/pdf）
+
+**错误码：**
+- 403: 无权限（非团队成员）
+- 404: 参考文献或文件不存在
+
+#### 下载参考文献（通过标题）
+```
+GET /api/references/download/by-title
+```
+
+**查询参数：**
+- title: 参考文献标题
+- team_id: 团队ID
+
+**返回值：**
+- 文件流（application/pdf）
+
+**错误码：**
+- 403: 无权限（非团队成员）
+- 404: 参考文献或文件不存在
