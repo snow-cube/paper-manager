@@ -98,9 +98,8 @@
             title="编辑"
           >
             ✏️
-          </button>
-          <button
-            @click="deleteReference(reference)"
+          </button>          <button
+            @click="handleDeleteReference(reference)"
             class="btn-action"
             title="删除"
           >
@@ -108,13 +107,11 @@
           </button>
         </div>
       </div>
-    </div>
-
-    <!-- 添加/编辑文献模态框 -->
+    </div>    <!-- 添加/编辑文献模态框 -->
     <Modal v-if="showAddForm || editingReference" @close="closeForm">
-      <ReferenceForm
-        :reference="editingReference"
-        :team="team"
+      <PaperForm
+        :paper="editingReference"
+        :paperType="'literature'"
         @saved="handleReferenceSaved"
         @cancel="closeForm"
       />
@@ -132,12 +129,12 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
-import { getReferences, deleteReference as deleteReferenceApi, downloadReference as downloadReferenceApi, getCategories } from '../services/api.js';
+import { getReferences, deleteReference as deleteReferenceAPI, downloadReference as downloadReferenceAPI, getCategories } from '../services/api.js';
 import { useToast } from '../composables/useToast.js';
 import LoadingSpinner from './LoadingSpinner.vue';
 import Modal from './Modal.vue';
 import ConfirmDialog from './ConfirmDialog.vue';
-import ReferenceForm from './ReferenceForm.vue';
+import PaperForm from './PaperForm.vue';
 
 const props = defineProps({
   team: {
@@ -186,15 +183,8 @@ const filteredReferences = computed(() => {
 const loadReferences = async () => {
   loading.value = true;
   try {
-    const params = {};
-    if (selectedCategoryId.value) {
-      params.category_id = selectedCategoryId.value;
-    }
-    if (keywordFilter.value) {
-      params.keyword = keywordFilter.value;
-    }
-
-    references.value = await getReferences(props.team.id, params);
+    // 获取当前团队的参考文献
+    references.value = await getReferences(props.team.id);
   } catch (error) {
     console.error('Failed to load references:', error);
     showToast('加载参考文献失败', 'error');
@@ -215,7 +205,7 @@ const editReference = (reference) => {
   editingReference.value = reference;
 };
 
-const deleteReference = (reference) => {
+const handleDeleteReference = (reference) => {
   deletingReference.value = reference;
 };
 
@@ -223,7 +213,7 @@ const confirmDelete = async () => {
   if (!deletingReference.value) return;
 
   try {
-    await deleteReferenceApi(deletingReference.value.id);
+    await deleteReferenceAPI(deletingReference.value.id);
     references.value = references.value.filter(r => r.id !== deletingReference.value.id);
     showToast('参考文献删除成功', 'success');
   } catch (error) {
@@ -236,7 +226,7 @@ const confirmDelete = async () => {
 
 const downloadReference = async (reference) => {
   try {
-    const response = await downloadReferenceApi(reference.id);
+    const response = await downloadReferenceAPI(reference.id);
 
     // 创建下载链接
     const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -256,6 +246,17 @@ const downloadReference = async (reference) => {
 };
 
 const handleReferenceSaved = (savedReference) => {
+  console.log("handleReferenceSaved called with:", savedReference);
+
+  if (!savedReference) {
+    console.error("savedReference is undefined");
+    showToast('保存文献时出现错误', 'error');
+    return;
+  }
+
+  // 确保论文与当前团队关联
+  savedReference.team_id = props.team.id;
+
   if (editingReference.value) {
     // 更新现有文献
     const index = references.value.findIndex(r => r.id === savedReference.id);

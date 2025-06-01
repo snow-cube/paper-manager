@@ -1,15 +1,25 @@
 <template>
   <div class="literature-page">
-    <div class="container">
-      <div class="page-header">
+    <div class="container">      <div class="page-header">
         <h1 class="page-title">
           <span class="page-icon">📚</span>
           文献管理
         </h1>
-        <p class="page-description">管理您阅读和收集的学术文献</p>
+        <p class="page-description">
+          {{ currentTeam ? `管理 "${currentTeam.name}" 团队的学术文献` : '请先选择一个团队' }}
+        </p>
       </div>
 
-      <div class="content-layout">
+      <div v-if="!currentTeam" class="no-team-warning">
+        <div class="warning-icon">⚠️</div>
+        <h3>请先选择团队</h3>
+        <p>您需要先选择一个团队才能管理参考文献。团队中的所有文献将对团队成员共享。</p>
+        <RouterLink to="/teams" class="btn btn-primary">
+          转到团队管理
+        </RouterLink>
+      </div>
+
+      <div v-else class="content-layout">
         <!-- 左侧分类树 -->
         <div class="sidebar">
           <div class="sidebar-header">
@@ -113,15 +123,18 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
-import { getPapers, deletePaper } from "../services/api";
+import { getReferences, deleteReference } from "../services/api";
 import CategoryTree from "../components/CategoryTree.vue";
 import PaperCard from "../components/PaperCard.vue";
 import PaperForm from "../components/PaperForm.vue";
 import PaperDetail from "../components/PaperDetail.vue";
 import Modal from "../components/Modal.vue";
 import { useToast } from "../composables/useToast";
+import { useTeam } from "../composables/useTeam";
+import { RouterLink } from "vue-router";
 
 const { showToast } = useToast();
+const { currentTeam } = useTeam();
 
 // 响应式数据
 const papers = ref([]);
@@ -156,7 +169,12 @@ const getKeywordsText = (keywords) => {
 
 // 计算属性
 const filteredPapers = computed(() => {
-  let filtered = papers.value.filter(paper => paper.paper_type === 'literature');
+  // 如果没有选择团队，则不显示任何文献
+  if (!currentTeam.value) return [];
+
+  let filtered = papers.value.filter(paper =>
+    paper.team_id === currentTeam.value.id
+  );
 
   // 分类筛选
   if (selectedCategoryId.value) {
@@ -187,8 +205,15 @@ const filteredPapers = computed(() => {
 });
 
 const totalPages = computed(() => {
-  let filtered = papers.value.filter(paper => paper.paper_type === 'literature');
+  // 如果没有选择团队，则不显示任何文献
+  if (!currentTeam.value) return 0;
 
+  // 由于使用getReferences API，返回的都是该团队的文献，无需过滤paper_type
+  let filtered = papers.value.filter(paper =>
+    paper.team_id === currentTeam.value.id
+  );
+
+  // 分类筛选
   if (selectedCategoryId.value) {
     filtered = filtered.filter(paper => {
       if (Array.isArray(paper.categories)) {
@@ -214,12 +239,34 @@ const totalPages = computed(() => {
 
 // 方法
 const loadPapers = async () => {
+  if (!currentTeam.value) {
+    papers.value = [];
+    return;
+  }
+
   loading.value = true;
   try {
-    papers.value = await getPapers();
+    // 使用参考文献API获取数据，传递团队ID
+    papers.value = await getReferences(currentTeam.value.id);
   } catch (error) {
     console.error("Failed to load papers:", error);
     showToast("加载文献失败", "error");
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 获取论文数据
+const fetchPapers = async () => {
+  if (!currentTeam.value) return; // 如果没有选择团队，不加载数据
+
+  try {
+    loading.value = true;
+    const response = await getReferences(currentTeam.value.id);
+    papers.value = response;
+  } catch (error) {
+    console.error("获取论文失败:", error);
+    showToast("获取论文失败", "error");
   } finally {
     loading.value = false;
   }
@@ -242,7 +289,7 @@ const handleEdit = (paper) => {
 const handleDelete = async (paper) => {
   if (confirm(`确定要删除文献"${paper.title}"吗？`)) {
     try {
-      await deletePaper(paper.id);
+      await deleteReference(paper.id);
       await loadPapers();
       showToast("文献删除成功", "success");
     } catch (error) {
@@ -268,7 +315,12 @@ const handleEditPaper = (paper) => {
   showAddForm.value = true;
 };
 
-const handlePaperSaved = () => {
+const handlePaperSaved = (savedPaper) => {
+  // 为保存的论文添加当前团队ID
+  if (currentTeam.value) {
+    savedPaper.team_id = currentTeam.value.id;
+  }
+
   closeForm();
   loadPapers();
   showToast(editingPaper.value ? "文献更新成功" : "文献添加成功", "success");
@@ -282,6 +334,13 @@ const closeForm = () => {
 // 监听器
 watch([selectedCategoryId, searchQuery], () => {
   currentPage.value = 1;
+});
+
+// 监听当前团队变化，重新加载数据
+watch(() => currentTeam.value, () => {
+  fetchPapers();
+  currentPage.value = 1;
+  selectedCategoryId.value = null;
 });
 
 // 生命周期
@@ -491,6 +550,36 @@ onMounted(() => {
   color: var(--white);
   border-color: var(--primary-600);
   box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
+}
+
+.no-team-warning {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  background: var(--color-background-soft);
+  border-radius: var(--border-radius-lg);
+  text-align: center;
+  margin: 2rem 0;
+  border: 1px dashed var(--color-border);
+}
+
+.warning-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: var(--color-warning);
+}
+
+.no-team-warning h3 {
+  margin-bottom: 0.5rem;
+  color: var(--color-heading);
+}
+
+.no-team-warning p {
+  max-width: 500px;
+  margin-bottom: 1.5rem;
+  color: var(--color-text-light);
 }
 
 @media (max-width: 768px) {

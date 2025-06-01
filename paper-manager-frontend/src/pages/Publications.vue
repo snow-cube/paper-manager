@@ -1,12 +1,11 @@
 <template>
   <div class="publications-page">
-    <div class="container">
-      <div class="page-header">
+    <div class="container">      <div class="page-header">
         <h1 class="page-title">
           <span class="page-icon">🎓</span>
           发表论文管理
         </h1>
-        <p class="page-description">管理您发表和投稿的学术论文</p>
+        <p class="page-description">管理所有用户发表和投稿的学术论文（全局共享）</p>
       </div>
 
       <div class="content-layout">
@@ -156,7 +155,8 @@ const getKeywordsText = (keywords) => {
 
 // 计算属性
 const filteredPapers = computed(() => {
-  let filtered = papers.value.filter(paper => paper.paper_type === 'published');
+  // 由于使用getPapers API，所有返回的都是发表论文，无需过滤paper_type
+  let filtered = papers.value;
 
   // 分类筛选
   if (selectedCategoryId.value) {
@@ -188,7 +188,8 @@ const filteredPapers = computed(() => {
 });
 
 const totalPages = computed(() => {
-  let filtered = papers.value.filter(paper => paper.paper_type === 'published');
+  // 由于使用getPapers API，所有返回的都是发表论文，无需过滤paper_type
+  let filtered = papers.value;
 
   if (selectedCategoryId.value) {
     filtered = filtered.filter(paper => {

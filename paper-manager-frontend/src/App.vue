@@ -30,6 +30,11 @@
               </RouterLink>
             </template>
           </nav>
+          <div class="center-section">
+            <template v-if="isAuthenticated && hasTeams">
+              <TeamSelector />
+            </template>
+          </div>
           <div class="user-section">
             <template v-if="isAuthenticated">
               <div class="user-info">
@@ -74,9 +79,12 @@ import { RouterLink, RouterView } from "vue-router";
 import { computed } from "vue";
 import ToastContainer from "./components/ToastContainer.vue";
 import ErrorBoundary from "./components/ErrorBoundary.vue";
+import TeamSelector from "./components/TeamSelector.vue";
 import { useAuth } from "./composables/useAuth";
+import { useTeam } from "./composables/useTeam";
 
 const { user, isAuthenticated, logout } = useAuth();
+const { hasTeams } = useTeam();
 
 const handleRetry = () => {
   // 这里可以添加重试逻辑，比如重新加载数据
@@ -104,6 +112,7 @@ const handleLogout = async () => {
   align-items: center;
   justify-content: space-between;
   padding: 1rem 0;
+  gap: 1rem;
 }
 
 .logo {
@@ -180,6 +189,14 @@ const handleLogout = async () => {
 
 .nav-link.router-link-active::before {
   display: none;
+}
+
+.center-section {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 1rem;
 }
 
 .user-section {
@@ -280,6 +297,7 @@ const handleLogout = async () => {
     gap: 0.25rem;
     flex-wrap: wrap;
     justify-content: center;
+    order: 2;
   }
 
   .nav-link {
@@ -291,11 +309,18 @@ const handleLogout = async () => {
     font-size: 1rem;
   }
 
+  .center-section {
+    order: 1;
+    margin: 0.5rem 0;
+    width: 100%;
+  }
+
   .user-section {
     flex-direction: column;
     gap: 0.5rem;
     width: 100%;
     align-items: center;
+    order: 3;
   }
 
   .user-info {

@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue';
 import { getCurrentUser, setAuthToken } from '../services/api.js';
+import { useTeam } from './useTeam.js';
 
 // 全局用户状态
 const currentUser = ref(null);
@@ -18,6 +19,11 @@ const initializeAuth = async () => {
     setAuthToken(token);
     const user = await getCurrentUser();
     currentUser.value = user;
+
+    // 初始化团队状态
+    const { initializeTeams } = useTeam();
+    await initializeTeams();
+
     return true;
   } catch (error) {
     console.error('Failed to initialize auth:', error);
@@ -33,6 +39,10 @@ const logout = () => {
   currentUser.value = null;
   setAuthToken(null);
   localStorage.removeItem('token');
+
+  // 清除团队状态
+  const { clearTeamState } = useTeam();
+  clearTeamState();
 };
 
 // 设置当前用户
