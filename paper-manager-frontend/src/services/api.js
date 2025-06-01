@@ -115,6 +115,23 @@ export const downloadPaperByTitle = async (title) => {
   return response;
 };
 
+// 下载参考文献文件
+export const downloadReference = async (referenceId) => {
+  const response = await api.get(`/references/${referenceId}/download`, {
+    responseType: "blob",
+  });
+  return response;
+};
+
+// 通过参考文献标题下载文件
+export const downloadReferenceByTitle = async (title) => {
+  const response = await api.get("/references/download/by-title", {
+    params: { title },
+    responseType: "blob",
+  });
+  return response;
+};
+
 // 计算论文工作量
 export const getPaperWorkload = async (paperId) =>
   (await api.get(`/papers/${paperId}/workload`)).data;
@@ -231,21 +248,4 @@ export const uploadReference = async (referenceId, file) => {
   const formData = new FormData();
   formData.append('file', file);
   return (await api.post(`/references/${referenceId}/upload`, formData)).data;
-};
-
-// 下载参考文献文件
-export const downloadReference = async (referenceId) => {
-  const response = await api.get(`/references/${referenceId}/download`, {
-    responseType: "blob",
-  });
-  return response;
-};
-
-// 通过标题下载参考文献
-export const downloadReferenceByTitle = async (title, teamId) => {
-  const response = await api.get("/references/download/by-title", {
-    params: { title, team_id: teamId },
-    responseType: "blob",
-  });
-  return response;
 };

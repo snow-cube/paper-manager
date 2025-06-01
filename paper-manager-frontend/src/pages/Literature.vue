@@ -131,10 +131,12 @@ import PaperDetail from "../components/PaperDetail.vue";
 import Modal from "../components/Modal.vue";
 import { useToast } from "../composables/useToast";
 import { useTeam } from "../composables/useTeam";
+import { useCategories } from "../composables/useCategories";
 import { RouterLink } from "vue-router";
 
 const { showToast } = useToast();
 const { currentTeam } = useTeam();
+const { loadCategories } = useCategories();
 
 // 响应式数据
 const papers = ref([]);
@@ -346,6 +348,8 @@ watch(() => currentTeam.value, () => {
 // 生命周期
 onMounted(() => {
   loadPapers();
+  fetchPapers();
+  loadCategories();
 });
 </script>
 

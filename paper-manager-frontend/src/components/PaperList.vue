@@ -90,6 +90,7 @@
 import {
   deletePaper as deletePaperAPI,
   downloadPaper as downloadPaperAPI,
+  downloadReference,
 } from "../services/api";
 import { useToast } from "../composables/useToast";
 import { useConfirmDialog } from "../composables/useConfirmDialog";
@@ -172,14 +173,34 @@ const downloadPaper = async (paper) => {
   try {
     showToast("正在准备下载论文...", "info");
 
-    const response = await downloadPaperAPI(paper.id);
+    // 根据论文类型选择下载API
+    let response;
+    if (paper.paper_type === 'literature') {
+      response = await downloadReference(paper.id);
+    } else {
+      response = await downloadPaperAPI(paper.id);
+    }
+
+    // 从Content-Disposition头部提取文件名，如果有的话
+    const contentDisposition = response.headers['content-disposition'];
+    let fileName = `${paper.title}.pdf`;
+
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+      if (filenameMatch && filenameMatch[1]) {
+        fileName = filenameMatch[1].replace(/['"]/g, '');
+      }
+    }
+
+    // 确定内容类型
+    const contentType = response.headers['content-type'] || 'application/pdf';
 
     // 创建下载链接
-    const blob = new Blob([response.data], { type: "application/pdf" });
+    const blob = new Blob([response.data], { type: contentType });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${paper.title}.pdf` || "paper.pdf";
+    link.download = fileName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

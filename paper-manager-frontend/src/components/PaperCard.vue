@@ -80,7 +80,7 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, onMounted } from "vue";
 import { useCategories } from "../composables/useCategories";
 
 const props = defineProps({
@@ -92,7 +92,12 @@ const props = defineProps({
 
 defineEmits(["edit", "delete", "view"]);
 
-const { getCategoryName } = useCategories();
+const { getCategoryName, loadCategories } = useCategories();
+
+// Make sure categories are loaded
+onMounted(() => {
+  loadCategories();
+});
 
 const authorsDisplay = computed(() => {
   if (!props.paper.authors) return "未知作者";
@@ -105,18 +110,28 @@ const authorsDisplay = computed(() => {
 });
 
 const categoriesDisplay = computed(() => {
-  if (!props.paper.categories || props.paper.categories.length === 0) {
-    return "未分类";
+  if (!props.paper) return "未分类";
+
+  // Handle single category_id
+  if (props.paper.category_id) {
+    return getCategoryName(props.paper.category_id);
   }
 
-  if (Array.isArray(props.paper.categories)) {
-    return props.paper.categories.map(category =>
-      typeof category === 'object' ? category.name : getCategoryName(category)
-    ).join(', ');
+  // Handle array of categories
+  if (props.paper.categories && Array.isArray(props.paper.categories)) {
+    if (props.paper.categories.length === 0) return "未分类";
+
+    return props.paper.categories.map(category => {
+      if (typeof category === 'object' && category.name) {
+        return category.name;
+      } else if (typeof category === 'number' || typeof category === 'string') {
+        return getCategoryName(category);
+      }
+      return "未知分类";
+    }).join(', ');
   }
 
-  // 兼容旧版本的单一分类ID
-  return getCategoryName(props.paper.category_id);
+  return "未分类";
 });
 
 const truncatedAbstract = computed(() => {

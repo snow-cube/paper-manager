@@ -129,7 +129,12 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
-import { getReferences, deleteReference as deleteReferenceAPI, downloadReference as downloadReferenceAPI, getCategories } from '../services/api.js';
+import {
+  getReferences,
+  deleteReference as deleteReferenceAPI,
+  downloadReference as downloadReferenceAPI,
+  getCategories
+} from '../services/api.js';
 import { useToast } from '../composables/useToast.js';
 import LoadingSpinner from './LoadingSpinner.vue';
 import Modal from './Modal.vue';
@@ -226,10 +231,13 @@ const confirmDelete = async () => {
 
 const downloadReference = async (reference) => {
   try {
+    showToast('准备下载文件...', 'info');
     const response = await downloadReferenceAPI(reference.id);
 
     // 创建下载链接
-    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const contentType = response.headers['content-type'] || 'application/octet-stream';
+    const blob = new Blob([response.data], { type: contentType });
+    const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.setAttribute('download', `${reference.title}.pdf`);
@@ -238,7 +246,7 @@ const downloadReference = async (reference) => {
     link.remove();
     window.URL.revokeObjectURL(url);
 
-    showToast('文件下载开始', 'success');
+    showToast('文件下载成功', 'success');
   } catch (error) {
     console.error('Failed to download reference:', error);
     showToast('文件下载失败', 'error');

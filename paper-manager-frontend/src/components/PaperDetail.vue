@@ -164,7 +164,7 @@
 <script setup>
 import { computed, ref } from "vue";
 import { useCategories } from "../composables/useCategories";
-import { downloadPaper } from "../services/api";
+import { downloadPaper, downloadReference } from "../services/api";
 import { useToast } from "../composables/useToast";
 import PdfViewer from "./PdfViewer.vue";
 
@@ -296,16 +296,34 @@ const downloadFile = async () => {
   try {
     showToast("正在准备下载文件...", "info");
 
-    const response = await downloadPaper(props.paper.id);
+    // 根据论文类型选择不同的下载API
+    let response;
+    if (props.paper.paper_type === 'literature') {
+      // 如果是参考文献类型
+      response = await downloadReference(props.paper.id);
+    } else {
+      // 默认使用论文下载API
+      response = await downloadPaper(props.paper.id);
+    }
+
+    // 从Content-Disposition头部提取文件名，如果有的话
+    const contentDisposition = response.headers['content-disposition'];
+    let fileName = getFileName(props.paper.file_url);
+
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+      if (filenameMatch && filenameMatch[1]) {
+        fileName = filenameMatch[1].replace(/['"]/g, '');
+      }
+    }
+
+    // 确定内容类型
+    const contentType = response.headers['content-type'] || 'application/octet-stream';
 
     // 创建下载链接
-    const contentType =
-      response.headers["content-type"] || "application/octet-stream";
     const blob = new Blob([response.data], { type: contentType });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
-    const fileName = getFileName(props.paper.file_url);
-
     link.href = url;
     link.download = fileName;
     document.body.appendChild(link);

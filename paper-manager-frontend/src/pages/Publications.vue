@@ -119,8 +119,10 @@ import PaperForm from "../components/PaperForm.vue";
 import PaperDetail from "../components/PaperDetail.vue";
 import Modal from "../components/Modal.vue";
 import { useToast } from "../composables/useToast";
+import { useCategories } from "../composables/useCategories";
 
 const { showToast } = useToast();
+const { loadCategories } = useCategories();
 
 // 响应式数据
 const papers = ref([]);
@@ -220,6 +222,12 @@ const loadPapers = async () => {
   loading.value = true;
   try {
     papers.value = await getPapers();
+    // 确保每个论文对象有 paper_type 属性
+    papers.value.forEach(paper => {
+      if (!paper.paper_type) {
+        paper.paper_type = 'published';
+      }
+    });
   } catch (error) {
     console.error("Failed to load papers:", error);
     showToast("加载发表论文失败", "error");
@@ -289,7 +297,8 @@ watch([selectedCategoryId, searchQuery], () => {
 
 // 生命周期
 onMounted(() => {
-  loadPapers();
+  loadCategories(); // 先加载分类
+  loadPapers();    // 再加载论文
 });
 </script>
 
