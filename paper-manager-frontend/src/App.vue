@@ -1,57 +1,138 @@
 <template>
   <div id="app">
-    <header class="header">
-      <div class="container">
-        <div class="header-content">
-          <div class="logo">
-            <span class="logo-icon">📚</span>
-            <span class="logo-text">科研论文管理系统</span>
-          </div>          <nav class="nav">
-            <RouterLink to="/" class="nav-link">
-              <span class="nav-icon">🏠</span>
-              首页
-            </RouterLink>
-            <template v-if="isAuthenticated">
-              <RouterLink to="/literature" class="nav-link">
-                <span class="nav-icon">📚</span>
-                文献管理
+    <template v-if="$route.name === 'Auth'">
+      <!-- 认证页面：全屏显示，不显示导航栏和页脚 -->
+      <ErrorBoundary @retry="handleRetry">
+        <RouterView />
+      </ErrorBoundary>
+    </template>
+    <template v-else>
+      <!-- 普通页面：显示完整布局 -->      <header class="header">
+        <div class="container">
+          <div class="header-content">
+            <!-- 左侧：Logo + 导航 -->
+          <div class="left-section">
+            <div class="logo">
+              <span class="logo-icon">📚</span>
+              <span class="logo-text">科研论文管理系统</span>
+            </div>
+            <nav class="nav">
+              <RouterLink to="/" class="nav-link">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-text">首页</span>
               </RouterLink>
-              <RouterLink to="/publications" class="nav-link">
-                <span class="nav-icon">🎓</span>
-                发表论文
-              </RouterLink>
-              <RouterLink to="/teams" class="nav-link">
-                <span class="nav-icon">👥</span>
-                团队管理
-              </RouterLink>
-              <RouterLink to="/categories" class="nav-link">
-                <span class="nav-icon">🏷️</span>
-                分类管理
-              </RouterLink>
-            </template>
-          </nav>
-          <div class="center-section">
-            <template v-if="isAuthenticated && hasTeams">
-              <TeamSelector />
-            </template>
+              <template v-if="isAuthenticated">
+                <RouterLink to="/literature" class="nav-link">
+                  <span class="nav-icon">📚</span>
+                  <span class="nav-text">文献管理</span>
+                </RouterLink>
+                <RouterLink to="/publications" class="nav-link">
+                  <span class="nav-icon">🎓</span>
+                  <span class="nav-text">发表论文</span>
+                </RouterLink>
+                <RouterLink to="/teams" class="nav-link">
+                  <span class="nav-icon">👥</span>
+                  <span class="nav-text">团队管理</span>
+                </RouterLink>
+                <RouterLink to="/categories" class="nav-link">
+                  <span class="nav-icon">🏷️</span>
+                  <span class="nav-text">分类管理</span>
+                </RouterLink>
+                <RouterLink to="/collaboration" class="nav-link">
+                  <span class="nav-icon">🔗</span>
+                  <span class="nav-text">合作网络</span>
+                </RouterLink>
+              </template>
+            </nav>
           </div>
-          <div class="user-section">
-            <template v-if="isAuthenticated">
-              <div class="user-info">
-                <span class="user-icon">👤</span>
-                <span class="user-name">{{ user?.username || '用户' }}</span>
+
+          <!-- 右侧：团队选择器 + 用户信息 -->
+          <div class="right-section">
+            <template v-if="isAuthenticated && hasTeams">
+              <div class="team-wrapper">
+                <TeamSelector />
               </div>
-              <button @click="handleLogout" class="logout-btn">
-                <span class="logout-icon">🚪</span>
-                退出
-              </button>
-            </template>
-            <template v-else>
-              <RouterLink to="/login" class="login-btn">
-                <span class="login-icon">🔑</span>
-                登录
-              </RouterLink>
-            </template>
+            </template>            <div class="user-section">
+              <template v-if="isAuthenticated">
+                <div v-if="isLoading" class="user-loading">
+                  <div class="loading-avatar"></div>
+                  <div class="loading-text">
+                    <div class="loading-line"></div>
+                    <div class="loading-line short"></div>
+                  </div>
+                </div>
+                <div v-else class="user-dropdown" :class="{ 'open': isUserDropdownOpen }"><button @click="toggleUserDropdown" class="user-btn">
+                    <div class="user-avatar">
+                      <img v-if="currentUser?.avatar" :src="currentUser.avatar" :alt="currentUser.username" class="avatar-img" />
+                      <span v-else class="user-initials">{{ getUserAvatar(currentUser) }}</span>
+                    </div><div class="user-info">
+                      <span class="user-name">{{ currentUser?.full_name || currentUser?.username || '用户' }}</span>
+                      <span class="user-role">{{ getRoleDisplayName(currentUser?.role) }}</span>
+                    </div>
+                    <span class="dropdown-arrow" :class="{ 'rotated': isUserDropdownOpen }">
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                        <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                      </svg>
+                    </span>
+                  </button>
+
+                  <transition name="user-dropdown">
+                    <div v-if="isUserDropdownOpen" class="user-dropdown-menu">                      <div class="user-dropdown-header">
+                        <div class="user-avatar-large">
+                          <img v-if="currentUser?.avatar" :src="currentUser.avatar" :alt="currentUser.username" class="avatar-img-large" />
+                          <span v-else class="user-initials-large">{{ getUserAvatar(currentUser) }}</span>
+                          <div class="status-indicator"></div>
+                        </div>                        <div class="user-details">
+                          <div class="user-display-name">{{ currentUser?.full_name || currentUser?.username || '用户' }}</div>
+                          <div v-if="currentUser?.email" class="user-email">{{ currentUser.email }}</div>
+                          <div class="user-status">
+                            <span class="status-dot"></span>
+                            在线
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="user-dropdown-section">
+                        <button @click="handleUserProfile" class="user-dropdown-item">
+                          <span class="item-icon">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                              <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM12.735 14c.618 0 1.093-.561.872-1.139a6.002 6.002 0 00-11.215 0c-.22.578.254 1.139.872 1.139h9.47z"/>
+                            </svg>
+                          </span>
+                          <span>个人资料</span>
+                        </button>
+                        <button @click="handleUserSettings" class="user-dropdown-item">
+                          <span class="item-icon">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                              <path d="M8 4.754a3.246 3.246 0 100 6.492 3.246 3.246 0 000-6.492zM5.754 8a2.246 2.246 0 114.492 0 2.246 2.246 0 01-4.492 0z"/>
+                              <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 01-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 01-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 01.52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 011.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 011.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 01.52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 01-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 01-1.255-.52l-.094-.319z"/>
+                            </svg>
+                          </span>
+                          <span>账户设置</span>
+                        </button>
+
+                        <div class="dropdown-divider"></div>
+
+                        <button @click="handleLogout" class="user-dropdown-item logout-item">
+                          <span class="item-icon">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                              <path d="M3 3a1 1 0 011-1h4a1 1 0 010 2H5v8h3a1 1 0 010 2H4a1 1 0 01-1-1V3zM10.293 5.293a1 1 0 011.414 1.414L9.414 8l2.293 2.293a1 1 0 01-1.414 1.414L8 9.414l-2.293 2.293a1 1 0 01-1.414-1.414L6.586 8 4.293 5.707a1 1 0 011.414-1.414L8 7.586l2.293-2.293z"/>
+                            </svg>
+                          </span>
+                          <span>退出登录</span>
+                          <span class="logout-shortcut">Ctrl+Q</span>
+                        </button>
+                      </div>                    </div>
+                  </transition>
+                </div>
+              </template>
+              <template v-else>
+                <RouterLink to="/login" class="login-btn">
+                  <span class="login-icon">🔑</span>
+                  <span class="login-text">登录</span>
+                </RouterLink>
+              </template>
+            </div>
           </div>
         </div>
       </div>
@@ -67,33 +148,92 @@
       <div class="container">
         <p>&copy; {{ new Date().getFullYear() }} 科研论文管理系统. All rights reserved.</p>
       </div>
-    </footer>
-
-    <!-- Toast通知容器 -->
+    </footer>    <!-- Toast通知容器 -->
     <ToastContainer />
+    </template>
   </div>
 </template>
 
 <script setup>
 import { RouterLink, RouterView } from "vue-router";
-import { computed } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import ToastContainer from "./components/ToastContainer.vue";
 import ErrorBoundary from "./components/ErrorBoundary.vue";
 import TeamSelector from "./components/TeamSelector.vue";
 import { useAuth } from "./composables/useAuth";
 import { useTeam } from "./composables/useTeam";
 
-const { user, isAuthenticated, logout } = useAuth();
+const { currentUser, isAuthenticated, isLoading, logout } = useAuth();
 const { hasTeams } = useTeam();
+
+// 用户下拉菜单状态
+const isUserDropdownOpen = ref(false);
 
 const handleRetry = () => {
   // 这里可以添加重试逻辑，比如重新加载数据
   console.log('Application retry triggered');
 };
 
+const toggleUserDropdown = () => {
+  isUserDropdownOpen.value = !isUserDropdownOpen.value;
+};
+
+const closeUserDropdown = () => {
+  isUserDropdownOpen.value = false;
+};
+
 const handleLogout = async () => {
+  closeUserDropdown();
   await logout();
 };
+
+const handleUserProfile = () => {
+  closeUserDropdown();
+  // 跳转到个人资料页面
+  console.log('Navigate to user profile');
+};
+
+const handleUserSettings = () => {
+  closeUserDropdown();
+  // 跳转到账户设置页面
+  console.log('Navigate to user settings');
+};
+
+// 获取用户头像或首字母
+const getUserAvatar = (user) => {
+  if (user?.avatar) {
+    return user.avatar;
+  }
+  // 如果没有头像，返回用户名或全名的首字母
+  const name = user?.full_name || user?.username || '用户';
+  return name.charAt(0).toUpperCase();
+};
+
+// 获取角色显示名称
+const getRoleDisplayName = (role) => {
+  const roleMap = {
+    'admin': '管理员',
+    'user': '普通用户',
+    'researcher': '研究员',
+    'student': '学生'
+  };
+  return roleMap[role] || '用户';
+};
+
+// 点击外部关闭下拉菜单
+const handleClickOutside = (event) => {
+  if (!event.target.closest('.user-dropdown')) {
+    closeUserDropdown();
+  }
+};
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
 </script>
 
 <style scoped>
@@ -107,12 +247,29 @@ const handleLogout = async () => {
   backdrop-filter: blur(10px);
 }
 
+.container {
+  max-width: 100%;
+  margin: 0;
+  padding: 0 1.5rem;
+}
+
 .header-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 0;
-  gap: 1rem;
+  padding: 0.75rem 0;
+  gap: 2rem;
+  width: 100%;
+  min-height: 60px;
+}
+
+/* 左侧区域 */
+.left-section {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .logo {
@@ -120,6 +277,8 @@ const handleLogout = async () => {
   align-items: center;
   gap: 0.75rem;
   text-decoration: none;
+  flex-shrink: 0;
+  min-width: 240px;
 }
 
 .logo-icon {
@@ -141,23 +300,42 @@ const handleLogout = async () => {
   display: flex;
   gap: 0.5rem;
   align-items: center;
+  flex: 1;
+  justify-content: flex-start;
+  overflow: hidden;
 }
 
 .nav-link {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
   border-radius: var(--border-radius);
   font-weight: 500;
+  font-size: 0.875rem;
   transition: all 0.2s ease;
   position: relative;
   text-decoration: none;
   color: var(--color-text);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .nav-icon {
   font-size: 1.125rem;
+  filter: grayscale(0.3);
+  transition: filter 0.2s ease;
+  flex-shrink: 0;
+}
+
+.nav-text {
+  flex-shrink: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-link:hover .nav-icon {
+  filter: grayscale(0);
 }
 
 .nav-link::before {
@@ -191,43 +369,371 @@ const handleLogout = async () => {
   display: none;
 }
 
-.center-section {
-  flex: 1;
+/* 右侧区域 */
+.right-section {
   display: flex;
-  justify-content: center;
   align-items: center;
-  margin: 0 1rem;
+  gap: 1.5rem;
+  flex-shrink: 0;
+}
+
+.team-wrapper {
+  min-width: 200px;
+  max-width: 280px;
 }
 
 .user-section {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  flex-shrink: 0;
+}
+
+/* 用户加载状态 */
+.user-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.875rem;
+}
+
+.loading-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.loading-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.loading-line {
+  height: 0.75rem;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  border-radius: 4px;
+  animation: shimmer 1.5s infinite;
+  width: 80px;
+}
+
+.loading-line.short {
+  width: 60px;
+  height: 0.625rem;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* 用户下拉菜单 */
+.user-dropdown {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.user-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.875rem;
+  background: linear-gradient(135deg, var(--white), #f8fafc);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text);
+  min-width: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.user-btn:hover {
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border-color: var(--primary-300);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.user-dropdown.open .user-btn {
+  background: linear-gradient(135deg, var(--primary-50), var(--primary-100));
+  border-color: var(--primary-400);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.15);
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+}
+
+.user-avatar .user-icon {
+  font-size: 1rem;
+  color: var(--white);
+}
+
+.user-avatar .avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-avatar .user-initials {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--white);
+  text-transform: uppercase;
 }
 
 .user-info {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  background: var(--primary-50);
-  border-radius: var(--border-radius);
+  flex-direction: column;
+  gap: 0.125rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.user-info .user-name {
+  font-weight: 600;
+  color: var(--color-heading);
+  font-size: 0.875rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.user-info .user-role {
+  font-size: 0.75rem;
+  color: var(--color-text-light);
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdown-arrow {
+  color: var(--color-text-light);
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.dropdown-arrow.rotated {
+  transform: rotate(180deg);
+}
+
+.user-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  min-width: 260px;
+  background: var(--white);
   border: 1px solid var(--primary-200);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  z-index: 1000;
+  overflow: hidden;
 }
 
-.user-icon {
-  font-size: 1.125rem;
+.user-dropdown-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, var(--primary-50), var(--primary-100));
+  border-bottom: 1px solid var(--primary-200);
+  position: relative;
 }
 
-.user-name {
+.user-avatar-large {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 3px 12px rgba(59, 130, 246, 0.25);
+  position: relative;
+}
+
+.user-avatar-large .user-icon {
+  font-size: 1.5rem;
+  color: var(--white);
+}
+
+.user-avatar-large .avatar-img-large {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-avatar-large .user-initials-large {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--white);
+  text-transform: uppercase;
+}
+
+.status-indicator {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  background: #10b981;
+  border: 2px solid var(--white);
+  border-radius: 50%;
+}
+
+.user-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-display-name {
+  font-weight: 600;
+  color: var(--color-heading);
+  font-size: 0.95rem;
+  margin-bottom: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-email {
+  font-size: 0.8rem;
+  color: var(--color-text-light);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 0.25rem;
+}
+
+.user-status {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--primary-600);
   font-weight: 500;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  background: #10b981;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.user-dropdown-section {
+  padding: 0.5rem 0;
+}
+
+.user-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text);
+  text-align: left;
+  position: relative;
+}
+
+.user-dropdown-item:hover {
+  background: linear-gradient(135deg, var(--primary-50), rgba(59, 130, 246, 0.08));
   color: var(--primary-700);
 }
 
-.logout-btn, .login-btn {
+.user-dropdown-item.logout-item {
+  color: #dc2626;
+  margin-top: 0.25rem;
+}
+
+.user-dropdown-item.logout-item:hover {
+  background: linear-gradient(135deg, #fef2f2, rgba(220, 38, 38, 0.08));
+  color: #b91c1c;
+}
+
+.user-dropdown-item .item-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 0.5rem 0;
+}
+
+.logout-shortcut {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--color-text-light);
+  background: var(--color-background-mute);
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+}
+
+/* 用户下拉菜单动画 */
+.user-dropdown-enter-active,
+.user-dropdown-leave-active {
+  transition: all 0.2s ease;
+}
+
+.user-dropdown-enter-from,
+.user-dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.user-dropdown-enter-to,
+.user-dropdown-leave-from {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.login-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   padding: 0.5rem 0.75rem;
   border-radius: var(--border-radius);
   font-weight: 500;
@@ -236,22 +742,7 @@ const handleLogout = async () => {
   border: none;
   cursor: pointer;
   font-size: 0.875rem;
-}
-
-.logout-btn {
-  background: var(--color-danger-soft);
-  color: var(--color-danger);
-  border: 1px solid var(--color-danger-light);
-}
-
-.logout-btn:hover {
-  background: var(--color-danger);
-  color: var(--white);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
-}
-
-.login-btn {
+  flex-shrink: 0;
   background: var(--primary-500);
   color: var(--white);
   border: 1px solid var(--primary-600);
@@ -261,6 +752,19 @@ const handleLogout = async () => {
   background: var(--primary-600);
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(125, 108, 192, 0.3);
+}
+
+.login-icon {
+  font-size: 1rem;
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+}
+
+.login-text {
+  flex-shrink: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .main {
@@ -282,11 +786,98 @@ const handleLogout = async () => {
   margin: 0;
 }
 
+/* 响应式设计 */
+@media (max-width: 1400px) {
+  .container {
+    padding: 0 1.25rem;
+  }
+
+  .header-content {
+    gap: 1.5rem;
+  }
+
+  .left-section {
+    gap: 1.5rem;
+  }
+
+  .logo {
+    min-width: 200px;
+  }
+
+  .logo-text {
+    font-size: 1.3rem;
+  }
+}
+
+@media (max-width: 1200px) {
+  .container {
+    padding: 0 1rem;
+  }
+
+  .header-content {
+    gap: 1rem;
+  }
+
+  .left-section {
+    gap: 1rem;
+  }
+
+  .logo {
+    min-width: 180px;
+  }
+
+  .nav {
+    gap: 0.25rem;
+  }
+
+  .nav-link {
+    padding: 0.45rem 0.6rem;
+    font-size: 0.8rem;
+  }
+
+  .team-wrapper {
+    min-width: 160px;
+    max-width: 200px;
+  }
+}
+
+@media (max-width: 900px) {
+  .nav-text {
+    display: none;
+  }
+
+  .nav-link {
+    padding: 0.5rem;
+  }
+
+  .team-wrapper {
+    min-width: 140px;
+  }
+
+  .user-info .user-name {
+    display: none;
+  }
+
+  .user-info .user-role {
+    display: none;
+  }
+}
+
 @media (max-width: 768px) {
   .header-content {
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.75rem;
     padding: 0.75rem 0;
+  }
+
+  .left-section {
+    width: 100%;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .logo {
+    min-width: auto;
   }
 
   .logo-text {
@@ -294,37 +885,100 @@ const handleLogout = async () => {
   }
 
   .nav {
-    gap: 0.25rem;
+    gap: 0.5rem;
     flex-wrap: wrap;
     justify-content: center;
     order: 2;
+    width: 100%;
+  }
+
+  .nav-text {
+    display: inline;
   }
 
   .nav-link {
     padding: 0.5rem 0.75rem;
     font-size: 0.875rem;
+    gap: 0.4rem;
   }
 
-  .nav-icon {
-    font-size: 1rem;
-  }
-
-  .center-section {
+  .right-section {
     order: 1;
-    margin: 0.5rem 0;
     width: 100%;
+    justify-content: center;
+    gap: 1rem;
+  }
+
+  .team-wrapper {
+    min-width: auto;
+    max-width: 200px;
+    flex: 1;
   }
 
   .user-section {
-    flex-direction: column;
-    gap: 0.5rem;
-    width: 100%;
-    align-items: center;
-    order: 3;
+    min-width: auto;
+    justify-content: center;
   }
 
-  .user-info {
+  .user-info .user-name,
+  .user-info .user-role,
+  .login-text {
+    display: inline;
+  }
+
+  .login-btn {
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+    min-width: 120px;
     justify-content: center;
+  }
+
+  .user-dropdown-menu {
+    right: auto;
+    left: 0;
+    min-width: 200px;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav {
+    gap: 0.25rem;
+  }
+
+  .nav-link {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+  }
+
+  .nav-icon {
+    font-size: 0.9rem;
+  }
+
+  .right-section {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .team-wrapper {
+    width: 100%;
+    max-width: none;
+  }
+
+  .user-section {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .login-btn {
+    padding: 0.5rem 0.875rem;
+    font-size: 0.85rem;
+    min-width: 100px;
+  }
+
+  .user-dropdown-menu {
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 180px;
   }
 }
 </style>

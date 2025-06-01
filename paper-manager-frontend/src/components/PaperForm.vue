@@ -61,12 +61,14 @@
       </div>
     </div>    <div class="form-row">
       <div class="form-group">
-        <label class="form-label">作者</label>
-        <input
+        <label class="form-label">作者 *</label>
+        <textarea
           v-model="form.author_names"
-          class="form-input"
-          placeholder="请输入作者（用逗号分隔多个作者）"
-        />
+          class="form-textarea"
+          placeholder="请输入作者（用逗号分隔多个作者，例如：张三, 李四, 王五）"
+          rows="3"
+          required
+        ></textarea>
       </div>
       <div class="form-group">
         <label class="form-label" for="category">分类</label>
@@ -80,6 +82,57 @@
           </option>
         </select>
         <small class="form-hint">按住Ctrl键可选择多个分类</small>
+      </div>
+    </div>
+
+    <!-- 发表论文的作者贡献信息 -->
+    <div v-if="form.paper_type === 'published'" class="form-section">
+      <h3 class="section-title">作者贡献信息</h3>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">通讯作者</label>
+          <input
+            v-model="form.corresponding_author_name"
+            class="form-input"
+            placeholder="请输入通讯作者姓名"
+          />
+          <small class="form-hint">通讯作者必须是上述作者列表中的一员</small>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">作者贡献比例</label>
+        <div class="contribution-list">
+          <div
+            v-for="(author, index) in authorList"
+            :key="index"
+            class="contribution-item"
+          >
+            <span class="author-name">{{ author }}</span>
+            <input
+              v-model.number="authorContributions[index]"
+              type="number"
+              class="contribution-input"
+              placeholder="0.0"
+              step="0.01"
+              min="0"
+              max="1"
+              @input="updateContributions"
+            />
+            <span class="contribution-percent">
+              ({{ ((authorContributions[index] || 0) * 100).toFixed(1) }}%)
+            </span>
+          </div>
+        </div>
+        <div class="contribution-summary">
+          <span :class="{ 'contribution-error': totalContribution > 1 }">
+            总贡献比例: {{ (totalContribution * 100).toFixed(1) }}%
+          </span>
+          <small class="form-hint">
+            贡献比例总和应为100%（1.0）。如不填写，系统将平均分配。
+          </small>
+        </div>
       </div>
     </div>
     <div class="form-row">
@@ -284,13 +337,53 @@ const form = ref({
   impact_factor: "",
   notes: "",
   url: "",
+  corresponding_author_name: "",
 });
 
 const categories = ref([]);
 const file = ref(null);
 const submitting = ref(false);
+const authorContributions = ref([]);
 
 const isEdit = computed(() => !!props.paper);
+
+// 计算属性：作者列表
+const authorList = computed(() => {
+  if (!form.value.author_names) return [];
+  return form.value.author_names
+    .split(',')
+    .map(name => name.trim())
+    .filter(name => name.length > 0);
+});
+
+// 计算属性：总贡献比例
+const totalContribution = computed(() => {
+  return authorContributions.value.reduce((sum, contrib) => sum + (contrib || 0), 0);
+});
+
+// 监听作者列表变化，调整贡献比例数组
+watch(authorList, (newAuthors, oldAuthors) => {
+  const newLength = newAuthors.length;
+  const oldLength = authorContributions.value.length;
+
+  if (newLength > oldLength) {
+    // 添加新作者，初始化贡献比例
+    for (let i = oldLength; i < newLength; i++) {
+      authorContributions.value.push(0);
+    }
+  } else if (newLength < oldLength) {
+    // 删除作者，移除对应的贡献比例
+    authorContributions.value.splice(newLength);
+  }
+}, { immediate: true });
+
+// 更新贡献比例
+const updateContributions = () => {
+  // 确保所有值都是数字
+  authorContributions.value = authorContributions.value.map(val =>
+    isNaN(val) ? 0 : Math.max(0, Math.min(1, val))
+  );
+};
 
 // 初始化表单数据
 const initializeForm = () => {
@@ -313,6 +406,16 @@ const initializeForm = () => {
 
     if (props.paper.categories && Array.isArray(props.paper.categories)) {
       form.value.category_ids = props.paper.categories.map(c => c.id || c);
+    }
+
+    // 初始化作者贡献比例
+    if (props.paper.author_contribution_ratios && Array.isArray(props.paper.author_contribution_ratios)) {
+      authorContributions.value = [...props.paper.author_contribution_ratios];
+    }
+
+    // 设置通讯作者
+    if (props.paper.corresponding_author_name) {
+      form.value.corresponding_author_name = props.paper.corresponding_author_name;
     }
   } else if (props.paperType) {
     // 新建模式：设置论文类型
@@ -406,14 +509,25 @@ const handleSubmit = async () => {
         .split(',')
         .map(name => name.trim())
         .filter(name => name.length > 0);
-    }
-
-    // 处理关键词（转换为数组）
+    }    // 处理关键词（转换为数组）
     if (typeof submitData.keyword_names === 'string') {
       submitData.keyword_names = submitData.keyword_names
         .split(',')
         .map(keyword => keyword.trim())
         .filter(keyword => keyword.length > 0);
+    }
+
+    // 处理作者贡献比例（仅对发表论文）
+    if (form.value.paper_type === 'published') {
+      // 如果有设置贡献比例，则使用设置的值
+      if (authorContributions.value.some(contrib => contrib > 0)) {
+        submitData.author_contribution_ratios = [...authorContributions.value];
+      }
+
+      // 添加通讯作者
+      if (form.value.corresponding_author_name) {
+        submitData.corresponding_author_name = form.value.corresponding_author_name;
+      }
     }
 
     // 确保category_ids是数组
@@ -713,6 +827,64 @@ const handleSubmit = async () => {
 
 .file-remove:hover {
   background: var(--error-100);
+}
+
+.contribution-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.contribution-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: var(--color-background-soft);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-border);
+}
+
+.author-name {
+  flex: 1;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.contribution-input {
+  width: 80px;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.contribution-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--primary-100);
+}
+
+.contribution-percent {
+  font-size: 0.875rem;
+  color: var(--color-text-soft);
+  min-width: 60px;
+  text-align: right;
+}
+
+.contribution-summary {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: var(--primary-50);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--primary-200);
+}
+
+.contribution-error {
+  color: var(--error-600) !important;
+  font-weight: 600;
 }
 
 .form-actions {
