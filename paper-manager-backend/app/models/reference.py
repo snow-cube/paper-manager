@@ -1,13 +1,12 @@
 from typing import Optional, List, TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Relationship
-from sqlalchemy.orm import relationship
-from sqlalchemy import Column, Integer, String, ForeignKey
 from datetime import datetime
 
 if TYPE_CHECKING:
     from .keyword import Keyword
     from .team import Team
     from .user import User
+    from .category import Category
 
 class ReferenceKeyword(SQLModel, table=True):
     """参考文献-关键字关联表"""
@@ -17,7 +16,7 @@ class ReferenceKeyword(SQLModel, table=True):
     keyword_id: Optional[int] = Field(
         default=None, foreign_key="keyword.id", primary_key=True
     )
-    
+
     reference: "ReferencePaper" = Relationship(back_populates="keyword_links")
     keyword: "Keyword" = Relationship(back_populates="reference_links")
 
@@ -36,7 +35,7 @@ class ReferencePaperBase(SQLModel):
 
 class ReferencePaper(ReferencePaperBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    
+
     # Relationships
     team: Optional["Team"] = Relationship(back_populates="references")
     creator: "User" = Relationship(back_populates="created_references")
@@ -65,4 +64,4 @@ class ReferenceUpdate(SQLModel):
     doi: Optional[str] = None
     file_path: Optional[str] = None
     category_id: Optional[int] = None  # 添加分类ID字段
-    keyword_names: Optional[List[str]] = None  # 更新关键字列表 
+    keyword_names: Optional[List[str]] = None  # 更新关键字列表

@@ -12,11 +12,10 @@
 
     <div class="detail-content">
       <div class="detail-section">
-        <h3 class="section-title">基本信息</h3>
-        <div class="info-grid">
+        <h3 class="section-title">基本信息</h3>        <div class="info-grid">
           <div class="info-item">
             <label>作者：</label>
-            <span>{{ paper.authors }}</span>
+            <span>{{ authorsText }}</span>
           </div>
 
           <div v-if="paper.journal" class="info-item">
@@ -51,9 +50,7 @@
 
           <div class="info-item">
             <label>分类：</label>
-            <span class="category">{{
-              getCategoryName(paper.category_id)
-            }}</span>
+            <span class="category">{{ categoriesText }}</span>
           </div>
         </div>
       </div>
@@ -63,9 +60,7 @@
         <div class="abstract-content">
           {{ paper.abstract }}
         </div>
-      </div>
-
-      <div v-if="paper.keywords" class="detail-section">
+      </div>      <div v-if="paper.keywords" class="detail-section">
         <h3 class="section-title">关键词</h3>
         <div class="keywords-container">
           <span
@@ -169,7 +164,7 @@
 <script setup>
 import { computed, ref } from "vue";
 import { useCategories } from "../composables/useCategories";
-import { downloadPaper } from "../services/api";
+import { downloadPaper, downloadReference } from "../services/api";
 import { useToast } from "../composables/useToast";
 import PdfViewer from "./PdfViewer.vue";
 
@@ -188,9 +183,44 @@ const { showToast } = useToast();
 const showPreview = ref(false);
 const previewUrl = ref("");
 
+// 计算作者文本
+const authorsText = computed(() => {
+  if (!props.paper.authors) return '';
+  if (typeof props.paper.authors === 'string') return props.paper.authors;
+  if (Array.isArray(props.paper.authors)) {
+    return props.paper.authors
+      .map(author => typeof author === 'string' ? author : author.name)
+      .join(', ');
+  }
+  return '';
+});
+
+// 计算分类文本
+const categoriesText = computed(() => {
+  if (!props.paper.categories) {
+    return props.paper.category_id ? getCategoryName(props.paper.category_id) : '';
+  }
+  if (Array.isArray(props.paper.categories)) {
+    return props.paper.categories.map(cat => cat.name).join(', ');
+  }
+  return '';
+});
+
+// 处理关键词列表
 const keywordList = computed(() => {
   if (!props.paper.keywords) return [];
-  return props.paper.keywords.split(",").map((k) => k.trim());
+
+  if (typeof props.paper.keywords === 'string') {
+    return props.paper.keywords.split(",").map((k) => k.trim()).filter(k => k);
+  }
+
+  if (Array.isArray(props.paper.keywords)) {
+    return props.paper.keywords.map(keyword =>
+      typeof keyword === 'string' ? keyword : keyword.name
+    ).filter(k => k);
+  }
+
+  return [];
 });
 
 const formatDate = (dateString) => {
@@ -266,16 +296,34 @@ const downloadFile = async () => {
   try {
     showToast("正在准备下载文件...", "info");
 
-    const response = await downloadPaper(props.paper.id);
+    // 根据论文类型选择不同的下载API
+    let response;
+    if (props.paper.paper_type === 'literature') {
+      // 如果是参考文献类型
+      response = await downloadReference(props.paper.id);
+    } else {
+      // 默认使用论文下载API
+      response = await downloadPaper(props.paper.id);
+    }
+
+    // 从Content-Disposition头部提取文件名，如果有的话
+    const contentDisposition = response.headers['content-disposition'];
+    let fileName = getFileName(props.paper.file_url);
+
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+      if (filenameMatch && filenameMatch[1]) {
+        fileName = filenameMatch[1].replace(/['"]/g, '');
+      }
+    }
+
+    // 确定内容类型
+    const contentType = response.headers['content-type'] || 'application/octet-stream';
 
     // 创建下载链接
-    const contentType =
-      response.headers["content-type"] || "application/octet-stream";
     const blob = new Blob([response.data], { type: contentType });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
-    const fileName = getFileName(props.paper.file_url);
-
     link.href = url;
     link.download = fileName;
     document.body.appendChild(link);

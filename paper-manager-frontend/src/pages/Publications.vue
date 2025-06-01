@@ -1,12 +1,11 @@
 <template>
   <div class="publications-page">
-    <div class="container">
-      <div class="page-header">
+    <div class="container">      <div class="page-header">
         <h1 class="page-title">
           <span class="page-icon">🎓</span>
           发表论文管理
         </h1>
-        <p class="page-description">管理您发表和投稿的学术论文</p>
+        <p class="page-description">管理所有用户发表和投稿的学术论文（全局共享）</p>
       </div>
 
       <div class="content-layout">
@@ -64,10 +63,8 @@
               >
                 发表论文
               </button>
-            </div>
-
-            <div v-else class="papers-grid">
-              <PublishedPaperCard
+            </div>            <div v-else class="papers-grid">
+              <PaperCard
                 v-for="paper in filteredPapers"
                 :key="paper.id"
                 :paper="paper"
@@ -115,15 +112,17 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
-import { getPapersByType, deletePaper } from "../services/api";
+import { getPapers, deletePaper } from "../services/api";
 import CategoryTree from "../components/CategoryTree.vue";
-import PublishedPaperCard from "../components/PublishedPaperCard.vue";
+import PaperCard from "../components/PaperCard.vue";
 import PaperForm from "../components/PaperForm.vue";
 import PaperDetail from "../components/PaperDetail.vue";
 import Modal from "../components/Modal.vue";
 import { useToast } from "../composables/useToast";
+import { useCategories } from "../composables/useCategories";
 
 const { showToast } = useToast();
+const { loadCategories } = useCategories();
 
 // 响应式数据
 const papers = ref([]);
@@ -136,15 +135,39 @@ const viewingPaper = ref(null);
 const currentPage = ref(1);
 const itemsPerPage = 12;
 
+// 辅助函数：处理作者数据
+const getAuthorsText = (authors) => {
+  if (!authors) return '';
+  if (typeof authors === 'string') return authors;
+  if (Array.isArray(authors)) {
+    return authors.map(author => typeof author === 'string' ? author : author.name).join(', ');
+  }
+  return '';
+};
+
+// 辅助函数：处理关键词数据
+const getKeywordsText = (keywords) => {
+  if (!keywords) return '';
+  if (typeof keywords === 'string') return keywords;
+  if (Array.isArray(keywords)) {
+    return keywords.map(keyword => typeof keyword === 'string' ? keyword : keyword.name).join(', ');
+  }
+  return '';
+};
+
 // 计算属性
 const filteredPapers = computed(() => {
+  // 由于使用getPapers API，所有返回的都是发表论文，无需过滤paper_type
   let filtered = papers.value;
 
   // 分类筛选
   if (selectedCategoryId.value) {
-    filtered = filtered.filter(
-      (paper) => paper.category_id === selectedCategoryId.value
-    );
+    filtered = filtered.filter(paper => {
+      if (Array.isArray(paper.categories)) {
+        return paper.categories.some(cat => cat.id === selectedCategoryId.value);
+      }
+      return paper.category_id === selectedCategoryId.value;
+    });
   }
 
   // 搜索筛选
@@ -153,9 +176,9 @@ const filteredPapers = computed(() => {
     filtered = filtered.filter(
       (paper) =>
         paper.title.toLowerCase().includes(query) ||
-        paper.authors.toLowerCase().includes(query) ||
-        paper.keywords.toLowerCase().includes(query) ||
-        paper.abstract.toLowerCase().includes(query) ||
+        getAuthorsText(paper.authors).toLowerCase().includes(query) ||
+        getKeywordsText(paper.keywords).toLowerCase().includes(query) ||
+        (paper.abstract && paper.abstract.toLowerCase().includes(query)) ||
         (paper.journal && paper.journal.toLowerCase().includes(query))
     );
   }
@@ -167,12 +190,16 @@ const filteredPapers = computed(() => {
 });
 
 const totalPages = computed(() => {
+  // 由于使用getPapers API，所有返回的都是发表论文，无需过滤paper_type
   let filtered = papers.value;
 
   if (selectedCategoryId.value) {
-    filtered = filtered.filter(
-      (paper) => paper.category_id === selectedCategoryId.value
-    );
+    filtered = filtered.filter(paper => {
+      if (Array.isArray(paper.categories)) {
+        return paper.categories.some(cat => cat.id === selectedCategoryId.value);
+      }
+      return paper.category_id === selectedCategoryId.value;
+    });
   }
 
   if (searchQuery.value.trim()) {
@@ -180,9 +207,9 @@ const totalPages = computed(() => {
     filtered = filtered.filter(
       (paper) =>
         paper.title.toLowerCase().includes(query) ||
-        paper.authors.toLowerCase().includes(query) ||
-        paper.keywords.toLowerCase().includes(query) ||
-        paper.abstract.toLowerCase().includes(query) ||
+        getAuthorsText(paper.authors).toLowerCase().includes(query) ||
+        getKeywordsText(paper.keywords).toLowerCase().includes(query) ||
+        (paper.abstract && paper.abstract.toLowerCase().includes(query)) ||
         (paper.journal && paper.journal.toLowerCase().includes(query))
     );
   }
@@ -194,9 +221,15 @@ const totalPages = computed(() => {
 const loadPapers = async () => {
   loading.value = true;
   try {
-    papers.value = await getPapersByType("published");
+    papers.value = await getPapers();
+    // 确保每个论文对象有 paper_type 属性
+    papers.value.forEach(paper => {
+      if (!paper.paper_type) {
+        paper.paper_type = 'published';
+      }
+    });
   } catch (error) {
-    console.error("Failed to load publications:", error);
+    console.error("Failed to load papers:", error);
     showToast("加载发表论文失败", "error");
   } finally {
     loading.value = false;
@@ -264,7 +297,8 @@ watch([selectedCategoryId, searchQuery], () => {
 
 // 生命周期
 onMounted(() => {
-  loadPapers();
+  loadCategories(); // 先加载分类
+  loadPapers();    // 再加载论文
 });
 </script>
 

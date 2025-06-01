@@ -7,7 +7,7 @@
       </h3>
       <button
         class="btn btn-sm btn-outline-purple"
-        @click="showAddDialog(null)"
+        @click="showAddDialog()"
         title="添加根分类"
       >
         <span class="btn-icon">➕</span>
@@ -59,8 +59,7 @@
             </span>
             <span class="tree-node-count">{{ totalPapers }}</span>
           </div>
-        </div>
-        <!-- 分类树 -->
+        </div>        <!-- 分类列表 -->
         <div class="tree-list">
           <CategoryNode
             v-for="category in categoryTree"
@@ -69,9 +68,9 @@
             :selected-id="props.selectedCategoryId"
             :level="0"
             @select="selectCategory"
-            @add-child="showAddDialog"
+            @add-child="handleAddChild"
             @edit="showEditDialog"
-            @delete="deleteCategory"
+            @delete="handleDeleteCategory"
           />
         </div>
       </template>
@@ -84,9 +83,14 @@
         class="dialog-overlay"
         @click="closeCategoryDialog"
       >
-        <div class="dialog" @click.stop>
-          <div class="dialog-header">
-            <h4>{{ isEditing ? "编辑分类" : "添加分类" }}</h4>
+        <div class="dialog" @click.stop>          <div class="dialog-header">
+            <h4>{{
+              isEditing
+                ? "编辑分类"
+                : parentCategoryId
+                  ? "添加子分类"
+                  : "添加分类"
+            }}</h4>
             <button class="dialog-close" @click="closeCategoryDialog">×</button>
           </div>
           <div class="dialog-body">
@@ -142,18 +146,17 @@
 <script setup>
 import { ref, onMounted, computed, watch } from "vue";
 import {
-  getCategoryTree,
+  getCategories,
   createCategory,
   updateCategory,
   deleteCategory as deleteCategoryAPI,
-  getPapersByType,
   getPapers,
 } from "../services/api";
 import { useToast } from "../composables/useToast";
 import { useConfirmDialog } from "../composables/useConfirmDialog";
-import CategoryNode from "./CategoryNode.vue";
 import LoadingSpinner from "./LoadingSpinner.vue";
 import ConfirmDialog from "./ConfirmDialog.vue";
+import CategoryNode from "./CategoryNode.vue";
 
 const props = defineProps({
   selectedCategoryId: {
@@ -199,14 +202,45 @@ const selectCategory = (categoryId) => {
   emit("select", categoryId);
 };
 
+// 将扁平化分类列表转换为树形结构
+const buildCategoryTree = (categories) => {
+  const categoryMap = new Map();
+  const rootCategories = [];
+
+  // 创建所有分类的映射
+  categories.forEach(category => {
+    categoryMap.set(category.id, { ...category, children: [] });
+  });
+
+  // 构建树形结构
+  categories.forEach(category => {
+    const categoryNode = categoryMap.get(category.id);
+    if (category.parent_id) {
+      const parent = categoryMap.get(category.parent_id);
+      if (parent) {
+        parent.children.push(categoryNode);
+      } else {
+        // 如果父分类不存在，则作为根分类
+        rootCategories.push(categoryNode);
+      }
+    } else {
+      // 根分类
+      rootCategories.push(categoryNode);
+    }
+  });
+
+  return rootCategories;
+};
+
 // 加载分类数据和论文统计
 const loadCategories = async () => {
   loading.value = true;
   error.value = null;
 
   try {
-    const data = await getCategoryTree();
-    categoryTree.value = data.categories || [];
+    const categories = await getCategories();
+    // 将扁平化列表转换为树形结构
+    categoryTree.value = buildCategoryTree(categories || []);
 
     // 加载论文统计
     await loadPaperCounts();
@@ -218,28 +252,39 @@ const loadCategories = async () => {
   }
 };
 
+// 递归计算分类树中每个节点的论文数量
+const calculatePaperCounts = (categories, papers) => {
+  categories.forEach((category) => {
+    const categoryPapers = papers.filter(paper => {
+      // 支持多分类和单分类
+      if (Array.isArray(paper.categories)) {
+        return paper.categories.some(cat => cat.id === category.id);
+      }
+      return paper.category_id === category.id;
+    });
+    category.paper_count = categoryPapers.length;
+
+    // 递归处理子分类
+    if (category.children && category.children.length > 0) {
+      calculatePaperCounts(category.children, papers);
+    }
+  });
+};
+
 // 加载论文数量统计
 const loadPaperCounts = async () => {
   try {
-    const papers = props.paperType
-      ? await getPapersByType(props.paperType)
-      : await getPapers(); // 获取所有论文
+    const papers = await getPapers();
 
-    totalPapers.value = papers.length; // 为每个分类计算论文数量
-    const updateCategoryCounts = (categories) => {
-      categories.forEach((category) => {
-        const categoryPapers = papers.filter(
-          (paper) => paper.category_id === category.id
-        );
-        category.paper_count = categoryPapers.length;
+    // 根据paper_type筛选论文
+    const filteredPapers = props.paperType
+      ? papers.filter(paper => paper.paper_type === props.paperType)
+      : papers;
 
-        if (category.children) {
-          updateCategoryCounts(category.children);
-        }
-      });
-    };
+    totalPapers.value = filteredPapers.length;
 
-    updateCategoryCounts(categoryTree.value);
+    // 递归计算所有分类的论文数量
+    calculatePaperCounts(categoryTree.value, filteredPapers);
   } catch (err) {
     console.error("加载论文统计失败:", err);
   }
@@ -256,16 +301,45 @@ watch(
 );
 
 // 显示添加分类对话框
-const showAddDialog = (parentId) => {
+const showAddDialog = () => {
   isEditing.value = false;
-  parentCategoryId.value = parentId;
+  parentCategoryId.value = null;
   categoryForm.value = { name: "", description: "" };
   showDialog.value = true;
+};
+
+// 显示添加子分类对话框
+const showAddChildDialog = (parentCategory) => {
+  isEditing.value = false;
+  parentCategoryId.value = parentCategory.id;
+  categoryForm.value = { name: "", description: "" };
+  showDialog.value = true;
+};
+
+// 处理从 CategoryNode 传来的添加子分类事件
+const handleAddChild = (categoryId) => {
+  // 从 categoryTree 中找到对应的 category 对象
+  const findCategory = (categories, id) => {
+    for (const category of categories) {
+      if (category.id === id) return category;
+      if (category.children) {
+        const found = findCategory(category.children, id);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  const parentCategory = findCategory(categoryTree.value, categoryId);
+  if (parentCategory) {
+    showAddChildDialog(parentCategory);
+  }
 };
 
 // 显示编辑分类对话框
 const showEditDialog = (category) => {
   isEditing.value = true;
+  parentCategoryId.value = null;
   editingCategoryId.value = category.id;
   categoryForm.value = {
     name: category.name,
@@ -305,17 +379,37 @@ const saveCategory = async () => {
   }
 };
 
+// 处理从 CategoryNode 传来的删除分类事件
+const handleDeleteCategory = (categoryId) => {
+  // 从 categoryTree 中找到对应的 category 对象
+  const findCategory = (categories, id) => {
+    for (const category of categories) {
+      if (category.id === id) return category;
+      if (category.children) {
+        const found = findCategory(category.children, id);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  const category = findCategory(categoryTree.value, categoryId);
+  if (category) {
+    deleteCategory(category);
+  }
+};
+
 // 删除分类
-const deleteCategory = async (categoryId) => {
+const deleteCategory = async (category) => {
   try {
     await confirmDelete("这个分类（删除后其子分类也会被删除）");
 
     setLoading(true);
-    await deleteCategoryAPI(categoryId);
+    await deleteCategoryAPI(category.id);
     await loadCategories();
 
     // 如果删除的是当前选中的分类，重置选择
-    if (selectedCategoryId.value === categoryId) {
+    if (props.selectedCategoryId === category.id) {
       selectCategory(null);
     }
     showToast("分类删除成功", "success");
@@ -456,6 +550,8 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  padding: 0.75rem;
+  position: relative;
 }
 
 .tree-node-icon {
@@ -494,6 +590,38 @@ defineExpose({
   color: var(--primary-700);
   border-color: var(--primary-300);
   box-shadow: 0 2px 6px rgba(125, 108, 192, 0.08);
+}
+
+.tree-node-actions {
+  display: none;
+  gap: 0.25rem;
+  margin-left: 0.5rem;
+}
+
+.tree-node:hover .tree-node-actions {
+  display: flex;
+}
+
+.tree-action-btn {
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+  opacity: 0.7;
+}
+
+.tree-action-btn:hover {
+  opacity: 1;
+  background: var(--primary-100);
+  transform: scale(1.1);
+}
+
+.tree-action-btn-add:hover {
+  background: var(--success-100);
+  color: var(--success-600);
 }
 
 .tree-list {

@@ -35,15 +35,17 @@ paper-manager-backend/
 │   ├── __init__.py          # 包初始化文件
 │   └── main.py              # 应用入口点
 │
-├── uploads/                  # 文件上传目录
-│   ├── papers/              # 论文文件存储
-│   └── teams/               # 团队文件存储
-│       └── references/      # 参考文献文件存储
+├── data/                    # 数据存储目录
+│   ├── database/           # 数据库文件存储
+│   │   └── paper_manager.db # SQLite 数据库文件
+│   └── uploads/            # 文件上传目录
+│       ├── papers/         # 论文文件存储
+│       └── teams/          # 团队文件存储
+│           └── references/ # 参考文献文件存储
 │
 ├── .env                     # 环境变量配置
 ├── .gitignore              # Git 忽略文件
 ├── README.md               # 项目文档
-├── requirements.txt        # 项目依赖
 └── alembic/                # 数据库迁移
     ├── versions/          # 迁移版本
     └── env.py            # 迁移环境配置

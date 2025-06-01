@@ -1,7 +1,5 @@
 from typing import Optional, List, TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Relationship
-from sqlalchemy.orm import relationship
-from sqlalchemy import Column, Integer, String, ForeignKey
 from datetime import datetime
 
 if TYPE_CHECKING:
@@ -46,7 +44,7 @@ class PaperKeyword(SQLModel, table=True):
     keyword_id: Optional[int] = Field(
         default=None, foreign_key="keyword.id", primary_key=True
     )
-    
+
     paper: "Paper" = Relationship(back_populates="keyword_links")
     keyword: "Keyword" = Relationship(back_populates="paper_links")
 
@@ -64,7 +62,7 @@ class PaperBase(SQLModel):
 
 class Paper(PaperBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    
+
     # Relationships
     categories: List["Category"] = Relationship(
         back_populates="papers",
@@ -73,7 +71,7 @@ class Paper(PaperBase, table=True):
     category_links: List[PaperCategory] = Relationship(
         back_populates="paper"
     )
-    
+
     authors: List["Author"] = Relationship(
         back_populates="papers",
         link_model=PaperAuthor
@@ -81,7 +79,7 @@ class Paper(PaperBase, table=True):
     author_links: List[PaperAuthor] = Relationship(
         back_populates="paper"
     )
-    
+
     keywords: List["Keyword"] = Relationship(
         back_populates="papers",
         link_model=PaperKeyword

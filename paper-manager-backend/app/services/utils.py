@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from app.core.config import settings, TokenData
+from app.core.config_dev import settings, TokenData
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -50,6 +50,6 @@ def calculate_workload(contribution_ratio: float, paper_type: str) -> float:
         "CONFERENCE": 20,
         "OTHER": 10
     }
-    
+
     points = base_points.get(paper_type, 10)
-    return points * contribution_ratio 
+    return points * contribution_ratio

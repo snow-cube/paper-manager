@@ -7,6 +7,7 @@ import os
 import shutil
 
 from app.core.database import get_session
+from app.core.config_dev import get_team_upload_dir
 from app.models.reference import (
     ReferencePaper, ReferenceCreate, ReferenceRead, ReferenceUpdate,
     ReferenceKeyword
@@ -29,13 +30,13 @@ def get_or_create_keywords(session: Session, keyword_names: List[str]) -> List[K
         keyword = session.exec(
             select(Keyword).where(Keyword.name == name)
         ).first()
-        
+
         # 如果不存在则创建
         if not keyword:
             keyword = Keyword(name=name)
             session.add(keyword)
             session.flush()
-        
+
         keywords.append(keyword)
     return keywords
 
@@ -46,8 +47,10 @@ def create_reference(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user)
 ):
-    """创建参考文献"""
-    # 检查团队是否存在
+    """创建参考文献"""    # 检查团队是否存在
+    if reference.team_id is None:
+        raise HTTPException(status_code=400, detail="Team ID is required")
+
     team = session.get(Team, reference.team_id)
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
@@ -70,7 +73,9 @@ def create_reference(
             raise HTTPException(
                 status_code=400,
                 detail="A reference with this DOI already exists"
-            )
+            )    # 检查 current_user.id 是否为 None
+    if current_user.id is None:
+        raise HTTPException(status_code=400, detail="User ID is required")
 
     # 创建参考文献
     db_reference = ReferencePaper(
@@ -116,7 +121,7 @@ def create_reference(
         "category_id": db_reference.category_id,
         "keywords": keyword_list
     }
-    
+
     return ReferenceRead(**reference_dict)
 
 
@@ -133,14 +138,14 @@ def read_references(
     """获取团队的参考文献列表"""
     # 检查用户是否为团队成员
     check_team_member(team_id, current_user, session)
-    
+
     # 构建查询
     query = select(ReferencePaper).where(ReferencePaper.team_id == team_id)
-    
+
     # 如果指定了分类，添加分类过滤
     if category_id is not None:
         query = query.where(ReferencePaper.category_id == category_id)
-    
+
     # 如果指定了关键字，添加关键字过滤
     if keyword is not None:
         query = (
@@ -149,12 +154,12 @@ def read_references(
             .join(Keyword)
             .where(Keyword.name == keyword)
         )
-    
+
     # 执行查询
     references = session.exec(
         query.offset(skip).limit(limit)
     ).all()
-    
+
     # 准备返回数据
     results = []
     for reference in references:
@@ -173,7 +178,7 @@ def read_references(
             "keywords": [kw.name for kw in reference.keywords]  # 直接提取关键词名称
         }
         results.append(ReferenceRead(**reference_dict))
-    
+
     return results
 
 
@@ -187,10 +192,12 @@ def read_reference(
     reference = session.get(ReferencePaper, reference_id)
     if not reference:
         raise HTTPException(status_code=404, detail="Reference paper not found")
-    
+
     # 检查用户是否为团队成员
+    if reference.team_id is None:
+        raise HTTPException(status_code=400, detail="Reference has no associated team")
     check_team_member(reference.team_id, current_user, session)
-    
+
     # 构建返回数据字典
     reference_dict = {
         "id": reference.id,
@@ -205,7 +212,7 @@ def read_reference(
         "category_id": reference.category_id,
         "keywords": [keyword.name for keyword in reference.keywords]
     }
-    
+
     return ReferenceRead(**reference_dict)
 
 
@@ -220,23 +227,25 @@ def update_reference(
     db_reference = session.get(ReferencePaper, reference_id)
     if not db_reference:
         raise HTTPException(status_code=404, detail="Reference paper not found")
-    
+
     # 检查用户是否为团队成员
+    if db_reference.team_id is None:
+        raise HTTPException(status_code=400, detail="Reference has no associated team")
     check_team_member(db_reference.team_id, current_user, session)
-    
+
     # 检查分类是否存在（如果要更新分类）
     if reference_update.category_id is not None:
         category = session.get(Category, reference_update.category_id)
         if not category:
             raise HTTPException(status_code=404, detail="Category not found")
-    
+
     # 更新参考文献信息
     reference_data = reference_update.dict(exclude_unset=True)
     keyword_names = reference_data.pop("keyword_names", None)
-    
+
     for key, value in reference_data.items():
         setattr(db_reference, key, value)
-    
+
     # 如果提供了关键字，更新关键字
     if keyword_names is not None:
         # 删除现有关键字链接
@@ -245,7 +254,7 @@ def update_reference(
         ).all()
         for link in existing_links:
             session.delete(link)
-        
+
         # 创建新的关键字链接
         keywords = get_or_create_keywords(session, keyword_names)
         for keyword in keywords:
@@ -254,14 +263,14 @@ def update_reference(
                 keyword_id=keyword.id
             )
             session.add(keyword_link)
-    
+
     # 更新修改时间
     db_reference.updated_at = datetime.utcnow()
-    
+
     session.add(db_reference)
     session.commit()
     session.refresh(db_reference)
-    
+
     # 构建返回数据字典
     reference_dict = {
         "id": db_reference.id,
@@ -276,7 +285,7 @@ def update_reference(
         "category_id": db_reference.category_id,
         "keywords": [keyword.name for keyword in db_reference.keywords]
     }
-    
+
     return ReferenceRead(**reference_dict)
 
 
@@ -290,17 +299,19 @@ def delete_reference(
     db_reference = session.get(ReferencePaper, reference_id)
     if not db_reference:
         raise HTTPException(status_code=404, detail="Reference paper not found")
-    
+
     # 检查用户是否为团队成员
+    if db_reference.team_id is None:
+        raise HTTPException(status_code=400, detail="Reference has no associated team")
     check_team_member(db_reference.team_id, current_user, session)
-    
+
     # 删除关键词关联
     existing_links = session.exec(
         select(ReferenceKeyword).where(ReferenceKeyword.reference_id == reference_id)
     ).all()
     for link in existing_links:
         session.delete(link)
-    
+
     # 如果存在关联的文件，删除文件
     if db_reference.file_path and os.path.exists(db_reference.file_path):
         try:
@@ -308,11 +319,11 @@ def delete_reference(
         except OSError as e:
             # 记录错误但不中断删除操作
             print(f"Error deleting file {db_reference.file_path}: {e}")
-    
+
     # 删除参考文献
     session.delete(db_reference)
     session.commit()
-    
+
     return {"ok": True}
 
 
@@ -327,29 +338,27 @@ async def upload_file(
     db_reference = session.get(ReferencePaper, reference_id)
     if not db_reference:
         raise HTTPException(status_code=404, detail="Reference paper not found")
-    
-    # 检查用户是否为团队成员
+      # 检查用户是否为团队成员
+    if db_reference.team_id is None:
+        raise HTTPException(status_code=400, detail="Reference has no associated team")
     check_team_member(db_reference.team_id, current_user, session)
-    
+
     # 检查文件类型
-    if not file.filename.lower().endswith('.pdf'):
+    if not file.filename or not file.filename.lower().endswith('.pdf'):
         raise HTTPException(
             status_code=400,
             detail="Only PDF files are allowed"
-        )
-    
-    # 创建存储目录
-    upload_dir = f"uploads/teams/{db_reference.team_id}/references"
-    os.makedirs(upload_dir, exist_ok=True)
-    
+        )      # 创建存储目录
+    upload_dir = get_team_upload_dir(db_reference.team_id)
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
     # 生成文件路径
-    file_path = os.path.join(upload_dir, f"{reference_id}_{file.filename}")
-    
+    file_path = upload_dir / f"{reference_id}_{file.filename}"
+
     # 如果已存在文件，先删除
     if db_reference.file_path and os.path.exists(db_reference.file_path):
         os.remove(db_reference.file_path)
-    
-    # 保存新文件
+      # 保存新文件
     try:
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
@@ -358,14 +367,13 @@ async def upload_file(
             status_code=500,
             detail=f"Failed to save file: {str(e)}"
         )
-    
-    # 更新数据库中的文件路径
-    db_reference.file_path = file_path
+      # 更新数据库中的文件路径
+    db_reference.file_path = str(file_path)
     db_reference.updated_at = datetime.utcnow()
     session.add(db_reference)
     session.commit()
-    
-    return {"filename": file.filename, "file_path": file_path}
+
+    return {"filename": file.filename, "file_path": str(file_path)}
 
 
 @router.get("/{reference_id}/download")
@@ -378,20 +386,21 @@ async def download_reference_by_id(
     db_reference = session.get(ReferencePaper, reference_id)
     if not db_reference:
         raise HTTPException(status_code=404, detail="Reference paper not found")
-    
-    # 检查用户是否为团队成员
+      # 检查用户是否为团队成员
+    if db_reference.team_id is None:
+        raise HTTPException(status_code=400, detail="Reference has no associated team")
     check_team_member(db_reference.team_id, current_user, session)
-    
+
     # 检查文件是否存在
     if not db_reference.file_path or not os.path.exists(db_reference.file_path):
         raise HTTPException(
             status_code=404,
             detail="PDF file not found for this reference"
         )
-    
+
     # 构建文件名
     filename = f"{db_reference.title}.pdf"
-    
+
     return FileResponse(
         db_reference.file_path,
         filename=filename,
@@ -409,32 +418,32 @@ async def download_reference_by_title(
     """通过标题下载参考文献PDF文件"""
     # 检查用户是否为团队成员
     check_team_member(team_id, current_user, session)
-    
+
     # 查找参考文献
     db_reference = session.exec(
         select(ReferencePaper)
         .where(ReferencePaper.team_id == team_id)
         .where(ReferencePaper.title == title)
     ).first()
-    
+
     if not db_reference:
         raise HTTPException(
             status_code=404,
             detail="Reference paper not found with the specified title"
         )
-    
+
     # 检查文件是否存在
     if not db_reference.file_path or not os.path.exists(db_reference.file_path):
         raise HTTPException(
             status_code=404,
             detail="PDF file not found for this reference"
         )
-    
+
     # 构建文件名
     filename = f"{db_reference.title}.pdf"
-    
+
     return FileResponse(
         db_reference.file_path,
         filename=filename,
         media_type="application/pdf"
-    ) 
+    )

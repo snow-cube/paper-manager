@@ -3,80 +3,59 @@ import { getCategories } from '../services/api';
 
 const categories = ref([]);
 const loading = ref(false);
+const loaded = ref(false);
 
 export function useCategories() {
   const loadCategories = async () => {
-    if (categories.value.length > 0) return; // 避免重复加载
+    if (loaded.value) return categories.value; // 已加载过则直接返回
 
     loading.value = true;
     try {
       categories.value = await getCategories();
+      loaded.value = true;
     } catch (error) {
       console.error('Failed to load categories:', error);
     } finally {
       loading.value = false;
     }
+    return categories.value;
   };
 
   const getCategoryName = (categoryId) => {
     if (!categoryId) return '未分类';
 
-    const findCategory = (cats, id) => {
-      for (const cat of cats) {
-        if (cat.id === id) return cat.name;
-        if (cat.children) {
-          const found = findCategory(cat.children, id);
-          if (found) return found;
-        }
-      }
-      return null;
-    };
+    // 确保分类已加载
+    if (!loaded.value && !loading.value) {
+      loadCategories(); // 异步加载分类
+      return '加载中...'; // 返回临时提示
+    }
 
-    const name = findCategory(categories.value, categoryId);
-    return name || '未知分类';
+    const category = categories.value.find(cat => cat.id === Number(categoryId));
+    return category ? category.name : '未知分类';
   };
 
   const getCategoryPath = (categoryId) => {
     if (!categoryId) return [];
 
-    const findPath = (cats, id, path = []) => {
-      for (const cat of cats) {
-        const currentPath = [...path, cat];
-        if (cat.id === id) return currentPath;
-        if (cat.children) {
-          const found = findPath(cat.children, id, currentPath);
-          if (found) return found;
-        }
-      }
-      return null;
-    };
-
-    return findPath(categories.value, categoryId) || [];
+    const category = categories.value.find(cat => cat.id === Number(categoryId));
+    return category ? [category] : [];
   };
 
   const getAllCategories = () => {
-    const flatten = (cats) => {
-      let result = [];
-      for (const cat of cats) {
-        result.push(cat);
-        if (cat.children) {
-          result = result.concat(flatten(cat.children));
-        }
-      }
-      return result;
-    };
-
-    return flatten(categories.value);
+    return categories.value;
   };
 
   // 自动加载分类数据
-  if (categories.value.length === 0) {
-    loadCategories();
-  }
+  onMounted(() => {
+    if (!loaded.value && !loading.value) {
+      loadCategories();
+    }
+  });
 
   return {
     categories,
     loading,
+    loaded,
     loadCategories,
     getCategoryName,
     getCategoryPath,

@@ -217,8 +217,7 @@ const formatDate = (dateString) => {
 .paper-title {
   font-size: 1.1rem;
   font-weight: 600;
-  color: var(--color-text);
-  margin: 0 0 1rem 0;
+  color: var(--color-text);  margin: 0 0 1rem 0;
   line-height: 1.4;
   display: -webkit-box;
   display: -moz-box;
@@ -230,6 +229,8 @@ const formatDate = (dateString) => {
   -moz-box-orient: vertical;
   box-orient: vertical;
   overflow: hidden;
+  /* Fallback for browsers that don't support line-clamp */
+  max-height: calc(1.4em * 2); /* line-height * number of lines */
 }
 
 .paper-meta {

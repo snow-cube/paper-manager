@@ -12,7 +12,7 @@ from app.services.utils import (
     create_access_token,
     verify_token,
 )
-from app.core.config import settings
+from app.core.config_dev import settings
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/users/token")
@@ -29,11 +29,11 @@ async def get_current_user(
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     user = session.exec(
         select(User).where(User.username == token_data.username)
     ).first()
-    
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -48,7 +48,7 @@ async def get_current_user(
             detail="Account is inactive",
             headers={"WWW-Authenticate": "Bearer"},
         )
-        
+
     return user
 
 
@@ -60,14 +60,14 @@ async def login(
     user = session.exec(
         select(User).where(User.username == form_data.username)
     ).first()
-    
+
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     # Check if user account is active
     if not user.is_active:
         raise HTTPException(
@@ -75,7 +75,7 @@ async def login(
             detail="Account is inactive",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
@@ -165,14 +165,14 @@ def update_user(
     db_user = session.get(User, user_id)
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     user_data = user_update.dict(exclude_unset=True)
     if "password" in user_data:
         user_data["hashed_password"] = get_password_hash(user_data.pop("password"))
-    
+
     for key, value in user_data.items():
         setattr(db_user, key, value)
-    
+
     session.add(db_user)
     session.commit()
     session.refresh(db_user)

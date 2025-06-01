@@ -40,18 +40,15 @@
         <div class="meta-item" v-if="paper.year">
           <span class="meta-label">年份:</span>
           <span class="meta-value">{{ paper.year }}</span>
-        </div>
-        <div class="meta-item" v-if="paper.authors">
+        </div>        <div class="meta-item" v-if="paper.authors">
           <span class="meta-label">作者:</span>
-          <span class="meta-value">{{ paper.authors }}</span>
+          <span class="meta-value">{{ getAuthorsText(paper.authors) }}</span>
         </div>
       </div>
 
       <div v-if="paper.abstract" class="paper-abstract">
         <p>{{ truncateText(paper.abstract, 200) }}</p>
-      </div>
-
-      <div v-if="paper.keywords" class="paper-keywords">
+      </div>      <div v-if="paper.keywords" class="paper-keywords">
         <span
           v-for="keyword in getKeywords(paper.keywords)"
           :key="keyword"
@@ -93,6 +90,7 @@
 import {
   deletePaper as deletePaperAPI,
   downloadPaper as downloadPaperAPI,
+  downloadReference,
 } from "../services/api";
 import { useToast } from "../composables/useToast";
 import { useConfirmDialog } from "../composables/useConfirmDialog";
@@ -124,13 +122,34 @@ const truncateText = (text, maxLength) => {
   return text.substring(0, maxLength) + "...";
 };
 
+// 处理作者文本
+const getAuthorsText = (authors) => {
+  if (!authors) return '';
+  if (typeof authors === 'string') return authors;
+  if (Array.isArray(authors)) {
+    return authors.map(author => typeof author === 'string' ? author : author.name).join(', ');
+  }
+  return '';
+};
+
 // 获取关键词数组
 const getKeywords = (keywords) => {
   if (!keywords) return [];
-  return keywords
-    .split(",")
-    .map((k) => k.trim())
-    .filter((k) => k.length > 0);
+
+  if (typeof keywords === 'string') {
+    return keywords
+      .split(",")
+      .map((k) => k.trim())
+      .filter((k) => k.length > 0);
+  }
+
+  if (Array.isArray(keywords)) {
+    return keywords.map(keyword =>
+      typeof keyword === 'string' ? keyword : keyword.name
+    ).filter(k => k);
+  }
+
+  return [];
 };
 
 // 格式化日期
@@ -154,14 +173,34 @@ const downloadPaper = async (paper) => {
   try {
     showToast("正在准备下载论文...", "info");
 
-    const response = await downloadPaperAPI(paper.id);
+    // 根据论文类型选择下载API
+    let response;
+    if (paper.paper_type === 'literature') {
+      response = await downloadReference(paper.id);
+    } else {
+      response = await downloadPaperAPI(paper.id);
+    }
+
+    // 从Content-Disposition头部提取文件名，如果有的话
+    const contentDisposition = response.headers['content-disposition'];
+    let fileName = `${paper.title}.pdf`;
+
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+      if (filenameMatch && filenameMatch[1]) {
+        fileName = filenameMatch[1].replace(/['"]/g, '');
+      }
+    }
+
+    // 确定内容类型
+    const contentType = response.headers['content-type'] || 'application/pdf';
 
     // 创建下载链接
-    const blob = new Blob([response.data], { type: "application/pdf" });
+    const blob = new Blob([response.data], { type: contentType });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${paper.title}.pdf` || "paper.pdf";
+    link.download = fileName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
