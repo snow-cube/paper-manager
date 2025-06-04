@@ -12,10 +12,11 @@
 
     <div class="detail-content">
       <div class="detail-section">
-        <h3 class="section-title">基本信息</h3>        <div class="info-grid">
-          <div class="info-item">
+        <h3 class="section-title">基本信息</h3>        <div class="info-grid">          <div class="info-item">
             <label>作者：</label>
-            <span>{{ authorsText }}</span>
+            <div class="authors-section">
+              <div class="authors-text">{{ authorsText }}</div>
+            </div>
           </div>
 
           <div v-if="paper.journal" class="info-item">
@@ -89,12 +90,12 @@
         </div>
       </div>
 
-      <div v-if="paper.file_url" class="detail-section">
+      <div v-if="paper.file_path" class="detail-section">
         <h3 class="section-title">文件</h3>
         <div class="file-container">
           <div class="file-info">
             <div class="file-icon">📄</div>
-            <div class="file-name">{{ getFileName(paper.file_url) }}</div>
+            <div class="file-name">{{ getFileName(paper.file_path) }}</div>
           </div>
           <div class="file-actions">
             <button @click="previewFile" class="btn btn-small btn-preview">
@@ -150,9 +151,81 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="detail-actions">
+      <div v-if="workloads.length > 0" class="detail-section">
+        <h3 class="section-title">工作量数据</h3>
+        <div class="workload-container">
+          <div v-for="(workload, index) in workloads" :key="index" class="workload-item">
+            <div class="workload-header">
+              <h4 class="workload-title">{{ workload.title }}</h4>
+              <div class="workload-meta">
+                <span class="workload-type">{{ workload.type }}</span>
+                <span class="workload-date">{{ formatDate(workload.date) }}</span>
+              </div>
+            </div>
+            <div class="workload-content">
+              <div class="workload-field">
+                <span class="field-label">工作量：</span>
+                <span class="field-value">{{ workload.amount }}</span>
+              </div>
+              <div class="workload-field">
+                <span class="field-label">状态：</span>
+                <span class="field-value">{{ workload.status }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-else-if="isLoadingWorkload" class="detail-section">
+        <h3 class="section-title">工作量数据</h3>
+        <div class="loading-spinner">
+          <span class="spinner-border" role="status">
+            <span class="visually-hidden">加载中...</span>
+          </span>
+        </div>
+      </div>
+      <div v-else-if="workloadError" class="detail-section">
+        <h3 class="section-title">工作量数据</h3>
+        <div class="error-message">
+          {{ workloadError }}
+        </div>
+      </div>
+      <div v-if="paper.paper_type === 'published' && workloads.length > 0" class="detail-section">
+        <h3 class="section-title">作者贡献及工作量</h3>
+        <div class="workload-table-container">
+          <table class="workload-table">
+            <thead>
+              <tr>
+                <th>作者ID</th>
+                <th>贡献比例</th>
+                <th>工作量</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="workload in workloads" :key="workload.author_id">
+                <td>{{ workload.author_id }}</td>
+                <td>{{ (workload.contribution_ratio * 100).toFixed(1) }}%</td>
+                <td>{{ workload.workload.toFixed(2) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div v-else-if="paper.paper_type === 'published' && isLoadingWorkload" class="detail-section">
+        <p>正在加载工作量数据...</p>
+      </div>
+      <div v-else-if="paper.paper_type === 'published' && workloadError" class="detail-section">
+        <p class="error-message">{{ workloadError }}</p>
+      </div>
+    </div>    <div class="detail-actions">
+      <button
+        v-if="paper.file_path"
+        @click="downloadFile"
+        class="btn btn-success"
+        :disabled="downloading"
+      >
+        {{ downloading ? '⏳ 下载中...' : '⬇️ 下载文件' }}
+      </button>
       <button @click="$emit('edit', paper)" class="btn btn-primary">
         ✏️ 编辑
       </button>
@@ -162,9 +235,9 @@
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, onMounted, watch } from "vue";
 import { useCategories } from "../composables/useCategories";
-import { downloadPaper, downloadReference } from "../services/api";
+import { downloadPaper, downloadReference, getPaperWorkload } from "../services/api";
 import { useToast } from "../composables/useToast";
 import PdfViewer from "./PdfViewer.vue";
 
@@ -182,6 +255,10 @@ const { showToast } = useToast();
 
 const showPreview = ref(false);
 const previewUrl = ref("");
+const downloading = ref(false);
+const workloads = ref([]);
+const isLoadingWorkload = ref(false);
+const workloadError = ref(null);
 
 // 计算作者文本
 const authorsText = computed(() => {
@@ -219,7 +296,6 @@ const keywordList = computed(() => {
       typeof keyword === 'string' ? keyword : keyword.name
     ).filter(k => k);
   }
-
   return [];
 });
 
@@ -246,22 +322,22 @@ const getFileExtension = (fileUrl) => {
 };
 
 const isPreviewable = computed(() => {
-  const extension = getFileExtension(props.paper.file_url);
+  const extension = getFileExtension(props.paper.file_path);
   // 支持预览的文件类型
   return ["pdf", "jpg", "jpeg", "png", "gif"].includes(extension);
 });
 
 const isPdf = computed(() => {
-  return getFileExtension(props.paper.file_url) === "pdf";
+  return getFileExtension(props.paper.file_path) === "pdf";
 });
 
 const isImage = computed(() => {
-  const extension = getFileExtension(props.paper.file_url);
+  const extension = getFileExtension(props.paper.file_path);
   return ["jpg", "jpeg", "png", "gif"].includes(extension);
 });
 
 const previewFile = () => {
-  if (!props.paper.file_url) {
+  if (!props.paper.file_path) {
     showToast("没有可预览的文件", "warning");
     return;
   }
@@ -271,10 +347,9 @@ const previewFile = () => {
     return;
   }
 
-  try {
-    // 在实际环境中，这里可能需要通过API获取预览URL
-    // 这里简单地使用file_url作为预览地址
-    previewUrl.value = props.paper.file_url;
+  try {    // 在实际环境中，这里可能需要通过API获取预览URL
+    // 这里简单地使用file_path作为预览地址
+    previewUrl.value = props.paper.file_path;
     showPreview.value = true;
   } catch (error) {
     console.error("预览文件失败:", error);
@@ -287,28 +362,25 @@ const closePreview = () => {
   previewUrl.value = "";
 };
 
-const downloadFile = async () => {
-  if (!props.paper.file_url) {
+const downloadFile = async () => {  if (!props.paper.file_path) {
     showToast("没有可下载的文件", "warning");
     return;
   }
 
-  try {
-    showToast("正在准备下载文件...", "info");
+  downloading.value = true;
 
-    // 根据论文类型选择不同的下载API
+  try {
+    showToast("正在准备下载文件...", "info");    // 根据项目类型选择不同的下载API
     let response;
-    if (props.paper.paper_type === 'literature') {
-      // 如果是参考文献类型
+    if (props.paper._itemType === 'reference') {
+      // 参考文献：使用references API
       response = await downloadReference(props.paper.id);
     } else {
-      // 默认使用论文下载API
+      // 论文：使用papers API
       response = await downloadPaper(props.paper.id);
-    }
-
-    // 从Content-Disposition头部提取文件名，如果有的话
+    }// 从Content-Disposition头部提取文件名，如果有的话
     const contentDisposition = response.headers['content-disposition'];
-    let fileName = getFileName(props.paper.file_url);
+    let fileName = getFileName(props.paper.file_path);
 
     if (contentDisposition) {
       const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
@@ -335,8 +407,41 @@ const downloadFile = async () => {
   } catch (error) {
     console.error("下载文件失败:", error);
     showToast("下载文件失败，请重试", "error");
+  } finally {
+    downloading.value = false;
   }
 };
+
+const fetchWorkload = async () => {
+  if (props.paper.paper_type !== 'published' || !props.paper.id) {
+    return;
+  }
+
+  isLoadingWorkload.value = true;
+  workloadError.value = null;
+  workloads.value = [];
+
+  try {
+    const response = await getPaperWorkload(props.paper.id);
+    workloads.value = response.workloads || [];
+  } catch (error) {
+    console.error("Failed to fetch paper workload:", error);
+    workloadError.value = "无法加载工作量数据，请稍后重试。";
+    if (error.response && error.response.status === 404) {
+      workloadError.value = "找不到该论文的工作量数据。";
+    }
+  } finally {
+    isLoadingWorkload.value = false;
+  }
+};
+
+onMounted(() => {
+  fetchWorkload();
+});
+
+watch(() => props.paper, () => {
+  fetchWorkload();
+}, { deep: true });
 </script>
 
 <style scoped>
@@ -876,6 +981,38 @@ const downloadFile = async () => {
 .preview-not-available p {
   color: var(--color-text-light);
   margin: 0;
+}
+
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+}
+
+.error-message {
+  color: #dc3545;
+  font-style: italic;
+  text-align: center;
+  padding: 1rem;
+}
+
+/* 作者合作网络样式 */
+.authors-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.authors-text {
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.authors-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 @media (max-width: 768px) {

@@ -63,13 +63,18 @@
         <h3>团队管理</h3>
         <p>创建和管理研究团队，协作共享学术资源</p>
         <RouterLink to="/teams" class="btn">团队管理</RouterLink>
-      </div>
-
-      <div class="feature-card">
+      </div>      <div class="feature-card">
         <div class="feature-icon">🏷️</div>
         <h3>分类管理</h3>
         <p>创建自定义分类体系，让研究资料管理更加条理清晰</p>
         <RouterLink to="/categories" class="btn">分类管理</RouterLink>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🔗</div>
+        <h3>合作网络</h3>
+        <p>探索学者间的合作关系，发现潜在的研究伙伴和学术网络</p>
+        <RouterLink to="/collaboration" class="btn">探索网络</RouterLink>
       </div>
     </div>    <div class="stats" v-if="isAuthenticated">
       <div class="stat-item">

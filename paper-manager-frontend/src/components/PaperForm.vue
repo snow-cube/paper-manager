@@ -59,27 +59,77 @@
           max="2099"
         />
       </div>
-    </div>    <div class="form-row">
+    </div>
+    <div class="form-row">
       <div class="form-group">
-        <label class="form-label">作者</label>
-        <input
+        <label class="form-label">作者 *</label>
+        <textarea
           v-model="form.author_names"
-          class="form-input"
-          placeholder="请输入作者（用逗号分隔多个作者）"
-        />
+          class="form-textarea"
+          placeholder="请输入作者（用逗号分隔多个作者，例如：张三, 李四, 王五）"
+          rows="3"
+          required
+        ></textarea>
       </div>
       <div class="form-group">
         <label class="form-label" for="category">分类</label>
         <select v-model="form.category_ids" class="form-select" multiple>
-          <option
-            v-for="cat in categories"
-            :key="cat.id"
-            :value="cat.id"
-          >
+          <option v-for="cat in categories" :key="cat.id" :value="cat.id">
             {{ cat.name }}
           </option>
         </select>
         <small class="form-hint">按住Ctrl键可选择多个分类</small>
+      </div>
+    </div>
+
+    <!-- 发表论文的作者贡献信息 -->
+    <div v-if="form.paper_type === 'published'" class="form-section">
+      <h3 class="section-title">作者贡献信息</h3>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">通讯作者</label>
+          <input
+            v-model="form.corresponding_author_name"
+            class="form-input"
+            placeholder="请输入通讯作者姓名"
+          />
+          <small class="form-hint">通讯作者必须是上述作者列表中的一员</small>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">作者贡献比例</label>
+        <div class="contribution-list">
+          <div
+            v-for="(author, index) in authorList"
+            :key="index"
+            class="contribution-item"
+          >
+            <span class="author-name">{{ author }}</span>
+            <input
+              v-model.number="authorContributions[index]"
+              type="number"
+              class="contribution-input"
+              placeholder="0.0"
+              step="0.01"
+              min="0"
+              max="1"
+              @input="updateContributions"
+            />
+            <span class="contribution-percent">
+              ({{ ((authorContributions[index] || 0) * 100).toFixed(1) }}%)
+            </span>
+          </div>
+        </div>
+        <div class="contribution-summary">
+          <span :class="{ 'contribution-error': totalContribution > 1 }">
+            总贡献比例: {{ (totalContribution * 100).toFixed(1) }}%
+          </span>
+          <small class="form-hint">
+            贡献比例总和应为100%（1.0）。如不填写，系统将平均分配。
+          </small>
+        </div>
       </div>
     </div>
     <div class="form-row">
@@ -241,12 +291,12 @@
 import { ref, computed, onMounted, watch } from "vue";
 import {
   getCategories,
-  uploadPaper,
   createPaper,
   updatePaper,
   createReference,
   uploadReference,
   updateReference,
+  uploadPaperFile,
 } from "../services/api";
 import { useToast } from "../composables/useToast";
 import { useTeam } from "../composables/useTeam";
@@ -284,13 +334,60 @@ const form = ref({
   impact_factor: "",
   notes: "",
   url: "",
+  corresponding_author_name: "",
 });
 
 const categories = ref([]);
 const file = ref(null);
 const submitting = ref(false);
+const authorContributions = ref([]);
 
 const isEdit = computed(() => !!props.paper);
+
+// 计算属性：作者列表
+const authorList = computed(() => {
+  if (!form.value.author_names) return [];
+  return form.value.author_names
+    .split(",")
+    .map((name) => name.trim())
+    .filter((name) => name.length > 0);
+});
+
+// 计算属性：总贡献比例
+const totalContribution = computed(() => {
+  return authorContributions.value.reduce(
+    (sum, contrib) => sum + (contrib || 0),
+    0
+  );
+});
+
+// 监听作者列表变化，调整贡献比例数组
+watch(
+  authorList,
+  (newAuthors, oldAuthors) => {
+    const newLength = newAuthors.length;
+    const oldLength = authorContributions.value.length;
+
+    if (newLength > oldLength) {
+      // 添加新作者，初始化贡献比例
+      for (let i = oldLength; i < newLength; i++) {
+        authorContributions.value.push(0);
+      }
+    } else if (newLength < oldLength) {
+      // 删除作者，移除对应的贡献比例
+      authorContributions.value.splice(newLength);
+    }
+  },
+  { immediate: true }
+);
+
+// 更新贡献比例
+const updateContributions = () => {
+  // 确保所有值都是数字
+  authorContributions.value = authorContributions.value.map((val) =>
+    isNaN(val) ? 0 : Math.max(0, Math.min(1, val))
+  );
+};
 
 // 初始化表单数据
 const initializeForm = () => {
@@ -304,15 +401,33 @@ const initializeForm = () => {
 
     // 转换特殊字段格式
     if (props.paper.authors && Array.isArray(props.paper.authors)) {
-      form.value.author_names = props.paper.authors.map(a => a.name || a).join(', ');
+      form.value.author_names = props.paper.authors
+        .map((a) => a.name || a)
+        .join(", ");
     }
 
     if (props.paper.keywords && Array.isArray(props.paper.keywords)) {
-      form.value.keyword_names = props.paper.keywords.map(k => k.name || k).join(', ');
+      form.value.keyword_names = props.paper.keywords
+        .map((k) => k.name || k)
+        .join(", ");
     }
 
     if (props.paper.categories && Array.isArray(props.paper.categories)) {
-      form.value.category_ids = props.paper.categories.map(c => c.id || c);
+      form.value.category_ids = props.paper.categories.map((c) => c.id || c);
+    }
+
+    // 初始化作者贡献比例
+    if (
+      props.paper.author_contribution_ratios &&
+      Array.isArray(props.paper.author_contribution_ratios)
+    ) {
+      authorContributions.value = [...props.paper.author_contribution_ratios];
+    }
+
+    // 设置通讯作者
+    if (props.paper.corresponding_author_name) {
+      form.value.corresponding_author_name =
+        props.paper.corresponding_author_name;
     }
   } else if (props.paperType) {
     // 新建模式：设置论文类型
@@ -396,34 +511,52 @@ const handleSubmit = async () => {
     const submitData = { ...form.value };
 
     // 关联当前团队
-    if (currentTeam.value && form.value.paper_type === 'literature') {
+    if (currentTeam.value && form.value.paper_type === "literature") {
       submitData.team_id = currentTeam.value.id;
     }
 
     // 处理作者名称（转换为数组）
-    if (typeof submitData.author_names === 'string') {
+    if (typeof submitData.author_names === "string") {
       submitData.author_names = submitData.author_names
-        .split(',')
-        .map(name => name.trim())
-        .filter(name => name.length > 0);
+        .split(",")
+        .map((name) => name.trim())
+        .filter((name) => name.length > 0);
+    } // 处理关键词（转换为数组）
+    if (typeof submitData.keyword_names === "string") {
+      submitData.keyword_names = submitData.keyword_names
+        .split(",")
+        .map((keyword) => keyword.trim())
+        .filter((keyword) => keyword.length > 0);
     }
 
-    // 处理关键词（转换为数组）
-    if (typeof submitData.keyword_names === 'string') {
-      submitData.keyword_names = submitData.keyword_names
-        .split(',')
-        .map(keyword => keyword.trim())
-        .filter(keyword => keyword.length > 0);
+    // 处理作者贡献比例（仅对发表论文）
+    if (form.value.paper_type === "published") {
+      // 如果有设置贡献比例，则使用设置的值
+      if (authorContributions.value.some((contrib) => contrib > 0)) {
+        submitData.author_contribution_ratios = [...authorContributions.value];
+      }
+
+      // 添加通讯作者
+      if (form.value.corresponding_author_name) {
+        submitData.corresponding_author_name =
+          form.value.corresponding_author_name;
+      }
     }
 
     // 确保category_ids是数组
     if (!Array.isArray(submitData.category_ids)) {
-      submitData.category_ids = submitData.category_ids ? [submitData.category_ids] : [];
+      submitData.category_ids = submitData.category_ids
+        ? [submitData.category_ids]
+        : [];
     }
 
     // 处理发表日期
     if (submitData.year) {
-      submitData.publication_date = new Date(submitData.year, 0, 1).toISOString();
+      submitData.publication_date = new Date(
+        submitData.year,
+        0,
+        1
+      ).toISOString();
     }
 
     // 移除不需要的字段
@@ -433,17 +566,17 @@ const handleSubmit = async () => {
     if (isEdit.value) {
       // 编辑模式：根据论文类型选择不同的更新API
       let updatedItem;
-      if (props.paperType === 'literature') {
+      if (props.paperType === "literature") {
         // 文献类型：使用参考文献API
         const referenceData = {
           title: submitData.title,
           authors: Array.isArray(submitData.author_names)
-            ? submitData.author_names.join(', ')
-            : submitData.author_names || '',
+            ? submitData.author_names.join(", ")
+            : submitData.author_names || "",
           doi: submitData.doi || null,
           team_id: currentTeam.value?.id,
           category_id: submitData.category_ids?.[0] || null,
-          keyword_names: submitData.keyword_names || []
+          keyword_names: submitData.keyword_names || [],
         };
 
         updatedItem = await updateReference(props.paper.id, referenceData);
@@ -457,7 +590,7 @@ const handleSubmit = async () => {
       // 确保返回数据有必要的ID和team_id
       if (updatedItem) {
         updatedItem.id = props.paper.id;
-        if (currentTeam.value && props.paperType === 'literature') {
+        if (currentTeam.value && props.paperType === "literature") {
           updatedItem.team_id = currentTeam.value.id;
         }
       }
@@ -465,18 +598,18 @@ const handleSubmit = async () => {
       emit("saved", updatedItem);
     } else {
       // 新建模式：根据论文类型选择不同的API
-      if (form.value.paper_type === 'literature') {
+      if (form.value.paper_type === "literature") {
         // 文献类型：使用参考文献API
         const referenceData = {
           title: submitData.title,
           authors: Array.isArray(submitData.author_names)
-            ? submitData.author_names.join(', ')
-            : submitData.author_names || '',
+            ? submitData.author_names.join(", ")
+            : submitData.author_names || "",
           doi: submitData.doi || null,
           team_id: currentTeam.value?.id,
           category_id: submitData.category_ids?.[0] || null,
           keyword_names: submitData.keyword_names || [],
-          created_by_id: currentUser.value?.id
+          created_by_id: currentUser.value?.id,
         };
 
         console.log("创建参考文献数据:", referenceData);
@@ -505,30 +638,15 @@ const handleSubmit = async () => {
         // 发表论文类型：使用论文API
         let savedPaper;
         if (file.value) {
-          // 有文件：使用 uploadPaper
-          const formData = new FormData();
-
-          // 添加论文数据
-          Object.keys(submitData).forEach(key => {
-            if (submitData[key] !== null && submitData[key] !== '') {
-              if (Array.isArray(submitData[key])) {
-                // 数组类型的字段
-                submitData[key].forEach(item => {
-                  formData.append(key, item);
-                });
-              } else {
-                formData.append(key, submitData[key]);
-              }
-            }
-          });
-
-          formData.append("file", file.value);
-          savedPaper = await uploadPaper(formData);
+          // 有文件：先创建论文，再上传文件
+          savedPaper = await createPaper(submitData);
+          await uploadPaperFile(savedPaper.id, file.value);
+          showToast("论文添加成功！", "success");
         } else {
           // 无文件：使用 createPaper
           savedPaper = await createPaper(submitData);
+          showToast("论文添加成功！", "success");
         }
-        showToast("论文添加成功！", "success");
 
         // 发出保存事件，传递保存的论文数据
         emit("saved", savedPaper);
@@ -538,7 +656,10 @@ const handleSubmit = async () => {
   } catch (error) {
     console.error("提交论文失败:", error);
     console.error("详细错误信息:", error.response?.data);
-    const errorMessage = error.response?.data?.detail || error.response?.data?.message || "提交失败，请重试";
+    const errorMessage =
+      error.response?.data?.detail ||
+      error.response?.data?.message ||
+      "提交失败，请重试";
     showToast(errorMessage, "error");
   } finally {
     submitting.value = false;
@@ -713,6 +834,64 @@ const handleSubmit = async () => {
 
 .file-remove:hover {
   background: var(--error-100);
+}
+
+.contribution-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.contribution-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: var(--color-background-soft);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-border);
+}
+
+.author-name {
+  flex: 1;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.contribution-input {
+  width: 80px;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.contribution-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--primary-100);
+}
+
+.contribution-percent {
+  font-size: 0.875rem;
+  color: var(--color-text-soft);
+  min-width: 60px;
+  text-align: right;
+}
+
+.contribution-summary {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: var(--primary-50);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--primary-200);
+}
+
+.contribution-error {
+  color: var(--error-600) !important;
+  font-weight: 600;
 }
 
 .form-actions {

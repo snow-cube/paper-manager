@@ -77,7 +77,9 @@ onUnmounted(() => {
 <style scoped>
 .team-selector {
   position: relative;
-  min-width: 200px;
+  min-width: 180px;
+  max-width: 220px;
+  width: 100%;
 }
 
 .current-team {

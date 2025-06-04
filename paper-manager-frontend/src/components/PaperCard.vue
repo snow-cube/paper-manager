@@ -3,14 +3,22 @@
       <div :class="['paper-type-badge', paper.paper_type]">
         <span class="badge-icon">{{ paper.paper_type === 'published' ? '🎓' : '📚' }}</span>
         {{ paper.paper_type === 'published' ? '发表论文' : '文献' }}
-      </div>
-      <div class="paper-actions">
+      </div>      <div class="paper-actions">
         <button
           @click="$emit('view', paper)"
           class="action-btn view-btn"
           title="查看详情"
         >
           👁️
+        </button>
+        <button
+          v-if="paper.file_path"
+          @click.stop="handleDownload"
+          class="action-btn download-btn"
+          title="下载文件"
+          :disabled="downloading"
+        >
+          {{ downloading ? '⏳' : '⬇️' }}
         </button>
         <button
           @click="$emit('edit', paper)"
@@ -80,8 +88,10 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useCategories } from "../composables/useCategories";
+import { downloadItem, getDownloadFileName, triggerDownload } from "../services/downloadService";
+import { useToast } from "../composables/useToast";
 
 const props = defineProps({
   paper: {
@@ -93,6 +103,10 @@ const props = defineProps({
 defineEmits(["edit", "delete", "view"]);
 
 const { getCategoryName, loadCategories } = useCategories();
+const { showToast } = useToast();
+
+// 下载状态
+const downloading = ref(false);
 
 // Make sure categories are loaded
 onMounted(() => {
@@ -164,6 +178,39 @@ const formatDate = (dateString) => {
     month: "long",
     day: "numeric",
   });
+};
+
+// 处理下载
+const handleDownload = async () => {
+  if (!props.paper.file_path) {
+    showToast("没有可下载的文件", "warning");
+    return;
+  }
+
+  downloading.value = true;
+
+  try {
+    showToast("正在准备下载文件...", "info");
+
+    // 使用统一的下载服务
+    const response = await downloadItem(props.paper);
+
+    // 获取文件名
+    const fileName = getDownloadFileName(props.paper, response);
+
+    // 确定内容类型
+    const contentType = response.headers['content-type'] || 'application/octet-stream';
+
+    // 触发下载
+    triggerDownload(response.data, fileName, contentType);
+
+    showToast("文件下载成功", "success");
+  } catch (error) {
+    console.error("下载文件失败:", error);
+    showToast(error.message || "下载文件失败，请重试", "error");
+  } finally {
+    downloading.value = false;
+  }
 };
 </script>
 
@@ -237,16 +284,53 @@ const formatDate = (dateString) => {
   opacity: 1;
 }
 
+.action-btn {
+  background: var(--white);
+  border: 1px solid var(--primary-200);
+  border-radius: 6px;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  min-width: 32px;
+  height: 32px;
+  box-shadow: 0 2px 4px rgba(125, 108, 192, 0.08);
+}
+
+.action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 6px rgba(125, 108, 192, 0.12);
+}
+
+.action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .view-btn:hover {
   background: rgba(125, 108, 192, 0.08);
+  border-color: var(--primary-300);
+}
+
+.download-btn:hover {
+  background: rgba(34, 197, 94, 0.08);
+  border-color: #22c55e;
+  color: #16a34a;
 }
 
 .edit-btn:hover {
   background: rgba(125, 108, 192, 0.06);
+  border-color: var(--primary-300);
 }
 
 .delete-btn:hover {
   background: rgba(220, 53, 69, 0.08);
+  border-color: #dc3545;
+  color: #dc3545;
 }
 
 .paper-content {
