@@ -96,7 +96,7 @@ export const handlers = [
       publication_date: publicationDate || null,
       publication_info: publicationInfo || "",
       doi: doi || "",
-      file_url: `/files/paper${nextPaperId - 1}.pdf`,
+      file_path: `/files/paper${nextPaperId - 1}.pdf`,
       category_id: categoryId ? parseInt(categoryId) : null,
       created_at: now(),
       updated_at: now(),
@@ -323,7 +323,7 @@ export const handlers = [
         return HttpResponse.json({ error: "论文未找到" }, { status: 404 });
       }
 
-      if (!paper.file_url) {
+      if (!paper.file_path) {
         return HttpResponse.json({ error: "该论文暂无文件" }, { status: 404 });
       }
 

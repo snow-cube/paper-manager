@@ -90,12 +90,12 @@
         </div>
       </div>
 
-      <div v-if="paper.file_url" class="detail-section">
+      <div v-if="paper.file_path" class="detail-section">
         <h3 class="section-title">文件</h3>
         <div class="file-container">
           <div class="file-info">
             <div class="file-icon">📄</div>
-            <div class="file-name">{{ getFileName(paper.file_url) }}</div>
+            <div class="file-name">{{ getFileName(paper.file_path) }}</div>
           </div>
           <div class="file-actions">
             <button @click="previewFile" class="btn btn-small btn-preview">
@@ -218,6 +218,14 @@
         <p class="error-message">{{ workloadError }}</p>
       </div>
     </div>    <div class="detail-actions">
+      <button
+        v-if="paper.file_path"
+        @click="downloadFile"
+        class="btn btn-success"
+        :disabled="downloading"
+      >
+        {{ downloading ? '⏳ 下载中...' : '⬇️ 下载文件' }}
+      </button>
       <button @click="$emit('edit', paper)" class="btn btn-primary">
         ✏️ 编辑
       </button>
@@ -247,6 +255,7 @@ const { showToast } = useToast();
 
 const showPreview = ref(false);
 const previewUrl = ref("");
+const downloading = ref(false);
 const workloads = ref([]);
 const isLoadingWorkload = ref(false);
 const workloadError = ref(null);
@@ -313,22 +322,22 @@ const getFileExtension = (fileUrl) => {
 };
 
 const isPreviewable = computed(() => {
-  const extension = getFileExtension(props.paper.file_url);
+  const extension = getFileExtension(props.paper.file_path);
   // 支持预览的文件类型
   return ["pdf", "jpg", "jpeg", "png", "gif"].includes(extension);
 });
 
 const isPdf = computed(() => {
-  return getFileExtension(props.paper.file_url) === "pdf";
+  return getFileExtension(props.paper.file_path) === "pdf";
 });
 
 const isImage = computed(() => {
-  const extension = getFileExtension(props.paper.file_url);
+  const extension = getFileExtension(props.paper.file_path);
   return ["jpg", "jpeg", "png", "gif"].includes(extension);
 });
 
 const previewFile = () => {
-  if (!props.paper.file_url) {
+  if (!props.paper.file_path) {
     showToast("没有可预览的文件", "warning");
     return;
   }
@@ -338,10 +347,9 @@ const previewFile = () => {
     return;
   }
 
-  try {
-    // 在实际环境中，这里可能需要通过API获取预览URL
-    // 这里简单地使用file_url作为预览地址
-    previewUrl.value = props.paper.file_url;
+  try {    // 在实际环境中，这里可能需要通过API获取预览URL
+    // 这里简单地使用file_path作为预览地址
+    previewUrl.value = props.paper.file_path;
     showPreview.value = true;
   } catch (error) {
     console.error("预览文件失败:", error);
@@ -354,28 +362,25 @@ const closePreview = () => {
   previewUrl.value = "";
 };
 
-const downloadFile = async () => {
-  if (!props.paper.file_url) {
+const downloadFile = async () => {  if (!props.paper.file_path) {
     showToast("没有可下载的文件", "warning");
     return;
   }
 
-  try {
-    showToast("正在准备下载文件...", "info");
+  downloading.value = true;
 
-    // 根据论文类型选择不同的下载API
+  try {
+    showToast("正在准备下载文件...", "info");    // 根据项目类型选择不同的下载API
     let response;
-    if (props.paper.paper_type === 'literature') {
-      // 如果是参考文献类型
+    if (props.paper._itemType === 'reference') {
+      // 参考文献：使用references API
       response = await downloadReference(props.paper.id);
     } else {
-      // 默认使用论文下载API
+      // 论文：使用papers API
       response = await downloadPaper(props.paper.id);
-    }
-
-    // 从Content-Disposition头部提取文件名，如果有的话
+    }// 从Content-Disposition头部提取文件名，如果有的话
     const contentDisposition = response.headers['content-disposition'];
-    let fileName = getFileName(props.paper.file_url);
+    let fileName = getFileName(props.paper.file_path);
 
     if (contentDisposition) {
       const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
@@ -402,6 +407,8 @@ const downloadFile = async () => {
   } catch (error) {
     console.error("下载文件失败:", error);
     showToast("下载文件失败，请重试", "error");
+  } finally {
+    downloading.value = false;
   }
 };
 

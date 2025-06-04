@@ -9,7 +9,7 @@ export const mockPapers = [
     publication_date: "2024-03-15",
     publication_info: "IEEE Transactions on Pattern Analysis and Machine Intelligence, Vol. 46, No. 3",
     doi: "10.1109/TPAMI.2024.1234567",
-    file_url: "/files/paper1.pdf",
+    file_path: "/files/paper1.pdf",
     category_id: 1,
     paper_type: "literature", // 文献类型：literature（文献）或 published（发表论文）
     created_at: "2024-03-20T10:30:00Z",
@@ -23,7 +23,7 @@ export const mockPapers = [
     publication_date: "2024-02-20",
     publication_info: "Nature Machine Intelligence, Vol. 6, No. 2",
     doi: "10.1038/s42256-024-0123",
-    file_url: "/files/paper2.pdf",
+    file_path: "/files/paper2.pdf",
     category_id: 1,
     paper_type: "published", // 发表论文
     created_at: "2024-02-25T14:15:00Z",
@@ -38,7 +38,7 @@ export const mockPapers = [
     publication_date: "2024-01-10",
     publication_info: "Science, Vol. 383, No. 6629",
     doi: "10.1126/science.2024.383.6629",
-    file_url: "/files/paper3.pdf",
+    file_path: "/files/paper3.pdf",
     category_id: 2,
     paper_type: "literature", // 文献
     created_at: "2024-01-15T09:20:00Z",
@@ -53,7 +53,7 @@ export const mockPapers = [
     publication_date: "2023-12-05",
     publication_info: "Journal of Business Research, Vol. 168",
     doi: "10.1016/j.jbusres.2023.114567",
-    file_url: "/files/paper4.pdf",
+    file_path: "/files/paper4.pdf",
     category_id: 2,
     paper_type: "published", // 发表论文
     created_at: "2023-12-10T16:45:00Z",
@@ -68,7 +68,7 @@ export const mockPapers = [
     publication_date: "2023-11-18",
     publication_info: "IEEE Internet of Things Journal, Vol. 10, No. 22",
     doi: "10.1109/JIOT.2023.3234567",
-    file_url: "/files/paper5.pdf",
+    file_path: "/files/paper5.pdf",
     category_id: 3,
     paper_type: "literature", // 文献
     created_at: "2023-11-20T11:30:00Z",
@@ -83,7 +83,7 @@ export const mockPapers = [
     publication_date: "2023-10-25",
     publication_info: "Computational Linguistics, Vol. 49, No. 4",
     doi: "10.1162/coli_a_00234",
-    file_url: "/files/paper6.pdf",
+    file_path: "/files/paper6.pdf",
     category_id: 1,
     paper_type: "published", // 发表论文
     created_at: "2023-10-28T13:15:00Z",

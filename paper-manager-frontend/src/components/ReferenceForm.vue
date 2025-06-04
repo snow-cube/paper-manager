@@ -1,7 +1,7 @@
 <template>
   <div class="reference-form">
     <div class="form-header">
-      <h3>{{ reference ? '编辑参考文献' : '添加参考文献' }}</h3>
+      <h3>{{ reference ? "编辑参考文献" : "添加参考文献" }}</h3>
     </div>
 
     <form @submit.prevent="handleSubmit">
@@ -95,13 +95,9 @@
         >
           取消
         </button>
-        <button
-          type="submit"
-          :disabled="loading"
-          class="btn btn-primary"
-        >
+        <button type="submit" :disabled="loading" class="btn btn-primary">
           <span v-if="loading" class="loading-spinner"></span>
-          {{ loading ? '保存中...' : '保存' }}
+          {{ loading ? "保存中..." : "保存" }}
         </button>
       </div>
     </form>
@@ -109,72 +105,81 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, onMounted } from 'vue';
-import { createReference, updateReference, uploadReference, getCategories } from '../services/api.js';
-import { useToast } from '../composables/useToast.js';
+import { ref, reactive, watch, onMounted } from "vue";
+import {
+  createReference,
+  updateReference,
+  uploadReference,
+  getCategories,
+} from "../services/api.js";
+import { useToast } from "../composables/useToast.js";
 
 const props = defineProps({
   reference: {
     type: Object,
-    default: null
+    default: null,
   },
   team: {
     type: Object,
-    required: true
-  }
+    required: true,
+  },
 });
 
-const emit = defineEmits(['saved', 'cancel']);
+const emit = defineEmits(["saved", "cancel"]);
 
 const { showToast } = useToast();
 const loading = ref(false);
-const error = ref('');
+const error = ref("");
 const categories = ref([]);
 const fileInput = ref(null);
 const selectedFile = ref(null);
-const keywordsInput = ref('');
+const keywordsInput = ref("");
 
 const formData = reactive({
-  title: '',
-  authors: '',
-  doi: '',
-  category_id: '',
+  title: "",
+  authors: "",
+  doi: "",
+  category_id: "",
   team_id: 0,
-  keyword_names: []
+  keyword_names: [],
 });
 
 // 监听 props 变化，初始化表单数据
-watch(() => props.reference, (newReference) => {
-  if (newReference) {
-    formData.title = newReference.title || '';
-    formData.authors = newReference.authors || '';
-    formData.doi = newReference.doi || '';
-    formData.category_id = newReference.category_id || '';
-    formData.team_id = props.team.id;
-    keywordsInput.value = newReference.keywords?.join(', ') || '';
-  } else {
-    formData.title = '';
-    formData.authors = '';
-    formData.doi = '';
-    formData.category_id = '';
-    formData.team_id = props.team.id;
-    keywordsInput.value = '';
-  }
-}, { immediate: true });
+watch(
+  () => props.reference,
+  (newReference) => {
+    if (newReference) {
+      formData.title = newReference.title || "";
+      formData.authors = newReference.authors || "";
+      formData.doi = newReference.doi || "";
+      formData.category_id = newReference.category_id || "";
+      formData.team_id = props.team.id;
+      keywordsInput.value = newReference.keywords?.join(", ") || "";
+    } else {
+      formData.title = "";
+      formData.authors = "";
+      formData.doi = "";
+      formData.category_id = "";
+      formData.team_id = props.team.id;
+      keywordsInput.value = "";
+    }
+  },
+  { immediate: true }
+);
 
 // 监听关键词输入变化
 watch(keywordsInput, (newValue) => {
   formData.keyword_names = newValue
-    .split(',')
-    .map(keyword => keyword.trim())
-    .filter(keyword => keyword.length > 0);
+    .split(",")
+    .map((keyword) => keyword.trim())
+    .filter((keyword) => keyword.length > 0);
 });
 
 const loadCategories = async () => {
   try {
     categories.value = await getCategories();
   } catch (error) {
-    console.error('Failed to load categories:', error);
+    console.error("Failed to load categories:", error);
   }
 };
 
@@ -183,8 +188,8 @@ const handleFileChange = (event) => {
   if (file) {
     // 检查文件大小（限制为50MB）
     if (file.size > 50 * 1024 * 1024) {
-      error.value = '文件大小不能超过50MB';
-      fileInput.value.value = '';
+      error.value = "文件大小不能超过50MB";
+      fileInput.value.value = "";
       return;
     }
     selectedFile.value = file;
@@ -193,12 +198,12 @@ const handleFileChange = (event) => {
 
 const validateForm = () => {
   if (!formData.title.trim()) {
-    error.value = '请输入文献标题';
+    error.value = "请输入文献标题";
     return false;
   }
 
   if (!formData.authors.trim()) {
-    error.value = '请输入作者信息';
+    error.value = "请输入作者信息";
     return false;
   }
 
@@ -211,7 +216,7 @@ const handleSubmit = async () => {
   }
 
   loading.value = true;
-  error.value = '';
+  error.value = "";
 
   try {
     let result;
@@ -223,35 +228,38 @@ const handleSubmit = async () => {
         authors: formData.authors,
         doi: formData.doi || undefined,
         category_id: formData.category_id || undefined,
-        keyword_names: formData.keyword_names
+        keyword_names: formData.keyword_names,
       };
       result = await updateReference(props.reference.id, updateData);
-      showToast('参考文献更新成功！', 'success');
+      showToast("参考文献更新成功！", "success");
     } else {
       // 创建文献
       result = await createReference(formData);
-      showToast('参考文献创建成功！', 'success');
+      showToast("参考文献创建成功！", "success");
     }
 
     // 如果有文件，上传文件
     if (selectedFile.value) {
       try {
         await uploadReference(result.id, selectedFile.value);
-        showToast('文件上传成功！', 'success');
+        showToast("文件上传成功！", "success");
       } catch (uploadError) {
-        console.error('File upload error:', uploadError);
-        showToast('文件上传失败，但文献信息已保存', 'warning');
+        console.error("File upload error:", uploadError);
+        showToast("文件上传失败，但文献信息已保存", "warning");
       }
     }
 
-    emit('saved', result);
+    emit("saved", result);
   } catch (err) {
-    console.error('Reference operation error:', err);
+    console.error("Reference operation error:", err);
 
-    if (err.response?.status === 400 && err.response.data?.detail?.includes('DOI')) {
-      error.value = 'DOI已存在，请检查输入';
+    if (
+      err.response?.status === 400 &&
+      err.response.data?.detail?.includes("DOI")
+    ) {
+      error.value = "DOI已存在，请检查输入";
     } else {
-      error.value = err.response?.data?.detail || '操作失败，请稍后重试';
+      error.value = err.response?.data?.detail || "操作失败，请稍后重试";
     }
   } finally {
     loading.value = false;
