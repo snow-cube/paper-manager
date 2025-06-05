@@ -245,7 +245,7 @@ watch(isAuthenticated, (newValue) => {
   font-size: clamp(2.5rem, 5vw, 4rem);
   font-weight: 800;
   color: var(--color-heading);
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-lg);
   line-height: 1.1;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
@@ -274,23 +274,23 @@ watch(isAuthenticated, (newValue) => {
 }
 
 .hero-subtitle {
-  font-size: 1.25rem;
+  font-size: var(--text-xl);
   color: var(--color-text);
   max-width: 600px;
-  margin: 0 auto 1.5rem; /* 减小底部边距，因为我们添加了专门的间距div */
+  margin: 0 auto var(--space-lg); /* 减小底部边距，因为我们添加了专门的间距div */
   line-height: 1.6;
 }
 
 .hero-actions {
   display: flex;
-  gap: 1rem;
+  gap: var(--space-md);
   justify-content: center;
   flex-wrap: wrap;
 }
 
 .btn-lg {
-  padding: 1.2rem 2.4rem;
-  font-size: 1.1rem;
+  padding: var(--space-lg) var(--space-2xl);
+  font-size: var(--text-lg);
   font-weight: 600;
   border-radius: 14px;
   min-width: 220px;
@@ -382,15 +382,15 @@ watch(isAuthenticated, (newValue) => {
 .features {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 2rem;
-  margin-bottom: 4rem;
+  gap: var(--space-2xl);
+  margin-bottom: var(--space-4xl);
 }
 
 .feature-card {
   background: var(--white);
   border: 1px solid var(--primary-200);
   border-radius: var(--border-radius-lg);
-  padding: 2.5rem;
+  padding: var(--space-2xl);
   text-align: center;
   box-shadow: 0 5px 20px rgba(124, 58, 237, 0.08);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -423,7 +423,7 @@ watch(isAuthenticated, (newValue) => {
 
 .feature-icon {
   font-size: 3.5rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-lg);
   display: block;
   background: linear-gradient(135deg, var(--primary-500), var(--primary-400));
   -webkit-background-clip: text;
@@ -432,29 +432,29 @@ watch(isAuthenticated, (newValue) => {
 }
 
 .feature-card h3 {
-  font-size: 1.5rem;
+  font-size: var(--text-2xl);
   font-weight: 600;
   color: var(--color-heading);
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-md);
 }
 
 .feature-card p {
   color: var(--color-text);
-  margin-bottom: 2rem;
+  margin-bottom: var(--space-xl);
   line-height: 1.6;
 }
 
 .stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 2rem;
+  gap: var(--space-xl);
   background: linear-gradient(
     135deg,
     var(--primary-50),
     var(--white),
     var(--primary-100)
   );
-  padding: 3rem 2rem;
+  padding: var(--space-2xl) var(--space-xl);
   border-radius: var(--border-radius-lg);
   box-shadow: 0 10px 30px rgba(124, 58, 237, 0.1);
   border: 1px solid var(--primary-200);
@@ -477,9 +477,8 @@ watch(isAuthenticated, (newValue) => {
 .stat-item {
   text-align: center;
   position: relative;
-  z-index: 1;
-  background: rgba(255, 255, 255, 0.5);
-  padding: 2rem;
+  z-index: 1;  background: rgba(255, 255, 255, 0.5);
+  padding: var(--space-2xl);
   border-radius: var(--border-radius);
   backdrop-filter: blur(5px);
   box-shadow: 0 5px 15px rgba(124, 58, 237, 0.08);
@@ -493,13 +492,13 @@ watch(isAuthenticated, (newValue) => {
 }
 
 .stat-number {
-  font-size: 3.5rem;
+  font-size: var(--text-4xl);
   font-weight: 800;
   background: linear-gradient(135deg, var(--primary-700), var(--primary-500));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-sm);
   text-shadow: 0 2px 10px rgba(124, 58, 237, 0.2);
   line-height: 1.1;
 }
@@ -507,18 +506,18 @@ watch(isAuthenticated, (newValue) => {
 .stat-label {
   color: var(--color-text);
   font-weight: 500;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 @media (max-width: 768px) {
   .hero-title {
-    font-size: 2rem;
+    font-size: var(--text-2xl);
   }
 
   .hero-subtitle {
-    font-size: 1.125rem;
+    font-size: var(--text-lg);
   }
 
   .features {

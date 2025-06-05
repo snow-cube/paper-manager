@@ -1,5 +1,5 @@
 <template>
-  <div class="category-tree">
+  <div class="category-tree tree-container">
     <div class="tree-header">
       <h3 class="tree-title">
         <span class="tree-icon">🗂️</span>
@@ -450,7 +450,7 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem;
+  padding: var(--space-md);
   border-bottom: 1px solid var(--primary-100);
   background: linear-gradient(to right, var(--primary-50), var(--white));
 }
@@ -458,26 +458,26 @@ defineExpose({
 .tree-title {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-sm);
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--text-base);
   font-weight: 600;
   color: var(--color-heading);
 }
 
 .tree-icon {
-  font-size: 1.125rem;
+  font-size: var(--text-lg);
 }
 
 .btn-sm {
-  padding: 0.375rem 0.75rem;
-  font-size: 0.75rem;
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--text-xs);
 }
 
 .tree-content {
   flex: 1;
   overflow-y: auto;
-  padding: 0.5rem 0;
+  padding: var(--space-sm) 0;
 }
 
 .tree-loading {
@@ -485,9 +485,9 @@ defineExpose({
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2rem 1rem;
+  padding: var(--space-xl) var(--space-md);
   text-align: center;
-  gap: 0.5rem;
+  gap: var(--space-sm);
 }
 
 .tree-error {
@@ -495,25 +495,25 @@ defineExpose({
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2rem 1rem;
+  padding: var(--space-xl) var(--space-md);
   text-align: center;
-  gap: 0.75rem;
+  gap: var(--space-md);
 }
 
 .tree-error .error-icon {
-  font-size: 2rem;
+  font-size: var(--text-3xl);
   opacity: 0.6;
 }
 
 .tree-error p {
   color: var(--error-600);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   margin: 0;
 }
 
 .tree-node {
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal);
   position: relative;
 }
 
@@ -538,25 +538,25 @@ defineExpose({
 }
 
 .tree-node-all {
-  margin: 0 0.5rem 0.5rem;
-  padding: 0.75rem;
+  margin: 0 var(--space-sm) var(--space-sm);
+  padding: var(--space-md);
   border-radius: var(--border-radius);
   border: 1px solid var(--primary-200);
   background: linear-gradient(to right, var(--primary-50), var(--white));
-  box-shadow: 0 2px 4px rgba(125, 108, 192, 0.04);
+  box-shadow: var(--shadow-sm);
 }
 
 .tree-node-content {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem;
+  gap: var(--space-sm);
+  padding: var(--space-md);
   position: relative;
 }
 
 .tree-node-icon {
-  font-size: 1rem;
-  width: 1.25rem;
+  font-size: var(--text-base);
+  width: var(--space-lg);
   text-align: center;
 }
 
@@ -567,35 +567,35 @@ defineExpose({
 }
 
 .tree-node-count {
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   background: var(--white);
   color: var(--primary-600);
-  padding: 0.125rem 0.5rem;
+  padding: var(--space-xs) var(--space-sm);
   border-radius: 50px;
   font-weight: 500;
   border: 1px solid var(--primary-200);
-  box-shadow: 0 2px 4px rgba(125, 108, 192, 0.04);
-  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-normal);
 }
 
 .tree-node:hover .tree-node-count {
   background: var(--white);
   color: var(--primary-700);
   border-color: var(--primary-300);
-  box-shadow: 0 2px 6px rgba(125, 108, 192, 0.08);
+  box-shadow: var(--shadow-hover);
 }
 
 .tree-node-active .tree-node-count {
   background: var(--white);
   color: var(--primary-700);
   border-color: var(--primary-300);
-  box-shadow: 0 2px 6px rgba(125, 108, 192, 0.08);
+  box-shadow: var(--shadow-hover);
 }
 
 .tree-node-actions {
   display: none;
-  gap: 0.25rem;
-  margin-left: 0.5rem;
+  gap: var(--space-xs);
+  margin-left: var(--space-sm);
 }
 
 .tree-node:hover .tree-node-actions {
@@ -642,90 +642,7 @@ defineExpose({
   color: var(--color-danger);
 }
 
-.error-icon {
-  font-size: 2rem;
+.error-icon {  font-size: 2rem;
   margin-bottom: 0.5rem;
-}
-</style>
-
-<!-- 对话框的全局样式（不使用scoped） -->
-<style>
-/* 对话框样式 */
-.dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(125, 108, 192, 0.15);
-  backdrop-filter: blur(6px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-}
-
-.dialog {
-  background: var(--white);
-  border-radius: var(--border-radius-lg);
-  box-shadow: 0 12px 40px rgba(125, 108, 192, 0.2);
-  width: 90%;
-  max-width: 400px;
-  max-height: 90vh;
-  overflow: hidden;
-  border: 1px solid var(--primary-200);
-}
-
-.dialog-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--primary-100);
-  background: linear-gradient(to right, var(--primary-50), var(--white));
-}
-
-.dialog-header h4 {
-  margin: 0;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--primary-800);
-}
-
-.dialog-close {
-  background: var(--primary-50);
-  border: 1px solid var(--primary-200);
-  font-size: 1.25rem;
-  cursor: pointer;
-  color: var(--primary-600);
-  padding: 0;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 6px rgba(125, 108, 192, 0.08);
-}
-
-.dialog-close:hover {
-  background: var(--primary-100);
-  color: var(--primary-700);
-  transform: rotate(90deg);
-  box-shadow: 0 3px 8px rgba(125, 108, 192, 0.12);
-}
-
-.dialog-body {
-  padding: 1.5rem;
-}
-
-.dialog-footer {
-  display: flex;
-  gap: 0.75rem;
-  justify-content: flex-end;
-  padding: 1rem 1.5rem;
-  border-top: 1px solid var(--primary-100);
-  background: linear-gradient(to right, var(--primary-50), var(--white));
 }
 </style>

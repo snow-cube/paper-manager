@@ -95,118 +95,118 @@ const handleMemberRemoved = () => {
 <style scoped>
 .teams-page {
   min-height: 100vh;
-  background: #f8fafc;
+  background: var(--color-bg-soft);
 }
 
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: var(--space-xl);
 }
 
 .page-header {
   text-align: center;
-  margin-bottom: 3rem;
+  margin-bottom: var(--space-3xl);
 }
 
 .page-title {
-  font-size: 2.5rem;
-  color: #333;
-  margin-bottom: 0.5rem;
+  font-size: var(--text-3xl);
+  color: var(--color-heading);
+  margin-bottom: var(--space-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
+  gap: var(--space-md);
 }
 
 .page-icon {
-  font-size: 2.5rem;
+  font-size: var(--text-3xl);
 }
 
 .page-description {
-  color: #666;
-  font-size: 1.1rem;
+  color: var(--color-text-light);
+  font-size: var(--text-lg);
   margin: 0;
 }
 
 .teams-overview {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  background: var(--white);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-lg);
 }
 
 .team-detail {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  background: var(--white);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
 }
 
 .team-header {
-  padding: 2rem;
-  border-bottom: 1px solid #e1e5e9;
+  padding: var(--space-xl);
+  border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: var(--space-md);
 }
 
 .team-header h2 {
-  color: #333;
+  color: var(--color-heading);
   margin: 0;
   flex: 1;
 }
 
 .team-tabs {
   display: flex;
-  border-bottom: 1px solid #e1e5e9;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .tab-btn {
-  padding: 1rem 2rem;
+  padding: var(--space-md) var(--space-xl);
   border: none;
   background: none;
   cursor: pointer;
-  font-size: 1rem;
-  color: #666;
-  transition: all 0.3s ease;
+  font-size: var(--text-base);
+  color: var(--color-text-light);
+  transition: all var(--transition-normal);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-sm);
   border-bottom: 3px solid transparent;
 }
 
 .tab-btn:hover {
-  background: #f8fafc;
-  color: #333;
+  background: var(--color-background-soft);
+  color: var(--color-heading);
 }
 
 .tab-btn.active {
-  color: #6366f1;
-  border-bottom-color: #6366f1;
-  background: #f8fafc;
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  background: var(--color-background-soft);
 }
 
 .tab-content {
-  padding: 2rem;
+  padding: var(--space-xl);
   min-height: 400px;
 }
 
 .btn {
   padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 8px;
-  font-size: 1rem;
+  border-radius: var(--border-radius);
+  font-size: var(--text-base);
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal);
 }
 
 .btn-secondary {
-  background: #6b7280;
-  color: white;
+  background: var(--gray-600);
+  color: var(--white);
 }
 
 .btn-secondary:hover {
-  background: #5b6470;
+  background: var(--gray-700);
 }
 </style>

@@ -142,27 +142,27 @@ setupGlobalErrorHandler();
 
 .error-message {
   color: #666;
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-lg);
   line-height: 1.5;
 }
 
 .error-actions {
   display: flex;
-  gap: 1rem;
+  gap: var(--space-md);
   justify-content: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-lg);
 }
 
 .btn {
-  padding: 0.75rem 1.5rem;
+  padding: var(--space-md) var(--space-lg);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--border-radius);
   cursor: pointer;
   font-weight: 500;
-  transition: all 0.2s;
+  transition: all var(--transition-normal);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-sm);
 }
 
 .btn:disabled {
@@ -171,24 +171,24 @@ setupGlobalErrorHandler();
 }
 
 .btn-primary {
-  background-color: #007bff;
-  color: white;
+  background-color: var(--color-primary);
+  color: var(--white);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #0056b3;
-  color: white;
+  background-color: var(--color-primary-hover);
+  color: var(--white);
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-secondary {
-  background-color: #6c757d;
-  color: white;
+  background-color: var(--gray-600);
+  color: var(--white);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background-color: #545b62;
+  background-color: var(--gray-700);
   color: white;
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(108, 117, 125, 0.3);
@@ -205,22 +205,22 @@ setupGlobalErrorHandler();
 
 .error-details {
   text-align: left;
-  margin-top: 1rem;
+  margin-top: var(--space-md);
 }
 
 .error-details summary {
   cursor: pointer;
   color: #007bff;
   font-weight: 500;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-sm);
 }
 
 .error-details pre {
   background: #f8f9fa;
   border: 1px solid #dee2e6;
   border-radius: 4px;
-  padding: 1rem;
-  font-size: 0.75rem;
+  padding: var(--space-md);
+  font-size: var(--text-xs);
   color: #495057;
   max-height: 200px;
   overflow: auto;
@@ -237,11 +237,11 @@ setupGlobalErrorHandler();
 /* 响应式设计 */
 @media (max-width: 480px) {
   .error-boundary {
-    padding: 1rem;
+    padding: var(--space-md);
   }
 
   .error-container {
-    padding: 1.5rem;
+    padding: var(--space-lg);
   }
 
   .error-actions {

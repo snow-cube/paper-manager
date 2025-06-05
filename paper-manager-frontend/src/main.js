@@ -3,7 +3,7 @@ import App from "./App.vue";
 import router from "./router";
 // import { startMocking } from "./mocks/browser.js";
 
-import "./assets/main.css";
+import "./assets/styles/main.css";
 
 // MSW mocking is disabled - using real backend API
 // Uncomment below lines if you need to use mock data for testing

@@ -671,82 +671,82 @@ const handleSubmit = async () => {
 .paper-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: var(--space-lg);
   max-width: 900px;
   width: 100%;
   margin: 0 auto;
-  padding: 2rem;
+  padding: var(--space-xl);
 }
 
 .form-header {
   text-align: center;
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-md);
   border-bottom: 2px solid var(--color-border);
 }
 
 .form-title {
-  font-size: 1.5rem;
+  font-size: var(--text-lg);
   font-weight: 600;
   color: var(--color-primary);
   margin: 0;
 }
 
 .form-section {
-  margin: 2rem 0;
-  padding: 1.5rem;
-  background: var(--color-bg-soft);
+  margin: var(--space-xl) 0;
+  padding: var(--space-lg);
+  background: var(--color-background-soft);
   border-radius: var(--border-radius);
   border-left: 4px solid var(--color-primary);
 }
 
 .section-title {
-  font-size: 1.1rem;
+  font-size: var(--text-lg);
   font-weight: 600;
   color: var(--color-primary);
-  margin: 0 0 1rem 0;
+  margin: 0 0 var(--space-md) 0;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-sm);
 }
 
 .form-hint {
-  color: var(--color-text-soft);
-  font-size: 0.8rem;
-  margin-top: 0.25rem;
+  color: var(--color-text-light);
+  font-size: var(--text-xs);
+  margin-top: var(--space-xs);
   font-style: italic;
 }
 
 .form-row {
   display: grid;
-  gap: 1rem;
+  gap: var(--space-md);
   grid-template-columns: 1fr;
 }
 .form-row:has(.form-group:nth-child(2)) {
   grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
+  gap: var(--space-lg);
 }
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-sm);
   width: 100%;
 }
 
 .form-label {
   font-weight: 500;
   color: var(--color-heading);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
 }
 
 .form-input,
 .form-select,
 .form-textarea {
-  padding: 0.75rem;
+  padding: var(--space-md);
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius);
-  font-size: 0.875rem;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  font-size: var(--text-sm);
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
 }
 
 .form-input:focus,
@@ -754,7 +754,7 @@ const handleSubmit = async () => {
 .form-textarea:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--primary-100);
+  box-shadow: var(--shadow-focus);
 }
 
 .form-textarea {
@@ -778,8 +778,8 @@ const handleSubmit = async () => {
 .file-label {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
+  gap: var(--space-md);
+  padding: var(--space-md);
   border: 2px dashed var(--color-border);
   border-radius: var(--border-radius);
   cursor: pointer;
@@ -793,24 +793,24 @@ const handleSubmit = async () => {
 }
 
 .file-icon {
-  font-size: 1.5rem;
+  font-size: var(--space-lg);
 }
 
 .file-text {
   flex: 1;
   color: var(--color-text);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
 }
 
 .file-info {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 0.5rem;
-  padding: 0.5rem 0.75rem;
+  margin-top: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   background: var(--primary-50);
   border-radius: var(--border-radius);
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
 }
 
 .file-size {
@@ -822,10 +822,10 @@ const handleSubmit = async () => {
   border: none;
   color: var(--error-600);
   cursor: pointer;
-  font-size: 1.25rem;
+  font-size: var(--text-xl);
   padding: 0;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: var(--space-lg);
+  height: var(--space-lg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -839,15 +839,15 @@ const handleSubmit = async () => {
 .contribution-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
+  gap: var(--space-md);
+  margin-top: var(--space-sm);
 }
 
 .contribution-item {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 0.75rem;
+  gap: var(--space-md);
+  padding: var(--space-md);
   background: var(--color-background-soft);
   border-radius: var(--border-radius);
   border: 1px solid var(--color-border);
@@ -861,10 +861,10 @@ const handleSubmit = async () => {
 
 .contribution-input {
   width: 80px;
-  padding: 0.4rem 0.6rem;
+  padding: var(--space-sm) var(--space-sm);
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   text-align: center;
 }
 
@@ -875,15 +875,15 @@ const handleSubmit = async () => {
 }
 
 .contribution-percent {
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   color: var(--color-text-soft);
   min-width: 60px;
   text-align: right;
 }
 
 .contribution-summary {
-  margin-top: 0.75rem;
-  padding: 0.75rem;
+  margin-top: var(--space-md);
+  padding: var(--space-md);
   background: var(--primary-50);
   border-radius: var(--border-radius);
   border: 1px solid var(--primary-200);
@@ -896,9 +896,9 @@ const handleSubmit = async () => {
 
 .form-actions {
   display: flex;
-  gap: 1rem;
+  gap: var(--space-md);
   justify-content: flex-end;
-  padding-top: 1rem;
+  padding-top: var(--space-md);
   border-top: 1px solid var(--color-border);
 }
 

@@ -210,14 +210,14 @@ const formatDate = (dateString) => {
 }
 
 .paper-content {
-  padding: 0 1.5rem 1rem;
+  padding: 0 var(--space-lg) var(--space-md);
   cursor: pointer;
 }
 
 .paper-title {
-  font-size: 1.1rem;
+  font-size: var(--text-lg);
   font-weight: 600;
-  color: var(--color-text);  margin: 0 0 1rem 0;
+  color: var(--color-text);  margin: 0 0 var(--space-md) 0;
   line-height: 1.4;
   display: -webkit-box;
   display: -moz-box;
@@ -234,13 +234,13 @@ const formatDate = (dateString) => {
 }
 
 .paper-meta {
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-md);
 }
 
 .meta-item {
   display: flex;
-  margin-bottom: 0.4rem;
-  font-size: 0.85rem;
+  margin-bottom: var(--space-sm);
+  font-size: var(--text-sm);
 }
 
 .meta-label {
@@ -269,10 +269,10 @@ const formatDate = (dateString) => {
 }
 
 .paper-abstract {
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   color: var(--color-text-soft);
   line-height: 1.5;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-md);
 }
 
 .read-more {
@@ -283,16 +283,16 @@ const formatDate = (dateString) => {
 .paper-keywords {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-bottom: 1rem;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
 }
 
 .keyword-tag {
   background: var(--primary-50);
   color: var(--primary-700);
-  padding: 0.25rem 0.7rem;
+  padding: var(--space-xs) var(--space-md);
   border-radius: 12px;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   font-weight: 500;
   transition: all 0.3s ease;
   border: 1px solid var(--primary-200);
@@ -306,7 +306,7 @@ const formatDate = (dateString) => {
 }
 
 .paper-footer {
-  padding: 0.75rem 1.5rem;
+  padding: var(--space-md) var(--space-lg);
   background: linear-gradient(
     to right,
     var(--primary-50),
@@ -317,7 +317,7 @@ const formatDate = (dateString) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   backdrop-filter: blur(4px);
 }
 
@@ -325,32 +325,32 @@ const formatDate = (dateString) => {
 .paper-date {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: var(--space-xs);
   color: var(--color-text-soft);
 }
 
 .category-icon,
 .date-icon {
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
 }
 
 @media (max-width: 480px) {
   .published-paper-card {
-    margin-bottom: 1rem;
+    margin-bottom: var(--space-md);
   }
 
   .paper-header {
-    padding: 1rem 1rem 0.5rem;
+    padding: var(--space-md) var(--space-md) var(--space-sm);
   }
 
   .paper-content {
-    padding: 0 1rem 1rem;
+    padding: 0 var(--space-md) var(--space-md);
   }
 
   .paper-footer {
-    padding: 0.75rem 1rem;
+    padding: var(--space-md) var(--space-md);
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--space-sm);
     align-items: flex-start;
   }
 

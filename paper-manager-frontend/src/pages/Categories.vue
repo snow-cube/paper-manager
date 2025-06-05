@@ -24,23 +24,23 @@ import CategoryTree from "../components/CategoryTree.vue";
 .categories-page {
   max-width: 900px;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: var(--space-2xl) var(--space-md);
 }
 
 .page-header {
   text-align: center;
-  margin-bottom: 3rem;
-  padding: 2rem 0;
+  margin-bottom: var(--space-2xl);
+  padding: var(--space-2xl) 0;
   background: linear-gradient(135deg, var(--primary-50), var(--color-background-soft));
   border-radius: var(--border-radius-lg);
   border: 1px solid var(--primary-100);
 }
 
 .page-title {
-  font-size: clamp(2rem, 4vw, 2.5rem);
+  font-size: clamp(var(--text-2xl), 4vw, var(--text-3xl));
   font-weight: 800;
   color: var(--color-heading);
-  margin-bottom: 0.75rem;
+  margin-bottom: var(--space-md);
   background: linear-gradient(135deg, var(--primary-600), var(--primary-400));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -48,7 +48,7 @@ import CategoryTree from "../components/CategoryTree.vue";
 }
 
 .page-subtitle {
-  font-size: 1.125rem;
+  font-size: var(--text-lg);
   color: var(--color-text);
   max-width: 500px;
   margin: 0 auto;
@@ -71,32 +71,32 @@ import CategoryTree from "../components/CategoryTree.vue";
 }
 
 .card-header h2 {
-  font-size: 1.25rem;
+  font-size: var(--text-xl);
   font-weight: 600;
   color: var(--color-heading);
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-sm);
 }
 
 .card-header h2::before {
   content: "🗂️";
-  font-size: 1.125rem;
+  font-size: var(--text-lg);
 }
 
 @media (max-width: 768px) {
   .categories-page {
-    padding: 1rem 0.5rem;
+    padding: var(--space-md) var(--space-sm);
   }
 
   .page-header {
-    margin-bottom: 2rem;
-    padding: 1.5rem 1rem;
+    margin-bottom: var(--space-2xl);
+    padding: var(--space-lg) var(--space-md);
   }
 
   .page-title {
-    font-size: 1.75rem;
+    font-size: var(--text-xl);
   }
 }
 </style>

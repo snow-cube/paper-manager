@@ -167,93 +167,93 @@ onMounted(() => {
 
 <style scoped>
 .team-list {
-  padding: 1.5rem;
+  padding: var(--space-lg);
 }
 
 .team-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: var(--space-xl);
 }
 
 .team-header h2 {
-  color: #333;
+  color: var(--color-heading);
   margin: 0;
 }
 
 .loading-state,
 .empty-state {
   text-align: center;
-  padding: 3rem 1rem;
-  color: #666;
+  padding: var(--space-2xl) var(--space-md);
+  color: var(--color-text-light);
 }
 
 .empty-icon {
   font-size: 4rem;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-md);
 }
 
 .teams-grid {
   display: grid;
-  gap: 1.5rem;
+  gap: var(--space-lg);
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
 }
 
 .team-card {
-  background: white;
-  border: 2px solid #e1e5e9;
-  border-radius: 12px;
-  padding: 1.5rem;
+  background: var(--white);
+  border: 2px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-lg);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-bounce);
   position: relative;
 }
 
 .team-card:hover {
-  border-color: #6366f1;
+  border-color: var(--primary-500);
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
 .team-info {
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-md);
 }
 
 .team-name {
   color: #333;
-  margin: 0 0 0.5rem 0;
-  font-size: 1.25rem;
+  margin: 0 0 var(--space-sm) 0;
+  font-size: var(--text-xl);
 }
 
 .team-description {
   color: #666;
-  margin: 0 0 1rem 0;
-  font-size: 0.9rem;
+  margin: 0 0 var(--space-md) 0;
+  font-size: var(--text-sm);
   line-height: 1.4;
 }
 
 .team-meta {
   display: flex;
-  gap: 1rem;
-  font-size: 0.8rem;
+  gap: var(--space-md);
+  font-size: var(--text-xs);
   color: #888;
 }
 
 .member-count {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: var(--space-xs);
 }
 
 .team-actions {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
+  top: var(--space-md);
+  right: var(--space-md);
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-sm);
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity var(--transition-normal);
 }
 
 .team-card:hover .team-actions {

@@ -112,22 +112,22 @@ const handleTeamUpdated = (updatedTeam) => {
 .info-item label {
   display: block;
   font-weight: 600;
-  color: #374151;
-  margin-bottom: 0.5rem;
-  font-size: 0.9rem;
+  color: var(--color-heading);
+  margin-bottom: var(--space-sm);
+  font-size: var(--text-sm);
 }
 
 .info-item p {
   margin: 0;
-  color: #6b7280;
+  color: var(--color-text-light);
   line-height: 1.5;
 }
 
 .status-badge {
   display: inline-block;
-  padding: 0.25rem 0.75rem;
+  padding: var(--space-xs) var(--space-md);
   border-radius: 9999px;
-  font-size: 0.8rem;
+  font-size: var(--text-xs);
   font-weight: 600;
 }
 
@@ -142,30 +142,30 @@ const handleTeamUpdated = (updatedTeam) => {
 }
 
 .actions-section {
-  padding-top: 1.5rem;
+  padding-top: var(--space-lg);
   border-top: 1px solid #e5e7eb;
 }
 
 .btn {
-  padding: 0.75rem 1.5rem;
+  padding: var(--space-md) var(--space-lg);
   border: none;
-  border-radius: 8px;
-  font-size: 1rem;
+  border-radius: var(--border-radius);
+  font-size: var(--text-base);
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal);
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-sm);
 }
 
 .btn-primary {
-  background: #6366f1;
-  color: white;
+  background: var(--color-primary);
+  color: var(--white);
 }
 
 .btn-primary:hover {
-  background: #5855eb;
+  background: var(--primary-600);
   transform: translateY(-1px);
 }
 

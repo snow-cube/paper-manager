@@ -1,0 +1,423 @@
+/* 按钮组件样式 */
+
+/* 按钮基础类 */
+.btn-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: var(--border-radius);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-bounce);
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+  letter-spacing: 0.02em;
+}
+
+.btn-base:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* 标准按钮 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: var(--border-radius);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-bounce);
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+  letter-spacing: 0.02em;
+  font-size: 0.9rem;
+  background: var(--color-primary);
+  color: var(--white);
+  box-shadow: 0 2px 6px rgba(125, 108, 192, 0.12),
+    inset 0 1px 1px rgba(255, 255, 255, 0.12);
+}
+
+.btn:before,
+.btn:after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+
+.btn:before {
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.06) 100%
+  );
+  opacity: 0;
+  transform: translateY(5px);
+}
+
+.btn:after {
+  top: -10%;
+  left: -10%;
+  width: 120%;
+  height: 120%;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.2) 0%,
+    transparent 60%
+  );
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.btn:hover {
+  background: var(--color-primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(125, 108, 192, 0.25),
+    0 6px 16px rgba(125, 108, 192, 0.15),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  color: var(--white);
+}
+
+.btn:hover:before {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.btn:hover:after {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.btn:active {
+  transform: translateY(0px);
+  box-shadow: 0 2px 4px rgba(125, 108, 192, 0.12),
+    inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* 按钮变体 */
+.btn-secondary {
+  background: var(--white);
+  color: var(--primary-700);
+  border: 2px solid var(--primary-200);
+  box-shadow: 0 2px 6px rgba(125, 108, 192, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8);
+}
+
+.btn-secondary:before {
+  background: linear-gradient(
+    45deg,
+    rgba(125, 108, 192, 0.08) 0%,
+    rgba(125, 108, 192, 0.04) 100%
+  );
+}
+
+.btn-secondary:after {
+  background: radial-gradient(
+    circle at center,
+    rgba(125, 108, 192, 0.1) 0%,
+    transparent 60%
+  );
+}
+
+.btn-secondary:hover {
+  background: var(--primary-100);
+  color: var(--primary-800);
+  border-color: var(--primary-300);
+  box-shadow: 0 6px 16px rgba(125, 108, 192, 0.18),
+    0 2px 8px rgba(125, 108, 192, 0.12),
+    inset 0 1px 2px rgba(255, 255, 255, 0.9);
+}
+
+.btn-success {
+  background: var(--color-success);
+  color: var(--white);
+  border: none;
+}
+
+.btn-success:hover {
+  background: var(--success-600);
+}
+
+.btn-warning {
+  background: var(--color-warning);
+  color: var(--white);
+  border: none;
+}
+
+.btn-warning:hover {
+  background: var(--warning-600);
+}
+
+.btn-error {
+  background: var(--color-error);
+  color: var(--white);
+  border: none;
+}
+
+.btn-error:hover {
+  background: var(--error-600);
+}
+
+.btn-outline-purple {
+  background: var(--white);
+  color: var(--primary-700);
+  border: 2px solid var(--primary-600);
+  box-shadow: 0 2px 6px rgba(125, 108, 192, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8);
+}
+
+.btn-outline-purple:hover {
+  background: var(--primary-100);
+  color: var(--primary-800);
+  border-color: var(--primary-700);
+  box-shadow: 0 4px 12px rgba(125, 108, 192, 0.18),
+    inset 0 1px 1px rgba(255, 255, 255, 0.9);
+}
+
+.btn-outline-purple.is-active {
+  background: var(--primary-600);
+  color: var(--white);
+  border-color: var(--primary-700);
+  box-shadow: 0 2px 6px rgba(125, 108, 192, 0.2),
+    inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+/* 按钮尺寸 */
+.btn-lg {
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+}
+
+.btn-sm {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.btn-xs {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.btn-sm.btn-outline-purple {
+  background: var(--white);
+  color: var(--primary-700);
+  border: 1px solid var(--primary-600);
+  box-shadow: 0 1px 3px rgba(125, 108, 192, 0.08);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.btn-sm.btn-outline-purple:hover {
+  background: var(--primary-100);
+  color: var(--primary-800);
+  border-color: var(--primary-700);
+  box-shadow: 0 2px 8px rgba(125, 108, 192, 0.18);
+}
+
+/* 按钮图标 */
+.btn .btn-icon {
+  font-size: 1.1em;
+  line-height: 1;
+}
+
+.btn-sm .btn-icon,
+.btn-xs .btn-icon {
+  font-size: 1em;
+}
+
+.btn-lg .btn-icon {
+  font-size: 1.2em;
+}
+
+/* 按钮变体类模板 */
+.btn-variant-primary {
+  background: var(--color-primary);
+  color: var(--white);
+  box-shadow: 0 2px 6px rgba(125, 108, 192, 0.12),
+    inset 0 1px 1px rgba(255, 255, 255, 0.12);
+}
+
+.btn-variant-primary:hover {
+  background: var(--color-primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(125, 108, 192, 0.25),
+    0 6px 16px rgba(125, 108, 192, 0.15),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2);
+}
+
+.btn-variant-secondary {
+  background: var(--white);
+  color: var(--primary-700);
+  border: 2px solid var(--primary-200);
+  box-shadow: 0 2px 6px rgba(125, 108, 192, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8);
+}
+
+.btn-variant-secondary:hover {
+  background: var(--primary-100);
+  color: var(--primary-800);
+  border-color: var(--primary-300);
+  box-shadow: 0 6px 16px rgba(125, 108, 192, 0.18),
+    0 2px 8px rgba(125, 108, 192, 0.12),
+    inset 0 1px 2px rgba(255, 255, 255, 0.9);
+}
+
+.btn-variant-outline {
+  background: var(--white);
+  color: var(--primary-700);
+  border: 2px solid var(--primary-600);
+  box-shadow: 0 2px 6px rgba(125, 108, 192, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8);
+}
+
+.btn-variant-outline:hover {
+  background: var(--primary-100);
+  color: var(--primary-800);
+  border-color: var(--primary-700);
+  box-shadow: 0 4px 12px rgba(125, 108, 192, 0.18),
+    inset 0 1px 1px rgba(255, 255, 255, 0.9);
+}
+
+.btn-variant-success {
+  background: var(--color-success);
+  color: var(--white);
+  border: none;
+}
+
+.btn-variant-success:hover {
+  background: var(--success-600);
+}
+
+.btn-variant-error {
+  background: var(--color-error);
+  color: var(--white);
+  border: none;
+}
+
+.btn-variant-error:hover {
+  background: var(--error-600);
+}
+
+/* 按钮尺寸模板 */
+.btn-size-xs {
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--text-xs);
+}
+
+.btn-size-sm {
+  padding: 0.35rem 0.75rem;
+  font-size: var(--text-sm);
+}
+
+.btn-size-md {
+  padding: 0.6rem 1.2rem;
+  font-size: var(--text-sm);
+}
+
+.btn-size-lg {
+  padding: 0.75rem 2rem;
+  font-size: var(--text-base);
+}
+
+/* 操作按钮 */
+.action-btn-base {
+  background: transparent;
+  border: none;
+  padding: 0.4rem;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all var(--transition-normal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+}
+
+.action-btn-base:hover {
+  background: var(--color-background-mute);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(125, 108, 192, 0.18);
+}
+
+.action-btn-view:hover {
+  background: var(--primary-100);
+  color: var(--primary-700);
+}
+
+.action-btn-download:hover {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.action-btn-edit:hover {
+  background: var(--primary-100);
+  color: var(--primary-700);
+}
+
+.action-btn-danger:hover {
+  background: var(--error-50);
+  color: var(--error-600);
+}
+
+/* 特定场景按钮 */
+.paper-card .action-btn,
+.published-paper-card .action-btn,
+.paper-list .action-btn {
+  background: transparent;
+  border: none;
+  padding: 0.4rem;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+}
+
+.paper-card .action-btn:hover,
+.published-paper-card .action-btn:hover,
+.paper-list .action-btn:hover {
+  background: var(--color-background-mute);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(125, 108, 192, 0.18);
+}
+
+.paper-card .action-btn-view:hover,
+.published-paper-card .action-btn-view:hover,
+.paper-list .action-btn-view:hover {
+  background: var(--primary-100);
+  color: var(--primary-700);
+}
+
+.paper-card .action-btn-download:hover,
+.published-paper-card .action-btn-download:hover,
+.paper-list .action-btn-download:hover {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.paper-card .action-btn-danger:hover,
+.published-paper-card .action-btn-danger:hover,
+.paper-list .action-btn-danger:hover {
+  background: var(--error-50);
+  color: var(--error-600);
+}

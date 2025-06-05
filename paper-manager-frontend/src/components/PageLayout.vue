@@ -56,16 +56,16 @@ defineProps({
 .page-container {
   max-width: v-bind(maxWidth);
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: var(--space-xl) var(--space-md);
 }
 
 .page-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 2rem;
-  margin-bottom: 3rem;
-  padding: 2.5rem;
+  gap: var(--space-xl);
+  margin-bottom: var(--space-2xl);
+  padding: var(--space-2xl) var(--space-xl);
   background: linear-gradient(
     135deg,
     var(--primary-50),
@@ -100,10 +100,10 @@ defineProps({
 }
 
 .page-title {
-  font-size: clamp(2rem, 4vw, 2.75rem);
+  font-size: clamp(var(--text-xl), 4vw, var(--text-3xl));
   font-weight: 800;
   color: var(--color-heading);
-  margin: 0 0 0.75rem 0;
+  margin: 0 0 var(--space-md) 0;
   background: linear-gradient(135deg, var(--primary-700), var(--primary-500));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -111,7 +111,7 @@ defineProps({
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
+  gap: var(--space-md);
   line-height: 1.2;
   text-shadow: 0 4px 10px rgba(124, 58, 237, 0.2);
 }
@@ -122,7 +122,7 @@ defineProps({
 }
 
 .page-subtitle {
-  font-size: 1.125rem;
+  font-size: var(--text-lg);
   color: var(--color-text);
   max-width: 600px;
   margin: 0 auto;
@@ -132,12 +132,12 @@ defineProps({
 .page-actions {
   flex-shrink: 0;
   display: flex;
-  gap: 1rem;
+  gap: var(--space-md);
   align-items: flex-start;
 }
 
 .page-header-slot {
-  margin-bottom: 2rem;
+  margin-bottom: var(--space-xl);
 }
 
 .page-content {
@@ -147,16 +147,16 @@ defineProps({
 /* Responsive design */
 @media (max-width: 768px) {
   .page-container {
-    padding: 1rem 0.5rem;
+    padding: var(--space-md) var(--space-sm);
   }
 
   .page-header {
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 1.5rem;
-    padding: 1.5rem 1rem;
-    margin-bottom: 2rem;
+    gap: var(--space-lg);
+    padding: var(--space-lg) var(--space-md);
+    margin-bottom: var(--space-2xl);
   }
 
   .page-actions {
@@ -166,23 +166,23 @@ defineProps({
   }
 
   .page-title {
-    font-size: 1.75rem;
+    font-size: var(--text-xl);
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--space-sm);
   }
 }
 
 @media (max-width: 480px) {
   .page-header {
-    padding: 1rem;
+    padding: var(--space-md);
   }
 
   .page-title {
-    font-size: 1.5rem;
+    font-size: var(--text-lg);
   }
 
   .page-subtitle {
-    font-size: 1rem;
+    font-size: var(--text-base);
   }
 }
 </style>

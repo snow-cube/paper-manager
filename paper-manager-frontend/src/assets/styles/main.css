@@ -1,0 +1,47 @@
+/* 主样式入口文件 */
+
+/* 基础样式 */
+@import "./base/variables.css";
+@import "./base/reset.css";
+
+/* 工具类 */
+@import "./utils/utility.css";
+@import "./utils/transitions.css";
+
+/* 组件样式 */
+@import "./components/buttons.css";
+@import "./components/cards.css";
+@import "./components/forms.css";
+@import "./components/lists-tables.css";
+@import "./components/modals.css";
+@import "./components/navigation.css";
+@import "./components/tree.css";
+@import "./components/misc.css";
+
+/* 应用根元素样式 */
+#app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-background);
+}
+
+/* 主要内容区样式 */
+main {
+  flex: 1;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+/* 全局链接样式 */
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--color-primary-hover);
+}

@@ -56,9 +56,9 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 1rem;
+  padding: var(--space-md);
   backdrop-filter: blur(6px);
-  animation: fadeIn 0.3s ease-out;
+  animation: fadeIn var(--transition-normal);
 }
 
 .modal-content {
@@ -77,29 +77,29 @@ onUnmounted(() => {
 
 .modal-close {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
+  top: var(--space-md);
+  right: var(--space-md);
   background: var(--primary-50);
   border: 1px solid var(--primary-200);
-  width: 2.5rem;
-  height: 2.5rem;
+  width: var(--space-2xl);
+  height: var(--space-2xl);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 1.2rem;
+  font-size: var(--text-lg);
   color: var(--primary-600);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-normal);
   z-index: 1;
-  box-shadow: 0 2px 8px rgba(125, 108, 192, 0.08);
+  box-shadow: var(--shadow-sm);
 }
 
 .modal-close:hover {
   background: var(--primary-100);
   color: var(--primary-800);
   transform: scale(1.1) rotate(90deg);
-  box-shadow: 0 4px 12px rgba(125, 108, 192, 0.15);
+  box-shadow: var(--shadow-md);
 }
 
 @keyframes modalEnter {
@@ -125,7 +125,7 @@ onUnmounted(() => {
 /* 响应式设计 */
 @media (max-width: 768px) {
   .modal-overlay {
-    padding: 0.5rem;
+    padding: var(--space-sm);
   }
   .modal-content {
     width: auto;
@@ -134,11 +134,11 @@ onUnmounted(() => {
   }
 
   .modal-close {
-    top: 0.5rem;
-    right: 0.5rem;
-    width: 2rem;
-    height: 2rem;
-    font-size: 1rem;
+    top: var(--space-sm);
+    right: var(--space-sm);
+    width: var(--space-xl);
+    height: var(--space-xl);
+    font-size: var(--text-base);
   }
 }
 </style>

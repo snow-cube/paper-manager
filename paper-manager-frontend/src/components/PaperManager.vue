@@ -246,7 +246,7 @@ defineExpose({
 }
 
 .sidebar-header {
-  padding: 1rem 1.5rem;
+  padding: var(--space-md) var(--space-lg);
   border-bottom: 1px solid var(--color-border);
   background: var(--color-bg-soft);
 }
@@ -254,7 +254,7 @@ defineExpose({
 .sidebar-header h3 {
   margin: 0;
   color: var(--color-text);
-  font-size: 1rem;
+  font-size: var(--text-base);
   font-weight: 600;
 }
 
@@ -266,12 +266,12 @@ defineExpose({
 }
 
 .content-header {
-  padding: 1.5rem;
+  padding: var(--space-lg);
   border-bottom: 1px solid var(--color-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 1rem;
+  gap: var(--space-md);
 }
 
 .search-bar {
@@ -282,12 +282,12 @@ defineExpose({
 
 .search-input {
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: var(--space-md) var(--space-md);
   padding-right: 2.5rem;
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius);
-  font-size: 0.9rem;
-  transition: all 0.2s;
+  font-size: var(--text-sm);
+  transition: all var(--transition-normal);
 }
 
 .search-input:focus {
@@ -298,7 +298,7 @@ defineExpose({
 
 .search-icon {
   position: absolute;
-  right: 0.75rem;
+  right: var(--space-md);
   top: 50%;
   transform: translateY(-50%);
   color: var(--color-text-soft);
@@ -313,9 +313,9 @@ defineExpose({
   border: none;
   color: var(--color-text-soft);
   cursor: pointer;
-  padding: 0.25rem;
+  padding: var(--space-xs);
   border-radius: 50%;
-  transition: all 0.2s;
+  transition: all var(--transition-normal);
 }
 
 .clear-search-btn:hover {
@@ -325,7 +325,7 @@ defineExpose({
 
 .papers-container {
   min-height: 400px;
-  padding: 1.5rem;
+  padding: var(--space-lg);
 }
 
 .loading-state {
@@ -333,7 +333,7 @@ defineExpose({
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 4rem 2rem;
+  padding: 4rem var(--space-xl);
   text-align: center;
 }
 
@@ -344,7 +344,7 @@ defineExpose({
   border-top: 3px solid var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-md);
 }
 
 @keyframes spin {
@@ -355,25 +355,25 @@ defineExpose({
 .error-state,
 .empty-state {
   text-align: center;
-  padding: 4rem 2rem;
+  padding: 4rem var(--space-2xl);
 }
 
 .error-icon,
 .empty-icon {
   font-size: 4rem;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-md);
 }
 
 .error-state h3,
 .empty-state h3 {
   color: var(--color-text);
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 var(--space-sm) 0;
 }
 
 .error-state p,
 .empty-state p {
   color: var(--color-text-soft);
-  margin: 0 0 2rem 0;
+  margin: 0 0 var(--space-2xl) 0;
 }
 
 .papers-grid {
@@ -415,43 +415,41 @@ defineExpose({
 
 .no-team-warning {
   text-align: center;
-  padding: 4rem 2rem;
+  padding: 4rem var(--space-2xl);
   background: var(--white);
   border-radius: var(--border-radius);
   box-shadow: var(--shadow-sm);
-  margin: 2rem 0;
+  margin: var(--space-2xl) 0;
 }
 
 .warning-icon {
   font-size: 4rem;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-md);
 }
 
 .no-team-warning h3 {
   color: var(--color-text);
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 var(--space-sm) 0;
 }
 
 .no-team-warning p {
   color: var(--color-text-soft);
-  margin: 0 0 2rem 0;
+  margin: 0 0 var(--space-2xl) 0;
 }
 
-@media (max-width: 768px) {
-  .content-layout {
+@media (max-width: 768px) {  .content-layout {
     grid-template-columns: 1fr;
-    gap: 1rem;
+    gap: var(--space-md);
   }
 
   .sidebar {
     position: static;
     max-height: none;
   }
-
   .content-header {
     flex-direction: column;
     align-items: stretch;
-    gap: 1rem;
+    gap: var(--space-md);
   }
 
   .search-bar {

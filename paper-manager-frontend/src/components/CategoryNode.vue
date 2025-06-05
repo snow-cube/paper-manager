@@ -106,12 +106,12 @@ const toggleExpanded = () => {
 .node-content {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-normal);
   border-radius: var(--border-radius);
-  margin: 0.125rem 0;
+  margin: var(--space-xs) 0;
   position: relative;
   overflow: visible; /* 允许操作按钮溢出容器 */
 }
@@ -136,11 +136,11 @@ const toggleExpanded = () => {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0.125rem;
+  padding: var(--space-xs);
   color: var(--color-text-light);
   transition: transform 0.2s ease;
-  width: 1rem;
-  height: 1rem;
+  width: var(--space-md);
+  height: var(--space-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -152,7 +152,7 @@ const toggleExpanded = () => {
 }
 
 .node-toggle span {
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   transition: transform 0.2s ease;
 }
 
@@ -161,19 +161,19 @@ const toggleExpanded = () => {
 }
 
 .node-spacer {
-  width: 1rem;
-  height: 1rem;
+  width: var(--space-md);
+  height: var(--space-md);
 }
 
 .node-icon {
-  font-size: 0.875rem;
-  width: 1rem;
+  font-size: var(--text-sm);
+  width: var(--space-md);
   text-align: center;
 }
 
 .node-label {
   flex: 1;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   font-weight: 500;
   color: var(--color-text);
   text-overflow: ellipsis;
@@ -188,13 +188,13 @@ const toggleExpanded = () => {
 }
 
 .node-count {
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   background: var(--color-background-mute);
   color: var(--color-text-light);
-  padding: 0.125rem 0.375rem;
+  padding: var(--space-xs) var(--space-sm);
   border-radius: 50px;
   font-weight: 500;
-  min-width: 1.5rem;
+  min-width: var(--space-lg);
   text-align: center;
   margin-left: auto; /* 推到最右侧 */
   z-index: 5; /* 确保在悬停时仍然可见，但低于操作按钮 */
@@ -208,17 +208,17 @@ const toggleExpanded = () => {
 
 .node-actions {
   display: flex;
-  gap: 0.25rem;
+  gap: var(--space-xs);
   opacity: 0;
   visibility: hidden;
-  transition: all 0.2s ease;
+  transition: all var(--transition-normal);
   position: absolute;
   right: 2.5rem; /* 更靠右的位置，靠近论文数量但不重叠 */
   background: rgba(255, 255, 255, 0.95); /* 半透明背景 */
-  padding: 0.125rem;
+  padding: var(--space-xs);
   border-radius: var(--border-radius);
   z-index: 10;
-  box-shadow: 0 2px 8px rgba(125, 108, 192, 0.12);
+  box-shadow: var(--shadow-sm);
   transform: translateX(10px); /* 初始状态稍微偏右 */
 }
 
@@ -226,29 +226,29 @@ const toggleExpanded = () => {
   background: var(--white);
   border: none;
   cursor: pointer;
-  padding: 0.25rem;
+  padding: var(--space-xs);
   border-radius: var(--border-radius);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 2px rgba(125, 108, 192, 0.08);
+  width: var(--space-lg);
+  height: var(--space-lg);
+  transition: all var(--transition-normal);
+  box-shadow: var(--shadow-sm);
 }
 
 .action-btn.btn-outline-purple {
   background: var(--white);
   color: var(--primary-700);
   border: 1px solid var(--primary-600);
-  box-shadow: 0 1px 3px rgba(125, 108, 192, 0.08);
+  box-shadow: var(--shadow-sm);
 }
 
 .action-btn.btn-outline-purple:hover {
   background: var(--primary-50);
   color: var(--primary-800);
   border-color: var(--primary-700);
-  box-shadow: 0 2px 5px rgba(125, 108, 192, 0.12);
+  box-shadow: var(--shadow-hover);
 }
 
 .action-btn:hover {
@@ -261,13 +261,13 @@ const toggleExpanded = () => {
 }
 
 .action-btn span {
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
 }
 
 .node-children {
-  margin-left: 0.5rem;
+  margin-left: var(--space-sm);
   border-left: 1px solid var(--color-border);
-  padding-left: 0.5rem;
+  padding-left: var(--space-sm);
 }
 
 /* 深层级的缩进样式 */
@@ -278,9 +278,9 @@ const toggleExpanded = () => {
 .node-content[style*="padding-left"]::before {
   content: "";
   position: absolute;
-  left: calc(var(--level, 0) * 1.5rem + 0.375rem);
+  left: calc(var(--level, 0) * var(--space-lg) + var(--space-sm));
   top: 50%;
-  width: 0.75rem;
+  width: var(--space-md);
   height: 1px;
   background: var(--color-border);
 }

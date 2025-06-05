@@ -216,35 +216,37 @@ const handleDownload = async () => {
 
 <style scoped>
 .paper-card {
+  /* 使用卡片变体模板 */
   background: var(--white);
   border: 1px solid var(--primary-200);
-  border-radius: var(--border-radius-lg);
+  border-radius: var(--card-border-radius);
   overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-bounce);
   position: relative;
-  box-shadow: 0 4px 6px rgba(125, 108, 192, 0.04);
+  box-shadow: var(--shadow-card);
 }
 
 .paper-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 10px 20px rgba(125, 108, 192, 0.12);
+  box-shadow: var(--shadow-hover);
   border-color: var(--primary-300);
 }
 
 .paper-header {
-  padding: 1rem 1.5rem 0.5rem;
+  padding: var(--space-md) var(--space-lg) var(--space-sm);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
 }
 
 .paper-type-badge {
+  /* 使用徽章基础模板 */
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.3rem 0.8rem;
+  gap: var(--space-xs);
+  padding: var(--space-xs) 0.8rem;
   border-radius: 20px;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   font-weight: 600;
   text-transform: uppercase;
 }
@@ -275,9 +277,9 @@ const handleDownload = async () => {
 
 .paper-actions {
   display: flex;
-  gap: 0.25rem;
+  gap: var(--space-xs);
   opacity: 0;
-  transition: opacity 0.2s;
+  transition: opacity var(--transition-normal);
 }
 
 .paper-card:hover .paper-actions {
@@ -285,24 +287,25 @@ const handleDownload = async () => {
 }
 
 .action-btn {
+  /* 使用操作按钮基础模板 */
   background: var(--white);
   border: 1px solid var(--primary-200);
   border-radius: 6px;
-  padding: 0.5rem;
+  padding: var(--space-sm);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-normal);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.9rem;
   min-width: 32px;
   height: 32px;
-  box-shadow: 0 2px 4px rgba(125, 108, 192, 0.08);
+  box-shadow: var(--shadow-card);
 }
 
 .action-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 3px 6px rgba(125, 108, 192, 0.12);
+  box-shadow: var(--shadow-hover);
 }
 
 .action-btn:disabled {
@@ -312,7 +315,8 @@ const handleDownload = async () => {
 }
 
 .view-btn:hover {
-  background: rgba(125, 108, 192, 0.08);
+  background: var(--primary-100);
+  color: var(--primary-700);
   border-color: var(--primary-300);
 }
 
@@ -323,48 +327,48 @@ const handleDownload = async () => {
 }
 
 .edit-btn:hover {
-  background: rgba(125, 108, 192, 0.06);
+  background: var(--primary-100);
+  color: var(--primary-700);
   border-color: var(--primary-300);
 }
 
 .delete-btn:hover {
-  background: rgba(220, 53, 69, 0.08);
+  background: var(--error-50);
+  color: var(--error-600);
   border-color: #dc3545;
-  color: #dc3545;
 }
 
 .paper-content {
-  padding: 0 1.5rem 1rem;
+  padding: 0 var(--space-lg) var(--space-md);
   cursor: pointer;
 }
 
 .paper-title {
-  font-size: 1.1rem;
+  font-size: var(--text-lg);
   font-weight: 600;
   color: var(--color-text);
-  margin: 0 0 1rem 0;
+  margin: 0 0 var(--space-md) 0;
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   line-clamp: 2;
   overflow: hidden;
-  /* Fallback for browsers that don't support -webkit-line-clamp */
-  max-height: calc(1.4em * 2); /* line-height * number of lines */
+  max-height: calc(1.4em * 2);
 }
 
 .paper-meta {
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-md);
 }
 
 .meta-item {
   display: flex;
   margin-bottom: 0.4rem;
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
 }
 
 .meta-label {
-  color: var(--color-text-soft);
+  color: var(--color-text-light);
   min-width: 60px;
   font-weight: 500;
 }
@@ -385,15 +389,15 @@ const handleDownload = async () => {
 
 .meta-value.doi {
   font-family: monospace;
-  font-size: 0.8rem;
-  color: var(--color-text-soft);
+  font-size: var(--text-xs);
+  color: var(--color-text-light);
 }
 
 .paper-abstract {
-  font-size: 0.85rem;
-  color: var(--color-text-soft);
+  font-size: var(--text-sm);
+  color: var(--color-text-light);
   line-height: 1.5;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-md);
 }
 
 .read-more {
@@ -404,30 +408,31 @@ const handleDownload = async () => {
 .paper-keywords {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
 }
 
 .keyword-tag {
+  /* 使用主要徽章变体 */
   background: var(--primary-100);
   color: var(--primary-700);
-  padding: 0.25rem 0.7rem;
+  padding: var(--space-xs) 0.7rem;
   border-radius: 12px;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   font-weight: 500;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal);
   border: 1px solid var(--primary-200);
-  box-shadow: 0 2px 4px rgba(125, 108, 192, 0.08);
+  box-shadow: var(--shadow-card);
 }
 
 .keyword-tag:hover {
   background: var(--primary-200);
   transform: translateY(-2px);
-  box-shadow: 0 3px 6px rgba(125, 108, 192, 0.12);
+  box-shadow: var(--shadow-hover);
 }
 
 .paper-footer {
-  padding: 0.85rem 1.5rem;
+  padding: 0.85rem var(--space-lg);
   background: linear-gradient(
     to right,
     var(--primary-50),
@@ -438,7 +443,7 @@ const handleDownload = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.8rem;
+  font-size: var(--text-xs);
   backdrop-filter: blur(5px);
 }
 
@@ -453,27 +458,27 @@ const handleDownload = async () => {
 
 .category-icon,
 .date-icon {
-  font-size: 1rem;
+  font-size: var(--text-base);
   color: var(--primary-500);
 }
 
 @media (max-width: 480px) {
   .paper-card {
-    margin-bottom: 1rem;
+    margin-bottom: var(--space-md);
   }
 
   .paper-header {
-    padding: 1rem 1rem 0.5rem;
+    padding: var(--space-md) var(--space-md) var(--space-sm);
   }
 
   .paper-content {
-    padding: 0 1rem 1rem;
+    padding: 0 var(--space-md) var(--space-md);
   }
 
   .paper-footer {
-    padding: 0.75rem 1rem;
+    padding: 0.75rem var(--space-md);
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--space-sm);
     align-items: flex-start;
   }
 

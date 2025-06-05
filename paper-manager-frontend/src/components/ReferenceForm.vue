@@ -273,44 +273,43 @@ onMounted(() => {
 
 <style scoped>
 .reference-form {
-  padding: 2rem;
+  padding: var(--space-xl);
   max-width: 600px;
 }
 
 .form-header {
-  margin-bottom: 2rem;
+  margin-bottom: var(--space-xl);
 }
 
 .form-header h3 {
-  color: #333;
+  color: var(--color-heading);
   margin: 0;
 }
 
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-lg);
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 0.5rem;
-  color: #333;
+  margin-bottom: var(--space-sm);
+  color: var(--color-heading);
   font-weight: 500;
 }
 
-.form-control {
-  width: 100%;
-  padding: 0.75rem;
-  border: 2px solid #e1e5e9;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: border-color 0.3s ease;
+.form-control {  width: 100%;
+  padding: var(--space-md);
+  border: 2px solid var(--color-border);
+  border-radius: var(--border-radius);
+  font-size: var(--text-base);
+  transition: border-color var(--transition-normal);
   font-family: inherit;
 }
 
 .form-control:focus {
   outline: none;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus);
 }
 
 select.form-control {
@@ -318,62 +317,62 @@ select.form-control {
 }
 
 input[type="file"].form-control {
-  padding: 0.5rem;
+  padding: var(--space-sm);
 }
 
 .form-help {
   display: block;
-  margin-top: 0.25rem;
-  font-size: 0.8rem;
-  color: #6b7280;
+  margin-top: var(--space-xs);
+  font-size: var(--text-xs);
+  color: var(--color-text-light);
 }
 
 .error-message {
-  background: #fef2f2;
-  color: #dc2626;
-  padding: 0.75rem;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
+  background: var(--error-50);
+  color: var(--error-600);
+  padding: var(--space-md);
+  border-radius: var(--border-radius);
+  margin-bottom: var(--space-md);
+  font-size: var(--text-sm);
 }
 
 .form-actions {
   display: flex;
-  gap: 1rem;
+  gap: var(--space-md);
   justify-content: flex-end;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-border);
 }
 
 .btn {
-  padding: 0.75rem 1.5rem;
+  padding: var(--space-md) var(--space-lg);
   border: none;
-  border-radius: 8px;
-  font-size: 1rem;
+  border-radius: var(--border-radius);
+    font-size: var(--text-base);
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-sm);
 }
 
 .btn-secondary {
-  background: #6b7280;
-  color: white;
+  background: var(--gray-600);
+  color: var(--white);
 }
 
 .btn-secondary:hover {
-  background: #5b6470;
+  background: var(--gray-700);
 }
 
 .btn-primary {
-  background: #6366f1;
-  color: white;
+  background: var(--color-primary);
+  color: var(--white);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #5855eb;
+  background: var(--primary-600);
 }
 
 .btn:disabled {
@@ -382,8 +381,8 @@ input[type="file"].form-control {
 }
 
 .loading-spinner {
-  width: 16px;
-  height: 16px;
+  width: var(--space-sm);
+  height: var(--space-sm);
   border: 2px solid transparent;
   border-top: 2px solid currentColor;
   border-radius: 50%;

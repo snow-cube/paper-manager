@@ -41,8 +41,8 @@ const { toasts, removeToast } = useToast()
 <style scoped>
 .toast-container {
   position: fixed;
-  top: 1rem;
-  right: 1rem;
+  top: var(--space-md);
+  right: var(--space-md);
   z-index: 1000;
   pointer-events: none;
 }
@@ -50,16 +50,16 @@ const { toasts, removeToast } = useToast()
 .toast {
   display: flex;
   align-items: flex-start;
-  gap: 0.75rem;
+  gap: var(--space-md);
   max-width: 400px;
-  margin-bottom: 0.75rem;
-  padding: 1rem;
+  margin-bottom: var(--space-md);
+  padding: var(--space-md);
   border-radius: var(--border-radius);
   box-shadow: var(--shadow-lg);
   backdrop-filter: blur(8px);
   pointer-events: auto;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal);
 }
 
 .toast:hover {
@@ -92,9 +92,9 @@ const { toasts, removeToast } = useToast()
 }
 
 .toast-icon {
-  font-size: 1.25rem;
+  font-size: var(--text-xl);
   flex-shrink: 0;
-  margin-top: 0.125rem;
+  margin-top: var(--space-xs);
 }
 
 .toast-content {
@@ -103,14 +103,14 @@ const { toasts, removeToast } = useToast()
 }
 
 .toast-title {
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   font-weight: 600;
-  margin: 0 0 0.25rem 0;
+  margin: 0 0 var(--space-xs) 0;
   color: inherit;
 }
 
 .toast-message {
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   margin: 0;
   line-height: 1.4;
   color: inherit;
@@ -122,15 +122,15 @@ const { toasts, removeToast } = useToast()
   border: none;
   color: inherit;
   cursor: pointer;
-  font-size: 1.25rem;
+  font-size: var(--text-xl);
   padding: 0;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: var(--space-lg);
+  height: var(--space-lg);
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  transition: background-color 0.2s ease;
+  transition: background-color var(--transition-normal);
   flex-shrink: 0;
   opacity: 0.8;
 }
@@ -143,7 +143,7 @@ const { toasts, removeToast } = useToast()
 /* 动画效果 */
 .toast-enter-active,
 .toast-leave-active {
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal);
 }
 
 .toast-enter-from {
@@ -157,20 +157,20 @@ const { toasts, removeToast } = useToast()
 }
 
 .toast-move {
-  transition: transform 0.3s ease;
+  transition: transform var(--transition-normal);
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
   .toast-container {
-    top: 0.5rem;
-    right: 0.5rem;
-    left: 0.5rem;
+    top: var(--space-sm);
+    right: var(--space-sm);
+    left: var(--space-sm);
   }
 
   .toast {
     max-width: none;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--space-sm);
   }
 }
 </style>

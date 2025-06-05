@@ -185,35 +185,35 @@ const handleLogin = async () => {
 }
 
 .form-header h2 {
-  color: #1a1a1a;
-  margin-bottom: 0.25rem;
-  font-size: 1.75rem;
+  color: var(--color-heading);
+  margin-bottom: var(--space-xs);
+  font-size: var(--text-xl);
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
 .form-header p {
-  color: #6b7280;
-  font-size: 0.875rem;
+  color: var(--color-text-light);
+  font-size: var(--text-sm);
   font-weight: 400;
 }
 
 .login-form-content {
-  margin-bottom: 1.25rem;
+  margin-bottom: var(--space-lg);
 }
 
 .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-md);
 }
 
 .form-group label {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-  color: #374151;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  color: var(--color-heading);
   font-weight: 600;
-  font-size: 0.8rem;
+  font-size: var(--text-xs);
 }
 
 .label-icon {
@@ -227,24 +227,24 @@ const handleLogin = async () => {
 .form-control {
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background: #ffffff;
+  border: 2px solid var(--color-border);
+  border-radius: var(--border-radius);
+  font-size: var(--text-sm);
+  transition: all var(--transition-bounce);
+  background: var(--white);
   position: relative;
   z-index: 1;
 }
 
 .form-control:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus);
   transform: translateY(-2px);
 }
 
 .form-control.error {
-  border-color: #ef4444;
+  border-color: var(--error-500);
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
 }
 

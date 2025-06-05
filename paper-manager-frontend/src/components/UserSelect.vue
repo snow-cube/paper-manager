@@ -65,8 +65,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 0.5rem;
-  padding: 0.5rem;
+  margin-top: var(--space-sm);
+  padding: var(--space-sm);
   background: var(--error-50);
   border: 1px solid var(--error-200);
   border-radius: var(--border-radius);
@@ -74,7 +74,7 @@ onMounted(() => {
 
 .error-text {
   color: var(--error-600);
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
 }
 
 .retry-btn {
@@ -82,10 +82,10 @@ onMounted(() => {
   border: none;
   color: var(--error-600);
   cursor: pointer;
-  font-size: 0.75rem;
-  padding: 0.25rem 0.5rem;
+  font-size: var(--text-xs);
+  padding: var(--space-xs) var(--space-sm);
   border-radius: var(--border-radius);
-  transition: background-color 0.2s ease;
+  transition: background-color var(--transition-normal);
 }
 
 .retry-btn:hover {

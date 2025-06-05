@@ -85,17 +85,17 @@ onUnmounted(() => {
 <style scoped>
 .toast {
   position: fixed;
-  top: 2rem;
-  right: 2rem;
+  top: var(--space-xl);
+  right: var(--space-xl);
   max-width: 400px;
   min-width: 300px;
-  padding: 1.25rem;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(125, 108, 192, 0.12);
+  padding: var(--space-lg);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-lg);
   z-index: 1000;
   display: flex;
   align-items: flex-start;
-  gap: 0.9rem;
+  gap: var(--space-md);
   cursor: pointer;
   transform: translateX(100%);
   opacity: 0;
@@ -134,9 +134,9 @@ onUnmounted(() => {
 }
 
 .toast-icon {
-  font-size: 1.25rem;
+  font-size: var(--text-xl);
   flex-shrink: 0;
-  margin-top: 0.125rem;
+  margin-top: var(--space-xs);
 }
 
 .toast-content {
@@ -145,14 +145,14 @@ onUnmounted(() => {
 }
 
 .toast-title {
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   font-weight: 600;
-  margin: 0 0 0.25rem 0;
+  margin: 0 0 var(--space-xs) 0;
   line-height: 1.4;
 }
 
 .toast-message {
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   margin: 0;
   line-height: 1.4;
   word-wrap: break-word;
@@ -161,21 +161,21 @@ onUnmounted(() => {
 .toast-close {
   background: rgba(255, 255, 255, 0.5);
   border: 1px solid rgba(125, 108, 192, 0.08);
-  font-size: 1.25rem;
+  font-size: var(--text-xl);
   font-weight: bold;
   cursor: pointer;
   color: inherit;
   opacity: 0.7;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal);
   padding: 0;
-  width: 24px;
-  height: 24px;
+  width: var(--space-lg);
+  height: var(--space-lg);
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
   flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(125, 108, 192, 0.08);
+  box-shadow: var(--shadow-sm);
 }
 
 .toast-close:hover {
@@ -186,9 +186,9 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
   .toast {
-    top: 1rem;
-    right: 1rem;
-    left: 1rem;
+    top: var(--space-md);
+    right: var(--space-md);
+    left: var(--space-md);
     max-width: none;
     min-width: auto;
   }

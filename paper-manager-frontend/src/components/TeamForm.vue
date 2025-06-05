@@ -127,43 +127,43 @@ const handleSubmit = async () => {
 
 <style scoped>
 .team-form {
-  padding: 1.5rem;
+  padding: var(--space-lg);
 }
 
 .form-header {
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-lg);
 }
 
 .form-header h3 {
-  color: #333;
+  color: var(--color-heading);
   margin: 0;
 }
 
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-lg);
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 0.5rem;
-  color: #333;
+  margin-bottom: var(--space-sm);
+  color: var(--color-heading);
   font-weight: 500;
 }
 
 .form-control {
   width: 100%;
   padding: 0.75rem;
-  border: 2px solid #e1e5e9;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: border-color 0.3s ease;
+  border: 2px solid var(--color-border);
+  border-radius: var(--border-radius);
+  font-size: var(--text-base);
+  transition: border-color var(--transition-normal);
   font-family: inherit;
 }
 
 .form-control:focus {
   outline: none;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus);
 }
 
 textarea.form-control {
@@ -172,45 +172,45 @@ textarea.form-control {
 }
 
 .error-message {
-  background: #fef2f2;
-  color: #dc2626;
+  background: var(--error-50);
+  color: var(--error-600);
   padding: 0.75rem;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
+  border-radius: var(--border-radius);
+  margin-bottom: var(--space-md);
+  font-size: var(--text-sm);
 }
 
 .form-actions {
   display: flex;
-  gap: 1rem;
+  gap: var(--space-md);
   justify-content: flex-end;
 }
 
 .btn {
   padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 8px;
-  font-size: 1rem;
+  border-radius: var(--border-radius);
+  font-size: var(--text-base);
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-sm);
 }
 
 .btn-secondary {
-  background: #6b7280;
-  color: white;
+  background: var(--gray-600);
+  color: var(--white);
 }
 
 .btn-secondary:hover {
-  background: #5b6470;
+  background: var(--gray-700);
 }
 
 .btn-primary {
-  background: #6366f1;
-  color: white;
+  background: var(--color-primary);
+  color: var(--white);
 }
 
 .btn-primary:hover:not(:disabled) {

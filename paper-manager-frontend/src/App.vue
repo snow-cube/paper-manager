@@ -392,8 +392,8 @@ onUnmounted(() => {
 .user-loading {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 0.875rem;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-lg);
 }
 
 .loading-avatar {
@@ -408,11 +408,11 @@ onUnmounted(() => {
 .loading-text {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-xs);
 }
 
 .loading-line {
-  height: 0.75rem;
+  height: var(--space-md);
   background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
   background-size: 200% 100%;
   border-radius: 4px;
@@ -422,7 +422,7 @@ onUnmounted(() => {
 
 .loading-line.short {
   width: 60px;
-  height: 0.625rem;
+  height: var(--space-sm);
 }
 
 @keyframes shimmer {
@@ -444,14 +444,14 @@ onUnmounted(() => {
 .user-btn {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 0.875rem;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-lg);
   background: linear-gradient(135deg, var(--white), #f8fafc);
   border: 1px solid rgba(226, 232, 240, 0.8);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   font-weight: 500;
   color: var(--color-text);
   min-width: 0;
@@ -515,7 +515,7 @@ onUnmounted(() => {
 .user-info .user-name {
   font-weight: 600;
   color: var(--color-heading);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -523,7 +523,7 @@ onUnmounted(() => {
 }
 
 .user-info .user-role {
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   color: var(--color-text-light);
   font-weight: 400;
   overflow: hidden;
@@ -559,8 +559,8 @@ onUnmounted(() => {
 .user-dropdown-header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
+  gap: var(--space-md);
+  padding: var(--space-md);
   background: linear-gradient(135deg, var(--primary-50), var(--primary-100));
   border-bottom: 1px solid var(--primary-200);
   position: relative;
@@ -617,27 +617,27 @@ onUnmounted(() => {
 .user-display-name {
   font-weight: 600;
   color: var(--color-heading);
-  font-size: 0.95rem;
-  margin-bottom: 0.25rem;
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-xs);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .user-email {
-  font-size: 0.8rem;
+  font-size: var(--text-xs);
   color: var(--color-text-light);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--space-xs);
 }
 
 .user-status {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
-  font-size: 0.75rem;
+  gap: var(--space-sm);
+  font-size: var(--text-xs);
   color: var(--primary-600);
   font-weight: 500;
 }
@@ -651,20 +651,20 @@ onUnmounted(() => {
 }
 
 .user-dropdown-section {
-  padding: 0.5rem 0;
+  padding: var(--space-sm) 0;
 }
 
 .user-dropdown-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--space-md);
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: var(--space-md) var(--space-md);
   border: none;
   background: none;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   font-weight: 500;
   color: var(--color-text);
   text-align: left;
@@ -678,7 +678,7 @@ onUnmounted(() => {
 
 .user-dropdown-item.logout-item {
   color: #dc2626;
-  margin-top: 0.25rem;
+  margin-top: var(--space-xs);
 }
 
 .user-dropdown-item.logout-item:hover {
@@ -699,15 +699,15 @@ onUnmounted(() => {
 .dropdown-divider {
   height: 1px;
   background: var(--color-border);
-  margin: 0.5rem 0;
+  margin: var(--space-sm) 0;
 }
 
 .logout-shortcut {
   margin-left: auto;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   color: var(--color-text-light);
   background: var(--color-background-mute);
-  padding: 0.125rem 0.375rem;
+  padding: var(--space-xs) var(--space-sm);
   border-radius: 4px;
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
 }
@@ -733,15 +733,15 @@ onUnmounted(() => {
 .login-btn {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 0.75rem;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--border-radius);
   font-weight: 500;
   transition: all 0.2s ease;
   text-decoration: none;
   border: none;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   flex-shrink: 0;
   background: var(--primary-500);
   color: var(--white);
@@ -775,14 +775,14 @@ onUnmounted(() => {
 .footer {
   background: var(--color-background-mute);
   border-top: 1px solid var(--color-border);
-  padding: 1.5rem 0;
-  margin-top: 2rem;
+  padding: var(--space-lg) 0;
+  margin-top: var(--space-2xl);
 }
 
 .footer p {
   text-align: center;
   color: var(--color-text-light);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   margin: 0;
 }
 
@@ -866,14 +866,14 @@ onUnmounted(() => {
 @media (max-width: 768px) {
   .header-content {
     flex-direction: column;
-    gap: 0.75rem;
-    padding: 0.75rem 0;
+    gap: var(--space-md);
+    padding: var(--space-md) 0;
   }
 
   .left-section {
     width: 100%;
     justify-content: space-between;
-    gap: 1rem;
+    gap: var(--space-md);
   }
 
   .logo {
@@ -881,11 +881,11 @@ onUnmounted(() => {
   }
 
   .logo-text {
-    font-size: 1.25rem;
+    font-size: var(--text-xl);
   }
 
   .nav {
-    gap: 0.5rem;
+    gap: var(--space-sm);
     flex-wrap: wrap;
     justify-content: center;
     order: 2;
@@ -897,18 +897,17 @@ onUnmounted(() => {
   }
 
   .nav-link {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.875rem;
-    gap: 0.4rem;
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--text-sm);
+    gap: var(--space-sm);
   }
 
   .right-section {
     order: 1;
     width: 100%;
     justify-content: center;
-    gap: 1rem;
+    gap: var(--space-md);
   }
-
   .team-wrapper {
     min-width: auto;
     max-width: 200px;
@@ -927,8 +926,8 @@ onUnmounted(() => {
   }
 
   .login-btn {
-    padding: 0.6rem 1rem;
-    font-size: 0.9rem;
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--text-sm);
     min-width: 120px;
     justify-content: center;
   }
@@ -942,21 +941,21 @@ onUnmounted(() => {
 
 @media (max-width: 480px) {
   .nav {
-    gap: 0.25rem;
+    gap: var(--space-xs);
   }
 
   .nav-link {
-    padding: 0.4rem 0.6rem;
-    font-size: 0.8rem;
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--text-xs);
   }
 
   .nav-icon {
-    font-size: 0.9rem;
+    font-size: var(--text-sm);
   }
 
   .right-section {
     flex-direction: column;
-    gap: 0.75rem;
+    gap: var(--space-md);
   }
 
   .team-wrapper {

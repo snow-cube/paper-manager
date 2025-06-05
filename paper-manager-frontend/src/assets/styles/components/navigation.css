@@ -1,0 +1,116 @@
+/* 导航和标签页组件样式 */
+
+/* 导航容器 */
+.nav-container {
+  background: var(--white);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
+}
+
+.nav-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--space-lg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-heading);
+  text-decoration: none;
+}
+
+.nav-menu {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.nav-link {
+  color: var(--color-text);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color var(--transition-fast);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--border-radius);
+}
+
+.nav-link:hover {
+  color: var(--color-primary);
+  background: var(--primary-50);
+}
+
+.nav-link.active {
+  color: var(--color-primary);
+  background: var(--primary-50);
+}
+
+/* 标签页组件 */
+.tabs-container {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tab-button {
+  padding: var(--space-md) var(--space-lg);
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: var(--text-base);
+  color: var(--color-text-light);
+  transition: all var(--transition-normal);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  border-bottom: 3px solid transparent;
+}
+
+.tab-button:hover {
+  background: var(--color-background-soft);
+  color: var(--color-heading);
+}
+
+.tab-button.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  background: var(--color-background-soft);
+}
+
+.tab-content {
+  padding: var(--space-lg);
+  min-height: 400px;
+}
+
+/* 页面布局 */
+.page-container {
+  min-height: 100vh;
+  background: var(--color-background-soft);
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: var(--space-2xl);
+}
+
+.page-title {
+  font-size: var(--text-3xl);
+  color: var(--color-heading);
+  margin-bottom: var(--space-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+
+.page-description {
+  color: var(--color-text-light);
+  font-size: var(--text-lg);
+  margin: 0;
+}
