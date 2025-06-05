@@ -1,306 +1,184 @@
 <template>
-  <form @submit.prevent="handleSubmit" class="paper-form">
-    <div class="form-header">
+  <form @submit.prevent="handleSubmit" class="paper-form">    <div class="form-header">
       <h2 class="form-title">
         {{ isEdit ? "编辑论文" : "添加论文" }}
       </h2>
-    </div>
 
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label" for="paper_type">论文类型 *</label>
-        <select
-          id="paper_type"
-          v-model="form.paper_type"
-          class="form-select"
-          required
-          :disabled="isEdit"
-        >
-          <option value="">请选择论文类型</option>
-          <option value="literature">📚 文献（阅读的论文）</option>
-          <option value="published">🎓 发表论文（自己发表的）</option>
-        </select>
-        <small v-if="isEdit" class="form-hint">编辑时无法修改论文类型</small>
-      </div>
-    </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label" for="title">论文标题 *</label>
-        <input
-          id="title"
-          v-model="form.title"
-          class="form-input"
-          placeholder="请输入论文标题"
-          required
-        />
-      </div>
-    </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label" for="journal">期刊名称</label>
-        <input
-          id="journal"
-          v-model="form.journal"
-          class="form-input"
-          placeholder="请输入期刊名称"
-        />
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="year">发表年份</label>
-        <input
-          id="year"
-          v-model.number="form.year"
-          class="form-input"
-          type="number"
-          placeholder="2024"
-          min="1900"
-          max="2099"
-        />
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">作者 *</label>
-        <textarea
-          v-model="form.author_names"
-          class="form-textarea"
-          placeholder="请输入作者（用逗号分隔多个作者，例如：张三, 李四, 王五）"
-          rows="3"
-          required
-        ></textarea>
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="category">分类</label>
-        <select v-model="form.category_ids" class="form-select" multiple>
-          <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-            {{ cat.name }}
-          </option>
-        </select>
-        <small class="form-hint">按住Ctrl键可选择多个分类</small>
-      </div>
-    </div>
-
-    <!-- 发表论文的作者贡献信息 -->
-    <div v-if="form.paper_type === 'published'" class="form-section">
-      <h3 class="section-title">作者贡献信息</h3>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">通讯作者</label>
-          <input
-            v-model="form.corresponding_author_name"
-            class="form-input"
-            placeholder="请输入通讯作者姓名"
-          />
-          <small class="form-hint">通讯作者必须是上述作者列表中的一员</small>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">作者贡献比例</label>
-        <div class="contribution-list">
+      <!-- 表单进度指示器 -->
+      <div class="form-progress">
+        <div class="progress-bar">
           <div
-            v-for="(author, index) in authorList"
-            :key="index"
-            class="contribution-item"
-          >
-            <span class="author-name">{{ author }}</span>
-            <input
-              v-model.number="authorContributions[index]"
-              type="number"
-              class="contribution-input"
-              placeholder="0.0"
-              step="0.01"
-              min="0"
-              max="1"
-              @input="updateContributions"
-            />
-            <span class="contribution-percent">
-              ({{ ((authorContributions[index] || 0) * 100).toFixed(1) }}%)
-            </span>
-          </div>
+            class="progress-fill"
+            :style="{ width: formCompleteness + '%' }"
+            :class="{
+              'progress-low': formCompleteness < 50,
+              'progress-medium': formCompleteness >= 50 && formCompleteness < 80,
+              'progress-high': formCompleteness >= 80
+            }"
+          ></div>
         </div>
-        <div class="contribution-summary">
-          <span :class="{ 'contribution-error': totalContribution > 1 }">
-            总贡献比例: {{ (totalContribution * 100).toFixed(1) }}%
-          </span>
-          <small class="form-hint">
-            贡献比例总和应为100%（1.0）。如不填写，系统将平均分配。
-          </small>
-        </div>
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">关键词</label>
-        <input
-          v-model="form.keyword_names"
-          class="form-input"
-          placeholder="用逗号分隔多个关键词"
-        />
-      </div>
-    </div>
-
-    <!-- 发表论文额外字段 -->
-    <div v-if="form.paper_type === 'published'" class="form-section">
-      <h3 class="section-title">发表信息</h3>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label" for="volume">卷号</label>
-          <input
-            id="volume"
-            v-model="form.volume"
-            class="form-input"
-            placeholder="如：Vol. 12"
-          />
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="pages">页码</label>
-          <input
-            id="pages"
-            v-model="form.pages"
-            class="form-input"
-            placeholder="如：123-145"
-          />
-        </div>
+        <span class="progress-text">{{ formCompleteness }}% 完成</span>
       </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label" for="impact_factor">影响因子</label>
-          <input
-            id="impact_factor"
-            v-model.number="form.impact_factor"
-            class="form-input"
-            type="number"
-            step="0.001"
-            placeholder="如：3.421"
-          />
+      <!-- 验证状态摘要 -->
+      <div v-if="hasErrors && Object.keys(touched).length > 0" class="validation-summary">
+        <div class="validation-summary-header">
+          <span class="validation-icon">⚠️</span>
+          <span class="validation-text">表单有 {{ errorCount }} 个错误需要修正</span>
         </div>
-        <div class="form-group">
-          <label class="form-label" for="doi">DOI</label>
-          <input
-            id="doi"
-            v-model="form.doi"
-            class="form-input"
-            placeholder="如：10.1000/xyz123"
-          />
-        </div>
+        <ul class="validation-errors">
+          <li v-for="error in getAllErrors" :key="error" class="validation-error-item">
+            {{ error }}
+          </li>
+        </ul>
       </div>
-    </div>
-
-    <!-- 文献额外字段 -->
-    <div v-if="form.paper_type === 'literature'" class="form-section">
-      <h3 class="section-title">阅读信息</h3>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label" for="doi">DOI</label>
-          <input
-            id="doi"
-            v-model="form.doi"
-            class="form-input"
-            placeholder="如：10.1000/xyz123"
-          />
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="url">链接</label>
-          <input
-            id="url"
-            v-model="form.url"
-            class="form-input"
-            type="url"
-            placeholder="如：https://example.com/paper"
-          />
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label" for="notes">阅读笔记</label>
-          <textarea
-            id="notes"
-            v-model="form.notes"
-            class="form-textarea"
-            placeholder="记录您的阅读心得和笔记..."
-            rows="3"
-          ></textarea>
-        </div>
-      </div>
-    </div>
+    </div>    <!-- 论文类型选择 -->
+    <FormField
+      id="paper_type"
+      v-model="form.paper_type"
+      type="select"
+      label="论文类型"
+      required
+      :disabled="isEdit"
+      :error="getFieldError('paper_type')"
+      @blur="markTouched('paper_type')"
+      @change="validateFieldRealtime('paper_type', $event.target.value)"
+    >
+      <option value="">请选择论文类型</option>
+      <option value="literature">📚 文献（阅读的论文）</option>
+      <option value="published">🎓 发表论文（自己发表的）</option>
+    </FormField>
+    <small v-if="isEdit" class="form-hint">编辑时无法修改论文类型</small>    <!-- 基本信息 -->
+    <FormField
+      id="title"
+      v-model="form.title"
+      type="text"
+      label="论文标题"
+      placeholder="请输入论文标题"
+      required
+      :error="getFieldError('title')"
+      @blur="markTouched('title')"
+      @input="validateFieldRealtime('title', $event)"
+    />    <FormField
+      id="author_names"
+      v-model="form.author_names"
+      type="textarea"
+      label="作者"
+      placeholder="请输入作者（用逗号分隔多个作者，例如：张三, 李四, 王五）"
+      required
+      :rows="3"
+      :error="getFieldError('author_names')"
+      @blur="markTouched('author_names')"
+      @input="validateFieldRealtime('author_names', $event)"
+    />
 
     <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">摘要</label>
-        <textarea
-          v-model="form.abstract"
-          class="form-textarea"
-          placeholder="请输入论文摘要"
-          rows="4"
-        ></textarea>
-      </div>
-    </div>
+      <FormField
+        id="keyword_names"
+        v-model="form.keyword_names"
+        type="text"
+        :label="`关键词${form.paper_type === 'published' ? ' *' : ''}`"
+        placeholder="用逗号分隔多个关键词"
+        :required="form.paper_type === 'published'"
+        :error="getFieldError('keyword_names')"
+        @blur="markTouched('keyword_names')"
+        @input="validateFieldRealtime('keyword_names', $event)"
+      />
 
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">论文文件</label>
-        <div class="file-upload">
-          <input
-            type="file"
-            id="file-input"
-            class="file-input"
-            accept=".pdf,.doc,.docx"
-            @change="onFileChange"
-          />
-          <label for="file-input" class="file-label">
-            <span class="file-icon">📄</span>
-            <span class="file-text">
-              {{ file ? file.name : "选择文件或拖拽到此处" }}
-            </span>
-          </label>
-          <div v-if="file" class="file-info">
-            <span class="file-size">{{ formatFileSize(file.size) }}</span>
-            <button type="button" class="file-remove" @click="removeFile">
-              ×
-            </button>
-          </div>
-        </div>
-      </div>
+      <FormField
+        id="category_ids"
+        v-model="form.category_ids"
+        type="select"
+        label="分类"
+        :multiple="form.paper_type === 'published'"
+        @change="markTouched('category_ids')"
+      >
+        <option value="" v-if="form.paper_type === 'literature'">请选择分类</option>
+        <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+          {{ cat.name }}
+        </option>
+      </FormField>
     </div>
-
-    <div class="form-actions">
-      <button type="button" class="btn btn-secondary" @click="resetForm">
+    <small class="form-hint" v-if="form.paper_type === 'published'">按住Ctrl键可选择多个分类</small>    <!-- 发表论文专有字段 -->
+    <PublishedPaperFields
+      v-if="form.paper_type === 'published'"
+      v-model:journal="form.journal"
+      v-model:publication-date="form.publication_date"
+      v-model:doi="form.doi"
+      v-model:corresponding-author="form.corresponding_author_name"
+      :errors="{
+        journal: getFieldError('journal'),
+        publication_date: getFieldError('publication_date'),
+        doi: getFieldError('doi'),
+        corresponding_author_name: getFieldError('corresponding_author_name')
+      }"
+      @field-blur="markTouched"
+      @field-input="validateFieldRealtime"
+    />    <!-- 作者贡献比例 -->
+    <AuthorContributions
+      v-if="form.paper_type === 'published'"
+      :authors="authorList"
+      v-model="authorContributions"
+      :error="getFieldError('author_contributions')"
+    /><!-- 文献专有字段 -->
+    <LiteratureFields
+      v-if="form.paper_type === 'literature'"
+      v-model:doi="form.doi"
+      :errors="{ doi: getFieldError('doi') }"
+      @field-blur="markTouched"
+      @field-input="validateFieldRealtime"
+    /><!-- 摘要 -->
+    <FormField
+      id="abstract"
+      v-model="form.abstract"
+      type="textarea"
+      label="摘要"
+      placeholder="请输入论文摘要"
+      :rows="4"
+      :error="getFieldError('abstract')"
+      @blur="markTouched('abstract')"
+      @input="validateFieldRealtime('abstract', $event)"
+    />    <!-- 文件上传 -->
+    <FileUpload
+      v-model="file"
+      label="论文文件"
+      accept=".pdf,.doc,.docx"
+      :error="getFieldError('file')"
+      @change="validateFieldRealtime('file', $event)"
+    />    <div class="form-actions">
+      <button type="button" class="btn btn-secondary" @click="handleReset">
         重置
       </button>
-      <button
-        type="submit"
-        class="btn btn-primary"
-        :disabled="!form.title.trim() || submitting"
-      >
-        <span v-if="submitting" class="btn-spinner">⟳</span>
-        {{ submitting ? "提交中..." : "添加论文" }}
-      </button>
+      <div class="submit-section">
+        <button
+          type="submit"
+          class="btn btn-primary"
+          :disabled="!isValidForm || submitting || hasErrors"
+          :title="!isValidForm ? '请完成必填字段' : hasErrors ? '请先修正表单错误' : ''"
+        >
+          <span v-if="submitting" class="btn-spinner">⟳</span>
+          {{ submitting ? "提交中..." : (isEdit ? "更新论文" : "添加论文") }}
+        </button>
+        <div v-if="!isValidForm || hasErrors" class="submit-hint">
+          <span v-if="hasErrors">请先修正 {{ errorCount }} 个错误</span>
+          <span v-else-if="formCompleteness < 100">请完成必填字段 ({{ formCompleteness }}%)</span>
+        </div>
+      </div>
     </div>
   </form>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from "vue";
-import {
-  getCategories,
-  createPaper,
-  updatePaper,
-  createReference,
-  uploadReference,
-  updateReference,
-  uploadPaperFile,
-} from "../services/api";
-import { useToast } from "../composables/useToast";
-import { useTeam } from "../composables/useTeam";
-import { useAuth } from "../composables/useAuth";
+import { computed } from "vue";
+import FormField from "./forms/FormField.vue";
+import FileUpload from "./forms/FileUpload.vue";
+import AuthorContributions from "./forms/AuthorContributions.vue";
+import PublishedPaperFields from "./forms/PublishedPaperFields.vue";
+import LiteratureFields from "./forms/LiteratureFields.vue";
+import { usePaperFormInitialization } from "../composables/usePaperFormInitialization";
+import { usePaperFormValidation } from "../composables/usePaperFormValidation";
+import { usePaperFormData } from "../composables/usePaperFormData";
+import { useCategories } from "../composables/useCategories";
 
 const props = defineProps({
   paper: {
@@ -315,34 +193,20 @@ const props = defineProps({
 
 const emit = defineEmits(["saved", "cancel"]);
 
-const { showToast } = useToast();
-const { currentTeam } = useTeam();
-const { currentUser } = useAuth();
-
-const form = ref({
-  title: "",
-  journal: "",
-  year: new Date().getFullYear(),
-  author_names: "",
-  category_ids: [],
-  keyword_names: "",
-  abstract: "",
-  paper_type: props.paperType || "",
-  doi: "",
-  volume: "",
-  pages: "",
-  impact_factor: "",
-  notes: "",
-  url: "",
-  corresponding_author_name: "",
-});
-
-const categories = ref([]);
-const file = ref(null);
-const submitting = ref(false);
-const authorContributions = ref([]);
-
-const isEdit = computed(() => !!props.paper);
+// 使用组合式函数
+const { categories } = useCategories();
+const { form, file, authorContributions, isEdit, initializeForm, resetForm } = usePaperFormInitialization(props);
+const {
+  errors,
+  isValidForm,
+  validateForm,
+  validateFieldRealtime,
+  markTouched,
+  getFieldError,
+  hasFieldError,
+  resetValidation
+} = usePaperFormValidation(form);
+const { submitting, handleSubmit: submitForm } = usePaperFormData(form, file, authorContributions);
 
 // 计算属性：作者列表
 const authorList = computed(() => {
@@ -353,318 +217,48 @@ const authorList = computed(() => {
     .filter((name) => name.length > 0);
 });
 
-// 计算属性：总贡献比例
-const totalContribution = computed(() => {
-  return authorContributions.value.reduce(
-    (sum, contrib) => sum + (contrib || 0),
-    0
-  );
+// 计算表单完成度
+const formCompleteness = computed(() => {
+  if (!form.value) return 0;
+
+  const requiredFields = ['title', 'author_names', 'paper_type'];
+  if (form.value.paper_type === 'published') {
+    requiredFields.push('keyword_names', 'journal');
+  }
+
+  const completedFields = requiredFields.filter(field => {
+    const value = form.value[field];
+    return value && (typeof value === 'string' ? value.trim() : true);
+  });
+
+  return Math.round((completedFields.length / requiredFields.length) * 100);
 });
 
-// 监听作者列表变化，调整贡献比例数组
-watch(
-  authorList,
-  (newAuthors, oldAuthors) => {
-    const newLength = newAuthors.length;
-    const oldLength = authorContributions.value.length;
-
-    if (newLength > oldLength) {
-      // 添加新作者，初始化贡献比例
-      for (let i = oldLength; i < newLength; i++) {
-        authorContributions.value.push(0);
-      }
-    } else if (newLength < oldLength) {
-      // 删除作者，移除对应的贡献比例
-      authorContributions.value.splice(newLength);
-    }
-  },
-  { immediate: true }
-);
-
-// 更新贡献比例
-const updateContributions = () => {
-  // 确保所有值都是数字
-  authorContributions.value = authorContributions.value.map((val) =>
-    isNaN(val) ? 0 : Math.max(0, Math.min(1, val))
-  );
-};
-
-// 初始化表单数据
-const initializeForm = () => {
-  if (props.paper) {
-    // 编辑模式：填充现有数据
-    Object.keys(form.value).forEach((key) => {
-      if (props.paper[key] !== undefined) {
-        form.value[key] = props.paper[key];
-      }
-    });
-
-    // 转换特殊字段格式
-    if (props.paper.authors && Array.isArray(props.paper.authors)) {
-      form.value.author_names = props.paper.authors
-        .map((a) => a.name || a)
-        .join(", ");
-    }
-
-    if (props.paper.keywords && Array.isArray(props.paper.keywords)) {
-      form.value.keyword_names = props.paper.keywords
-        .map((k) => k.name || k)
-        .join(", ");
-    }
-
-    if (props.paper.categories && Array.isArray(props.paper.categories)) {
-      form.value.category_ids = props.paper.categories.map((c) => c.id || c);
-    }
-
-    // 初始化作者贡献比例
-    if (
-      props.paper.author_contribution_ratios &&
-      Array.isArray(props.paper.author_contribution_ratios)
-    ) {
-      authorContributions.value = [...props.paper.author_contribution_ratios];
-    }
-
-    // 设置通讯作者
-    if (props.paper.corresponding_author_name) {
-      form.value.corresponding_author_name =
-        props.paper.corresponding_author_name;
-    }
-  } else if (props.paperType) {
-    // 新建模式：设置论文类型
-    form.value.paper_type = props.paperType;
-  }
-};
-
-// 监听 props 变化
-watch(() => props.paper, initializeForm, { immediate: true });
-watch(
-  () => props.paperType,
-  () => {
-    if (!isEdit.value && props.paperType) {
-      form.value.paper_type = props.paperType;
-    }
-  },
-  { immediate: true }
-);
-
-onMounted(async () => {
-  try {
-    categories.value = await getCategories();
-  } catch (error) {
-    console.error("加载分类失败:", error);
-    categories.value = [];
-  }
-});
-
-const onFileChange = (e) => {
-  file.value = e.target.files[0];
-};
-
-const removeFile = () => {
-  file.value = null;
-  const fileInput = document.getElementById("file-input");
-  if (fileInput) fileInput.value = "";
-};
-
-const formatFileSize = (bytes) => {
-  if (bytes === 0) return "0 Bytes";
-  const k = 1024;
-  const sizes = ["Bytes", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-};
-
-const resetForm = () => {
-  form.value = {
-    title: "",
-    journal: "",
-    year: new Date().getFullYear(),
-    author_names: "",
-    category_ids: [],
-    keyword_names: "",
-    abstract: "",
-    paper_type: props.paperType || "",
-    doi: "",
-    volume: "",
-    pages: "",
-    impact_factor: "",
-    notes: "",
-    url: "",
-  };
-  removeFile();
-};
-
+// 处理表单提交
 const handleSubmit = async () => {
-  if (!form.value.title.trim()) {
-    showToast("请输入论文标题", "warning");
+  if (!validateForm()) {
     return;
   }
 
-  if (!form.value.paper_type) {
-    showToast("请选择论文类型", "warning");
-    return;
-  }
-
-  submitting.value = true;
   try {
-    // 准备提交数据
-    const submitData = { ...form.value };
-
-    // 关联当前团队
-    if (currentTeam.value && form.value.paper_type === "literature") {
-      submitData.team_id = currentTeam.value.id;
-    }
-
-    // 处理作者名称（转换为数组）
-    if (typeof submitData.author_names === "string") {
-      submitData.author_names = submitData.author_names
-        .split(",")
-        .map((name) => name.trim())
-        .filter((name) => name.length > 0);
-    } // 处理关键词（转换为数组）
-    if (typeof submitData.keyword_names === "string") {
-      submitData.keyword_names = submitData.keyword_names
-        .split(",")
-        .map((keyword) => keyword.trim())
-        .filter((keyword) => keyword.length > 0);
-    }
-
-    // 处理作者贡献比例（仅对发表论文）
-    if (form.value.paper_type === "published") {
-      // 如果有设置贡献比例，则使用设置的值
-      if (authorContributions.value.some((contrib) => contrib > 0)) {
-        submitData.author_contribution_ratios = [...authorContributions.value];
-      }
-
-      // 添加通讯作者
-      if (form.value.corresponding_author_name) {
-        submitData.corresponding_author_name =
-          form.value.corresponding_author_name;
-      }
-    }
-
-    // 确保category_ids是数组
-    if (!Array.isArray(submitData.category_ids)) {
-      submitData.category_ids = submitData.category_ids
-        ? [submitData.category_ids]
-        : [];
-    }
-
-    // 处理发表日期
-    if (submitData.year) {
-      submitData.publication_date = new Date(
-        submitData.year,
-        0,
-        1
-      ).toISOString();
-    }
-
-    // 移除不需要的字段
-    delete submitData.year;
-    delete submitData.paper_type;
-
-    if (isEdit.value) {
-      // 编辑模式：根据论文类型选择不同的更新API
-      let updatedItem;
-      if (props.paperType === "literature") {
-        // 文献类型：使用参考文献API
-        const referenceData = {
-          title: submitData.title,
-          authors: Array.isArray(submitData.author_names)
-            ? submitData.author_names.join(", ")
-            : submitData.author_names || "",
-          doi: submitData.doi || null,
-          team_id: currentTeam.value?.id,
-          category_id: submitData.category_ids?.[0] || null,
-          keyword_names: submitData.keyword_names || [],
-        };
-
-        updatedItem = await updateReference(props.paper.id, referenceData);
-        showToast("文献更新成功！", "success");
-      } else {
-        // 发表论文类型：使用论文API
-        updatedItem = await updatePaper(props.paper.id, submitData);
-        showToast("论文更新成功！", "success");
-      }
-
-      // 确保返回数据有必要的ID和team_id
-      if (updatedItem) {
-        updatedItem.id = props.paper.id;
-        if (currentTeam.value && props.paperType === "literature") {
-          updatedItem.team_id = currentTeam.value.id;
-        }
-      }
-
-      emit("saved", updatedItem);
-    } else {
-      // 新建模式：根据论文类型选择不同的API
-      if (form.value.paper_type === "literature") {
-        // 文献类型：使用参考文献API
-        const referenceData = {
-          title: submitData.title,
-          authors: Array.isArray(submitData.author_names)
-            ? submitData.author_names.join(", ")
-            : submitData.author_names || "",
-          doi: submitData.doi || null,
-          team_id: currentTeam.value?.id,
-          category_id: submitData.category_ids?.[0] || null,
-          keyword_names: submitData.keyword_names || [],
-          created_by_id: currentUser.value?.id,
-        };
-
-        console.log("创建参考文献数据:", referenceData);
-        console.log("当前用户:", currentUser.value);
-        console.log("当前团队:", currentTeam.value);
-
-        let savedReference;
-        if (file.value) {
-          // 先创建参考文献，再上传文件
-          savedReference = await createReference(referenceData);
-          await uploadReference(savedReference.id, file.value);
-          showToast("文献添加成功！", "success");
-        } else {
-          savedReference = await createReference(referenceData);
-          showToast("文献添加成功！", "success");
-        }
-
-        // 确保savedReference有team_id
-        if (savedReference && currentTeam.value) {
-          savedReference.team_id = currentTeam.value.id;
-        }
-
-        // 发出保存事件，传递保存的引用数据
-        emit("saved", savedReference);
-      } else {
-        // 发表论文类型：使用论文API
-        let savedPaper;
-        if (file.value) {
-          // 有文件：先创建论文，再上传文件
-          savedPaper = await createPaper(submitData);
-          await uploadPaperFile(savedPaper.id, file.value);
-          showToast("论文添加成功！", "success");
-        } else {
-          // 无文件：使用 createPaper
-          savedPaper = await createPaper(submitData);
-          showToast("论文添加成功！", "success");
-        }
-
-        // 发出保存事件，传递保存的论文数据
-        emit("saved", savedPaper);
-      }
+    const result = await submitForm(props, isEdit.value);
+    emit("saved", result);
+    if (!isEdit.value) {
       resetForm();
     }
   } catch (error) {
-    console.error("提交论文失败:", error);
-    console.error("详细错误信息:", error.response?.data);
-    const errorMessage =
-      error.response?.data?.detail ||
-      error.response?.data?.message ||
-      "提交失败，请重试";
-    showToast(errorMessage, "error");
-  } finally {
-    submitting.value = false;
+    console.error("提交失败:", error);
   }
 };
+
+// 处理重置
+const handleReset = () => {
+  resetForm();
+  resetValidation();
+};
+
+// 初始化表单
+initializeForm();
 </script>
 
 <style scoped>
@@ -692,29 +286,12 @@ const handleSubmit = async () => {
   margin: 0;
 }
 
-.form-section {
-  margin: var(--space-xl) 0;
-  padding: var(--space-lg);
-  background: var(--color-background-soft);
-  border-radius: var(--border-radius);
-  border-left: 4px solid var(--color-primary);
-}
-
-.section-title {
-  font-size: var(--text-lg);
-  font-weight: 600;
-  color: var(--color-primary);
-  margin: 0 0 var(--space-md) 0;
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
 .form-hint {
   color: var(--color-text-light);
   font-size: var(--text-xs);
   margin-top: var(--space-xs);
   font-style: italic;
+  display: block;
 }
 
 .form-row {
@@ -722,189 +299,47 @@ const handleSubmit = async () => {
   gap: var(--space-md);
   grid-template-columns: 1fr;
 }
-.form-row:has(.form-group:nth-child(2)) {
+
+.form-row:has(> *:nth-child(2)) {
   grid-template-columns: 1fr 1fr;
   gap: var(--space-lg);
-}
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  width: 100%;
-}
-
-.form-label {
-  font-weight: 500;
-  color: var(--color-heading);
-  font-size: var(--text-sm);
-}
-
-.form-input,
-.form-select,
-.form-textarea {
-  padding: var(--space-md);
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius);
-  font-size: var(--text-sm);
-  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
-}
-
-.form-input:focus,
-.form-select:focus,
-.form-textarea:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: var(--shadow-focus);
-}
-
-.form-textarea {
-  resize: vertical;
-  min-height: 6rem;
-  font-family: inherit;
-}
-
-.file-upload {
-  position: relative;
-}
-
-.file-input {
-  position: absolute;
-  opacity: 0;
-  width: 100%;
-  height: 100%;
-  cursor: pointer;
-}
-
-.file-label {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-md);
-  border: 2px dashed var(--color-border);
-  border-radius: var(--border-radius);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background: var(--color-background-soft);
-}
-
-.file-label:hover {
-  border-color: var(--color-primary);
-  background: var(--primary-50);
-}
-
-.file-icon {
-  font-size: var(--space-lg);
-}
-
-.file-text {
-  flex: 1;
-  color: var(--color-text);
-  font-size: var(--text-sm);
-}
-
-.file-info {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
-  background: var(--primary-50);
-  border-radius: var(--border-radius);
-  font-size: var(--text-xs);
-}
-
-.file-size {
-  color: var(--color-text-light);
-}
-
-.file-remove {
-  background: none;
-  border: none;
-  color: var(--error-600);
-  cursor: pointer;
-  font-size: var(--text-xl);
-  padding: 0;
-  width: var(--space-lg);
-  height: var(--space-lg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-}
-
-.file-remove:hover {
-  background: var(--error-100);
-}
-
-.contribution-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-  margin-top: var(--space-sm);
-}
-
-.contribution-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-md);
-  background: var(--color-background-soft);
-  border-radius: var(--border-radius);
-  border: 1px solid var(--color-border);
-}
-
-.author-name {
-  flex: 1;
-  font-weight: 500;
-  color: var(--color-text);
-}
-
-.contribution-input {
-  width: 80px;
-  padding: var(--space-sm) var(--space-sm);
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius);
-  font-size: var(--text-sm);
-  text-align: center;
-}
-
-.contribution-input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px var(--primary-100);
-}
-
-.contribution-percent {
-  font-size: var(--text-sm);
-  color: var(--color-text-soft);
-  min-width: 60px;
-  text-align: right;
-}
-
-.contribution-summary {
-  margin-top: var(--space-md);
-  padding: var(--space-md);
-  background: var(--primary-50);
-  border-radius: var(--border-radius);
-  border: 1px solid var(--primary-200);
-}
-
-.contribution-error {
-  color: var(--error-600) !important;
-  font-weight: 600;
 }
 
 .form-actions {
   display: flex;
   gap: var(--space-md);
   justify-content: flex-end;
+  align-items: flex-start;
   padding-top: var(--space-md);
   border-top: 1px solid var(--color-border);
+}
+
+.submit-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-xs);
+}
+
+.submit-hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-light);
+  font-style: italic;
 }
 
 .btn-spinner {
   display: inline-block;
   animation: spin 1s linear infinite;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn:disabled:hover {
+  transform: none;
+  box-shadow: none;
 }
 
 @keyframes spin {
@@ -914,6 +349,102 @@ const handleSubmit = async () => {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* 表单进度指示器 */
+.form-progress {
+  margin: var(--space-md) 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.progress-bar {
+  flex: 1;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.progress-low {
+  background: #f87171;
+}
+
+.progress-medium {
+  background: #fbbf24;
+}
+
+.progress-high {
+  background: #10b981;
+}
+
+.progress-text {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text);
+  min-width: 70px;
+  text-align: right;
+}
+
+/* 验证摘要样式 */
+.validation-summary {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--border-radius);
+  padding: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+.validation-summary-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.validation-icon {
+  font-size: var(--text-lg);
+}
+
+.validation-text {
+  font-weight: 500;
+  color: #dc2626;
+}
+
+.validation-errors {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.validation-error-item {
+  color: #dc2626;
+  font-size: var(--text-sm);
+  padding: var(--space-xs) 0;
+  border-bottom: 1px solid #fecaca;
+}
+
+.validation-error-item:last-child {
+  border-bottom: none;
+}
+
+/* 错误状态的表单字段 */
+.form-group.has-error .form-input,
+.form-group.has-error .form-textarea,
+.form-group.has-error .form-select {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1);
+}
+
+.form-group.has-error .form-label {
+  color: var(--color-error);
 }
 
 /* 响应式设计 */
