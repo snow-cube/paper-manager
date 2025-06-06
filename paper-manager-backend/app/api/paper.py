@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
-from sqlmodel import Session, select
+from sqlmodel import Session, select, delete
 from typing import List, Optional
 import os
 from datetime import datetime
@@ -8,19 +8,77 @@ from fastapi.responses import FileResponse
 from app.core.database import get_session
 from app.models.paper import (
     Paper, PaperCreate, PaperRead, PaperUpdate,
-    PaperAuthor, PaperCategory, PaperKeyword
+    PaperAuthor, PaperCategory, PaperKeyword, PaperTeam
 )
 from app.models.keyword import Keyword
 from app.models.user import User
 from app.models.category import Category
 from app.models.author import Author
+from app.models.team import Team, TeamUser
 from app.api.user import get_current_user
+from app.api.team import check_team_member
 from app.services.utils import calculate_workload
 from app.core.config_dev import PAPERS_DIR
 
 router = APIRouter()
 
 UPLOAD_DIR = str(PAPERS_DIR)
+
+
+def check_paper_access(paper_id: int, user: User, session: Session) -> Paper:
+    """检查用户是否有权限访问论文"""
+    paper = session.get(Paper, paper_id)
+    if not paper:
+        raise HTTPException(status_code=404, detail="Paper not found")
+
+    # 如果是管理员，直接允许访问
+    if user.is_superuser:
+        return paper
+
+    # 获取论文的团队
+    paper_team = session.exec(
+        select(PaperTeam).where(PaperTeam.paper_id == paper_id)
+    ).first()
+
+    # 如果是共有论文，允许访问
+    if not paper_team or paper_team.team_id == 0:
+        return paper
+
+    # 检查用户是否为团队成员
+    team_member = session.exec(
+        select(TeamUser).where(
+            TeamUser.team_id == paper_team.team_id,
+            TeamUser.user_id == user.id
+        )
+    ).first()
+
+    if not team_member:
+        raise HTTPException(
+            status_code=403,
+            detail="Not a member of the team that owns this paper"
+        )
+
+    return paper
+
+
+def check_paper_modify_permission(paper_id: int, user: User, session: Session) -> Paper:
+    """检查用户是否有权限修改论文"""
+    paper = session.get(Paper, paper_id)
+    if not paper:
+        raise HTTPException(status_code=404, detail="Paper not found")
+
+    # 如果是管理员，直接允许修改
+    if user.is_superuser:
+        return paper
+
+    # 只允许创建者修改论文
+    if paper.created_by_id != user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="Only the paper creator can modify this paper"
+        )
+
+    return paper
 
 
 def get_category_and_subcategories(session: Session, category_id: int) -> List[int]:
@@ -86,12 +144,17 @@ def get_or_create_authors(session: Session, author_names: List[str]) -> List[Aut
 
 
 @router.post("/", response_model=PaperRead)
-async def create_paper(
+def create_paper(
     paper: PaperCreate,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user)
 ):
-    # Check if DOI already exists
+    """创建论文"""
+    # 如果不是共有论文，检查用户是否为团队成员
+    if paper.team_id != 0:
+        check_team_member(paper.team_id, current_user, session)
+
+    # 检查DOI是否已存在
     if paper.doi:
         existing_paper = session.exec(
             select(Paper).where(Paper.doi == paper.doi)
@@ -99,92 +162,114 @@ async def create_paper(
         if existing_paper:
             raise HTTPException(
                 status_code=400,
-                detail=f"Paper with DOI {paper.doi} already exists"
+                detail="A paper with this DOI already exists"
             )
 
-    # Verify categories exist (if any)
-    categories = []
-    if paper.category_ids:
-        for category_id in paper.category_ids:
-            category = session.get(Category, category_id)
-            if not category:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"Category with id {category_id} not found"
-                )
-            categories.append(category)
-
-    # Get or create authors
-    authors = get_or_create_authors(session, paper.author_names)
-
-    # Get or create keywords
-    keywords = get_or_create_keywords(session, paper.keyword_names)
-
-    # Create paper
+    # 创建论文
     db_paper = Paper(
         title=paper.title,
         abstract=paper.abstract,
         publication_date=paper.publication_date,
         journal=paper.journal,
         doi=paper.doi,
-        file_path=paper.file_path,
+        created_by_id=current_user.id
     )
     session.add(db_paper)
-    session.flush()  # Get paper ID
+    session.flush()  # 获取ID
 
-    # Create category links (if any)
-    for category in categories:
-        category_link = PaperCategory(
-            paper_id=db_paper.id,
-            category_id=category.id
+    # 创建团队关联
+    paper_team = PaperTeam(paper_id=db_paper.id, team_id=paper.team_id)
+    session.add(paper_team)
+
+    # 处理作者
+    authors = []
+    for i, name in enumerate(paper.author_names):
+        # 查找或创建作者
+        author = session.exec(
+            select(Author).where(Author.name == name)
+        ).first()
+        if not author:
+            author = Author(name=name)
+            session.add(author)
+            session.flush()
+
+        # 创建论文-作者关联
+        contribution_ratio = (
+            paper.author_contribution_ratios[i]
+            if paper.author_contribution_ratios
+            and i < len(paper.author_contribution_ratios)
+            else 1.0
         )
-        session.add(category_link)
+        is_corresponding = (
+            name == paper.corresponding_author_name
+            if paper.corresponding_author_name
+            else False
+        )
+        paper_author = PaperAuthor(
+            paper_id=db_paper.id,
+            author_id=author.id,
+            contribution_ratio=contribution_ratio,
+            is_corresponding=is_corresponding,
+            author_order=i + 1
+        )
+        session.add(paper_author)
+        authors.append(name)
 
-    # Create keyword links
-    for keyword in keywords:
-        keyword_link = PaperKeyword(
+    # 处理分类
+    if paper.category_ids:
+        for category_id in paper.category_ids:
+            # 检查分类是否存在
+            category = session.get(Category, category_id)
+            if not category:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Category {category_id} not found"
+                )
+            # 创建论文-分类关联
+            paper_category = PaperCategory(
+                paper_id=db_paper.id,
+                category_id=category_id
+            )
+            session.add(paper_category)
+
+    # 处理关键词
+    keywords = []
+    for name in paper.keyword_names:
+        # 查找或创建关键词
+        keyword = session.exec(
+            select(Keyword).where(Keyword.name == name)
+        ).first()
+        if not keyword:
+            keyword = Keyword(name=name)
+            session.add(keyword)
+            session.flush()
+
+        # 创建论文-关键词关联
+        paper_keyword = PaperKeyword(
             paper_id=db_paper.id,
             keyword_id=keyword.id
         )
-        session.add(keyword_link)
-
-    # Create author links with contribution ratios
-    contribution_ratios = paper.author_contribution_ratios or [1.0/len(authors)] * len(authors)
-    if len(contribution_ratios) != len(authors):
-        raise HTTPException(
-            status_code=400,
-            detail="Number of contribution ratios must match number of authors"
-        )
-
-    for i, (author, ratio) in enumerate(zip(authors, contribution_ratios)):
-        author_link = PaperAuthor(
-            paper_id=db_paper.id,
-            author_id=author.id,
-            contribution_ratio=ratio,
-            is_corresponding=author.name == paper.corresponding_author_name,
-            author_order=i + 1
-        )
-        session.add(author_link)
+        session.add(paper_keyword)
+        keywords.append(name)
 
     session.commit()
     session.refresh(db_paper)
 
-    # 准备返回数据
-    paper_dict = {
-        "id": db_paper.id,
-        "title": db_paper.title,
-        "abstract": db_paper.abstract,
-        "publication_date": db_paper.publication_date,
-        "journal": db_paper.journal,
-        "doi": db_paper.doi,
-        "file_path": db_paper.file_path,
-        "created_at": db_paper.created_at,
-        "updated_at": db_paper.updated_at,
-        "keywords": [keyword.name for keyword in keywords],
-        "authors": [author.name for author in authors]
-    }
-    result = PaperRead(**paper_dict)
-    return result
+    return PaperRead(
+        id=db_paper.id,
+        title=db_paper.title,
+        abstract=db_paper.abstract,
+        publication_date=db_paper.publication_date,
+        journal=db_paper.journal,
+        doi=db_paper.doi,
+        file_path=db_paper.file_path,
+        created_at=db_paper.created_at,
+        updated_at=db_paper.updated_at,
+        keywords=keywords,
+        authors=authors,
+        team_id=paper.team_id,
+        created_by_id=current_user.id
+    )
 
 
 @router.post("/{paper_id}/upload")
@@ -195,9 +280,7 @@ async def upload_paper_file(
     current_user: User = Depends(get_current_user)
 ):
     # 检查论文是否存在
-    paper = session.get(Paper, paper_id)
-    if not paper:
-        raise HTTPException(status_code=404, detail="Paper not found")
+    paper = check_paper_modify_permission(paper_id, current_user, session)
 
     # 如果论文已有文件，删除旧文件
     if paper.file_path and os.path.exists(paper.file_path):
@@ -236,65 +319,133 @@ def read_papers(
     keyword: Optional[str] = None,
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
-    session: Session = Depends(get_session)
+    team_id: Optional[int] = None,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
 ):
-    """获取论文列表，支持按论文名、分类、作者、关键字和日期范围筛选"""
+    """获取论文列表"""
+    # 基础查询
     query = select(Paper)
 
-    # 按论文名筛选（模糊查询）
-    if title is not None:
+    # 如果指定了团队，检查用户是否为团队成员
+    if team_id is not None and team_id != 0:
+        check_team_member(team_id, current_user, session)
+        query = (
+            query
+            .join(PaperTeam)
+            .where(
+                (PaperTeam.team_id == team_id)
+                | (PaperTeam.team_id == 0)
+            )
+        )
+    else:
+        # 获取用户所在的所有团队ID
+        user_team_ids = [
+            tu.team_id for tu in session.exec(
+                select(TeamUser).where(TeamUser.user_id == current_user.id)
+            ).all()
+        ]
+        # 查询用户所在团队的论文和共有论文
+        query = (
+            query
+            .join(PaperTeam)
+            .where(
+                (PaperTeam.team_id.in_(user_team_ids))
+                | (PaperTeam.team_id == 0)
+            )
+        )
+
+    # 应用其他过滤条件
+    if title:
         query = query.where(Paper.title.contains(title))
-
-    # 按分类筛选
-    if category_id is not None:
-        query = query.join(PaperCategory).where(PaperCategory.category_id == category_id)
-
-    # 按作者名字筛选
-    if author_name is not None:
+    if category_id:
+        query = (
+            query
+            .join(PaperCategory)
+            .where(PaperCategory.category_id == category_id)
+        )
+    if author_name:
         query = (
             query
             .join(PaperAuthor)
             .join(Author)
             .where(Author.name == author_name)
         )
-
-    # 按关键字筛选
-    if keyword is not None:
+    if keyword:
         query = (
             query
             .join(PaperKeyword)
             .join(Keyword)
             .where(Keyword.name == keyword)
         )
-
-    # 按日期范围筛选
-    if start_date is not None:
+    if start_date:
         query = query.where(Paper.publication_date >= start_date)
-    if end_date is not None:
+    if end_date:
         query = query.where(Paper.publication_date <= end_date)
 
+    # 执行查询
     papers = session.exec(query.offset(skip).limit(limit)).all()
 
-    # 准备返回数据
+    # 构建返回数据
     results = []
     for paper in papers:
-        # 先创建包含基本信息的字典
-        paper_dict = {
-            "id": paper.id,
-            "title": paper.title,
-            "abstract": paper.abstract,
-            "publication_date": paper.publication_date,
-            "journal": paper.journal,
-            "doi": paper.doi,
-            "file_path": paper.file_path,
-            "created_at": paper.created_at,
-            "updated_at": paper.updated_at,
-            "keywords": [kw.name for kw in paper.keywords],
-            "authors": [author.name for author in paper.authors]
-        }
-        # 使用字典创建PaperRead对象
-        paper_read = PaperRead(**paper_dict)
-        results.append(paper_read)
+        # 获取关键词
+        keywords = [
+            kw.name for kw in session.exec(
+                select(Keyword)
+                .join(PaperKeyword)
+                .where(PaperKeyword.paper_id == paper.id)
+            ).all()
+        ]
+
+        # 获取作者
+        authors = [
+            author.name for author in session.exec(
+                select(Author)
+                .join(PaperAuthor)
+                .where(PaperAuthor.paper_id == paper.id)
+                .order_by(PaperAuthor.author_order)
+            ).all()
+        ]
+
+        # 获取分类
+        categories = [
+            {
+                "id": category.id,
+                "name": category.name,
+                "description": category.description
+            }
+            for category in session.exec(
+                select(Category)
+                .join(PaperCategory)
+                .where(PaperCategory.paper_id == paper.id)
+            ).all()
+        ]
+
+        # 获取团队ID
+        paper_team = session.exec(
+            select(PaperTeam).where(PaperTeam.paper_id == paper.id)
+        ).first()
+        team_id = paper_team.team_id if paper_team else 0
+
+        results.append(
+            PaperRead(
+                id=paper.id,
+                title=paper.title,
+                abstract=paper.abstract,
+                publication_date=paper.publication_date,
+                journal=paper.journal,
+                doi=paper.doi,
+                file_path=paper.file_path,
+                created_at=paper.created_at,
+                updated_at=paper.updated_at,
+                keywords=keywords,
+                authors=authors,
+                categories=categories,
+                team_id=team_id,
+                created_by_id=paper.created_by_id
+            )
+        )
 
     return results
 
@@ -302,27 +453,67 @@ def read_papers(
 @router.get("/{paper_id}", response_model=PaperRead)
 def read_paper(
     paper_id: int,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
 ):
-    paper = session.get(Paper, paper_id)
-    if not paper:
-        raise HTTPException(status_code=404, detail="Paper not found")
+    """获取单个论文"""
+    paper = check_paper_access(paper_id, current_user, session)
 
-    # 准备返回数据
-    paper_dict = {
-        "id": paper.id,
-        "title": paper.title,
-        "abstract": paper.abstract,
-        "publication_date": paper.publication_date,
-        "journal": paper.journal,
-        "doi": paper.doi,
-        "file_path": paper.file_path,
-        "created_at": paper.created_at,
-        "updated_at": paper.updated_at,
-        "keywords": [keyword.name for keyword in paper.keywords],
-        "authors": [author.name for author in paper.authors]
-    }
-    return PaperRead(**paper_dict)
+    # 获取关键词
+    keywords = [
+        kw.name for kw in session.exec(
+            select(Keyword)
+            .join(PaperKeyword)
+            .where(PaperKeyword.paper_id == paper_id)
+        ).all()
+    ]
+
+    # 获取作者
+    authors = [
+        author.name for author in session.exec(
+            select(Author)
+            .join(PaperAuthor)
+            .where(PaperAuthor.paper_id == paper_id)
+            .order_by(PaperAuthor.author_order)
+        ).all()
+    ]
+
+    # 获取分类
+    categories = [
+        {
+            "id": category.id,
+            "name": category.name,
+            "description": category.description
+        }
+        for category in session.exec(
+            select(Category)
+            .join(PaperCategory)
+            .where(PaperCategory.paper_id == paper_id)
+        ).all()
+    ]
+
+    # 获取团队ID
+    paper_team = session.exec(
+        select(PaperTeam).where(PaperTeam.paper_id == paper_id)
+    ).first()
+    team_id = paper_team.team_id if paper_team else 0
+
+    return PaperRead(
+        id=paper.id,
+        title=paper.title,
+        abstract=paper.abstract,
+        publication_date=paper.publication_date,
+        journal=paper.journal,
+        doi=paper.doi,
+        file_path=paper.file_path,
+        created_at=paper.created_at,
+        updated_at=paper.updated_at,
+        keywords=keywords,
+        authors=authors,
+        categories=categories,
+        team_id=team_id,
+        created_by_id=paper.created_by_id
+    )
 
 
 @router.patch("/{paper_id}", response_model=PaperRead)
@@ -332,79 +523,88 @@ def update_paper(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user)
 ):
-    db_paper = session.get(Paper, paper_id)
-    if not db_paper:
-        raise HTTPException(status_code=404, detail="Paper not found")
+    """更新论文"""
+    paper = check_paper_modify_permission(paper_id, current_user, session)
 
-    # 更新论文基本信息
+    # 如果要更改团队，检查权限
+    if paper_update.team_id is not None:
+        # 获取当前团队
+        current_team = session.exec(
+            select(PaperTeam).where(PaperTeam.paper_id == paper_id)
+        ).first()
+        current_team_id = current_team.team_id if current_team else 0
+
+        # 如果要更改到新团队（非0），检查用户是否为新团队成员
+        if paper_update.team_id != 0:
+            check_team_member(paper_update.team_id, current_user, session)
+
+        # 更新团队关联
+        if current_team:
+            current_team.team_id = paper_update.team_id
+        else:
+            paper_team = PaperTeam(
+                paper_id=paper_id,
+                team_id=paper_update.team_id
+            )
+            session.add(paper_team)
+
+    # 更新基本信息
     paper_data = paper_update.dict(exclude_unset=True)
-    category_ids = paper_data.pop("category_ids", None)
-    keyword_names = paper_data.pop("keyword_names", None)
+    # 移除需要特殊处理的字段
+    special_fields = {"team_id", "category_ids", "keyword_names", "author_names", "author_contribution_ratios"}
+    update_data = {k: v for k, v in paper_data.items() if k not in special_fields}
+    
+    # 更新基本字段
+    for key, value in update_data.items():
+        setattr(paper, key, value)
 
-    for key, value in paper_data.items():
-        setattr(db_paper, key, value)
-
-    # 更新分类（如果提供了）
-    if category_ids is not None:
-        # 删除现有的分类关联
-        category_links = session.exec(
-            select(PaperCategory).where(PaperCategory.paper_id == paper_id)
-        ).all()
-        for link in category_links:
-            session.delete(link)
-
+    # 更新分类
+    if paper_update.category_ids is not None:
+        # 删除现有分类关联
+        session.exec(
+            delete(PaperCategory).where(PaperCategory.paper_id == paper_id)
+        )
         # 添加新的分类关联
-        for category_id in category_ids:
+        for category_id in paper_update.category_ids:
             category = session.get(Category, category_id)
             if not category:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"Category with id {category_id} not found"
+                    detail=f"Category {category_id} not found"
                 )
-            category_link = PaperCategory(
+            paper_category = PaperCategory(
                 paper_id=paper_id,
                 category_id=category_id
             )
-            session.add(category_link)
+            session.add(paper_category)
 
-    # 更新关键词（如果提供了）
-    if keyword_names is not None:
-        # 删除现有的关键词关联
-        keyword_links = session.exec(
-            select(PaperKeyword).where(PaperKeyword.paper_id == paper_id)
-        ).all()
-        for link in keyword_links:
-            session.delete(link)
-
+    # 更新关键词
+    if paper_update.keyword_names is not None:
+        # 删除现有关键词关联
+        session.exec(
+            delete(PaperKeyword).where(PaperKeyword.paper_id == paper_id)
+        )
         # 添加新的关键词关联
-        keywords = get_or_create_keywords(session, keyword_names)
-        for keyword in keywords:
-            keyword_link = PaperKeyword(
+        for name in paper_update.keyword_names:
+            keyword = session.exec(
+                select(Keyword).where(Keyword.name == name)
+            ).first()
+            if not keyword:
+                keyword = Keyword(name=name)
+                session.add(keyword)
+                session.flush()
+            paper_keyword = PaperKeyword(
                 paper_id=paper_id,
                 keyword_id=keyword.id
             )
-            session.add(keyword_link)
+            session.add(paper_keyword)
 
-    db_paper.updated_at = datetime.utcnow()
-    session.add(db_paper)
+    paper.updated_at = datetime.utcnow()
     session.commit()
-    session.refresh(db_paper)
+    session.refresh(paper)
 
-    # 准备返回数据
-    paper_dict = {
-        "id": db_paper.id,
-        "title": db_paper.title,
-        "abstract": db_paper.abstract,
-        "publication_date": db_paper.publication_date,
-        "journal": db_paper.journal,
-        "doi": db_paper.doi,
-        "file_path": db_paper.file_path,
-        "created_at": db_paper.created_at,
-        "updated_at": db_paper.updated_at,
-        "keywords": [keyword.name for keyword in db_paper.keywords],
-        "authors": [author.name for author in db_paper.authors]
-    }
-    return PaperRead(**paper_dict)
+    # 返回更新后的论文信息
+    return read_paper(paper_id, session, current_user)
 
 
 @router.delete("/{paper_id}")
@@ -413,37 +613,28 @@ def delete_paper(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user)
 ):
-    paper = session.get(Paper, paper_id)
-    if not paper:
-        raise HTTPException(status_code=404, detail="Paper not found")
+    """删除论文"""
+    paper = check_paper_modify_permission(paper_id, current_user, session)
 
-    # 删除论文相关的所有关联记录
-    # 1. 删除作者关联
-    author_links = session.exec(
-        select(PaperAuthor).where(PaperAuthor.paper_id == paper_id)
-    ).all()
-    for link in author_links:
-        session.delete(link)
-
-    # 2. 删除分类关联
-    category_links = session.exec(
-        select(PaperCategory).where(PaperCategory.paper_id == paper_id)
-    ).all()
-    for link in category_links:
-        session.delete(link)
-
-    # 3. 删除关键词关联
-    keyword_links = session.exec(
-        select(PaperKeyword).where(PaperKeyword.paper_id == paper_id)
-    ).all()
-    for link in keyword_links:
-        session.delete(link)
-
-    # 删除关联文件（如果存在）
+    # 删除文件（如果存在）
     if paper.file_path and os.path.exists(paper.file_path):
         os.remove(paper.file_path)
 
-    # 删除论文记录
+    # 删除所有关联
+    session.exec(
+        delete(PaperAuthor).where(PaperAuthor.paper_id == paper_id)
+    )
+    session.exec(
+        delete(PaperCategory).where(PaperCategory.paper_id == paper_id)
+    )
+    session.exec(
+        delete(PaperKeyword).where(PaperKeyword.paper_id == paper_id)
+    )
+    session.exec(
+        delete(PaperTeam).where(PaperTeam.paper_id == paper_id)
+    )
+
+    # 删除论文
     session.delete(paper)
     session.commit()
 
@@ -536,12 +727,12 @@ def calculate_author_workload_by_name(
 @router.get("/{paper_id}/download")
 async def download_paper_by_id(
     paper_id: int,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
 ):
     """通过ID下载论文PDF文件"""
-    paper = session.get(Paper, paper_id)
-    if not paper:
-        raise HTTPException(status_code=404, detail="Paper not found")
+    # 检查用户是否有权限访问此论文
+    paper = check_paper_access(paper_id, current_user, session)
 
     # 检查文件是否存在
     if not paper.file_path or not os.path.exists(paper.file_path):
@@ -563,7 +754,8 @@ async def download_paper_by_id(
 @router.get("/download/by-title")
 async def download_paper_by_title(
     title: str,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
 ):
     """通过标题下载论文PDF文件"""
     # 查找论文
@@ -576,6 +768,9 @@ async def download_paper_by_title(
             status_code=404,
             detail="Paper not found with the specified title"
         )
+
+    # 检查用户是否有权限访问此论文
+    paper = check_paper_access(paper.id, current_user, session)
 
     # 检查文件是否存在
     if not paper.file_path or not os.path.exists(paper.file_path):

@@ -12,17 +12,34 @@ from app.models.reference import ReferencePaper
 router = APIRouter()
 
 
+def check_superuser(user: User):
+    """检查用户是否为管理员"""
+    if not user.is_superuser:
+        raise HTTPException(
+            status_code=403,
+            detail="Only administrators can perform this operation"
+        )
+
+
 @router.post("/", response_model=CategoryRead)
 def create_category(
     category: CategoryCreate,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user)
 ):
+    """创建分类（仅管理员）"""
+    # 检查管理员权限
+    check_superuser(current_user)
+
+    # 如果指定了父分类，检查是否存在
     if category.parent_id:
         parent = session.get(Category, category.parent_id)
         if not parent:
-            raise HTTPException(status_code=404, detail="Parent category not found")
-    
+            raise HTTPException(
+                status_code=404,
+                detail=f"Parent category {category.parent_id} not found"
+            )
+
     db_category = Category.from_orm(category)
     session.add(db_category)
     session.commit()
@@ -54,26 +71,39 @@ def read_category(
 @router.patch("/{category_id}", response_model=CategoryRead)
 def update_category(
     category_id: int,
-    category_update: CategoryUpdate,
+    category: CategoryUpdate,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user)
 ):
+    """更新分类（仅管理员）"""
+    # 检查管理员权限
+    check_superuser(current_user)
+
     db_category = session.get(Category, category_id)
     if not db_category:
         raise HTTPException(status_code=404, detail="Category not found")
-    
-    if category_update.parent_id:
-        parent = session.get(Category, category_update.parent_id)
-        if not parent:
-            raise HTTPException(status_code=404, detail="Parent category not found")
-        # Prevent circular reference
-        if category_id == category_update.parent_id:
-            raise HTTPException(status_code=400, detail="Category cannot be its own parent")
-    
-    category_data = category_update.dict(exclude_unset=True)
+
+    # 如果要更新父分类，检查是否存在
+    if category.parent_id is not None:
+        if category.parent_id != 0:  # 0 表示没有父分类
+            parent = session.get(Category, category.parent_id)
+            if not parent:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Parent category {category.parent_id} not found"
+                )
+
+        # 检查是否会创建循环依赖
+        if category.parent_id == category_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Category cannot be its own parent"
+            )
+
+    category_data = category.dict(exclude_unset=True)
     for key, value in category_data.items():
         setattr(db_category, key, value)
-    
+
     session.add(db_category)
     session.commit()
     session.refresh(db_category)
@@ -86,35 +116,34 @@ def delete_category(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user)
 ):
+    """删除分类（仅管理员）"""
+    # 检查管理员权限
+    check_superuser(current_user)
+
     category = session.get(Category, category_id)
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
-    
-    # Check if category has children
+
+    # 检查是否有子分类
     children = session.exec(
         select(Category).where(Category.parent_id == category_id)
     ).all()
     if children:
         raise HTTPException(
             status_code=400,
-            detail="Cannot delete category with child categories"
+            detail="Cannot delete category with subcategories"
         )
-    
-    # Remove category links from papers
-    paper_links = session.exec(
+
+    # 检查是否有关联的论文
+    papers = session.exec(
         select(PaperCategory).where(PaperCategory.category_id == category_id)
     ).all()
-    for link in paper_links:
-        session.delete(link)
-    
-    # Update reference papers to remove this category
-    reference_papers = session.exec(
-        select(ReferencePaper).where(ReferencePaper.category_id == category_id)
-    ).all()
-    for ref_paper in reference_papers:
-        ref_paper.category_id = None
-        session.add(ref_paper)
-    
+    if papers:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete category with associated papers"
+        )
+
     session.delete(category)
     session.commit()
     return {"ok": True}

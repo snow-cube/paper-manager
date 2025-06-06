@@ -8,6 +8,7 @@ from .team import TeamUser
 if TYPE_CHECKING:
     from .team import Team
     from .reference import ReferencePaper
+    from .paper import Paper
 
 
 class UserBase(SQLModel):
@@ -30,9 +31,8 @@ class User(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
     # Relationships
-    teams: List["Team"] = Relationship(
-        back_populates="members",
-        link_model=TeamUser
+    teams: List["TeamUser"] = Relationship(
+        back_populates="user"
     )
     team_links: List[TeamUser] = Relationship(
         back_populates="user"
@@ -40,6 +40,16 @@ class User(SQLModel, table=True):
 
     # 创建的参考论文
     created_references: List["ReferencePaper"] = Relationship(
+        back_populates="creator"
+    )
+
+    # 创建的论文
+    papers: List["Paper"] = Relationship(
+        back_populates="created_by"
+    )
+
+    # 创建的团队
+    created_teams: List["Team"] = Relationship(
         back_populates="creator"
     )
 

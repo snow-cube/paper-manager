@@ -10,14 +10,14 @@ if TYPE_CHECKING:
 
 class TeamRole(str, Enum):
     """团队角色枚举"""
-    OWNER = "owner"  # 创建者/拥有者
-    ADMIN = "admin"  # 管理员
-    MEMBER = "member"  # 普通成员
+    OWNER = "OWNER"  # 创建者/拥有者
+    ADMIN = "ADMIN"  # 管理员
+    MEMBER = "MEMBER"  # 普通成员
 
     @property
     def is_admin(self) -> bool:
         """是否具有管理员权限"""
-        return self in (TeamRole.OWNER, TeamRole.ADMIN)
+        return self in [TeamRole.OWNER, TeamRole.ADMIN]
 
 
 class TeamUser(SQLModel, table=True):
@@ -42,20 +42,24 @@ class TeamUser(SQLModel, table=True):
 
 class Team(SQLModel, table=True):
     """团队表"""
+    __tablename__ = "team"
+
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(index=True)
     description: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)  # 添加更新时间
     creator_id: int = Field(foreign_key="user.id")  # 创建者ID
+    max_members: Optional[int] = None
+    is_active: bool = Field(default=True)
+    last_active_at: Optional[datetime] = None
 
     # Relationships
-    members: List["User"] = Relationship(
-        back_populates="teams",
-        link_model=TeamUser
-    )
+    members: List["TeamUser"] = Relationship(back_populates="team")
     member_links: List[TeamUser] = Relationship(back_populates="team")
     references: List["ReferencePaper"] = Relationship(back_populates="team")
+    creator: "User" = Relationship(back_populates="created_teams")
+    papers: List["PaperTeam"] = Relationship(back_populates="team")
 
 
 class TeamCreate(SQLModel):

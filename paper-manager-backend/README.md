@@ -1,6 +1,5 @@
 # 后端
 
-数据库 mysql 创建 paper_manager
 启动 uvicorn app.main:app --reload --log-level debug
 
 ## 1. 项目文件结构
@@ -78,6 +77,7 @@ paper-manager-backend/
 | file_path | String | 文件路径 | 可选 |
 | created_at | DateTime | 创建时间 | 默认当前时间 |
 | updated_at | DateTime | 更新时间 | 默认当前时间 |
+| created_by_id | Integer | 创建者ID | 必填，外键(user.id) |
 
 ### Author（作者表）
 | 字段 | 类型 | 说明 | 限制条件 |
@@ -114,7 +114,7 @@ paper-manager-backend/
 | 字段 | 类型 | 说明 | 限制条件 |
 |------|------|------|----------|
 | team_id | Integer | 团队ID | 必填，主键，外键(team.id) |
-| user_id | Integer | 用户ID | 必填，主键，外键(user.id) |
+| user_id | Integer | 用户ID | 必填，主键外键(user.id) |
 | role | Enum | 用户角色 | 必填，枚举(MEMBER/ADMIN) |
 | joined_at | DateTime | 加入时间 | 默认当前时间 |
 
@@ -167,6 +167,12 @@ paper-manager-backend/
 | reference_id | Integer | 参考文献ID | 必填，主键，外键(referencepaper.id) |
 | keyword_id | Integer | 关键词ID | 必填，主键，外键(keyword.id) |
 
+### PaperTeam（论文-团队关联表）
+| 字段 | 类型 | 说明 | 限制条件 |
+|------|------|------|----------|
+| paper_id | Integer | 论文ID | 必填，主键，外键(paper.id) |
+| team_id | Integer | 团队ID | 必填，主键，外键(team.id)，0表示共有 |
+
 ## 3. API文档
 
 ### 论文相关API
@@ -188,7 +194,8 @@ POST /api/papers/
     "category_ids": [0],           // 可选，分类ID列表
     "keyword_names": ["string"],    // 必填，关键词列表
     "author_contribution_ratios": [0.0], // 可选，作者贡献比例
-    "corresponding_author_name": "string" // 可选，通讯作者名字
+    "corresponding_author_name": "string", // 可选，通讯作者名字
+    "team_id": 0                   // 必填，团队ID（0表示共有）
 }
 ```
 
@@ -205,13 +212,16 @@ POST /api/papers/
     "created_at": "datetime",
     "updated_at": "datetime",
     "keywords": ["string"],
-    "authors": ["string"]
+    "authors": ["string"],
+    "team_id": 0,
+    "created_by_id": 0
 }
 ```
 
 **错误码：**
 - 400: DOI已存在
 - 404: 分类不存在
+- 403: 无权限（非团队成员，当team_id不为0时）
 
 #### 上传论文文件
 ```
@@ -248,6 +258,7 @@ GET /api/papers/
 - keyword: 关键词
 - start_date: 开始日期
 - end_date: 结束日期
+- team_id: 团队ID（可选，不传则返回用户所在所有团队和共有的论文）
 
 **返回值：**
 ```json
@@ -263,7 +274,9 @@ GET /api/papers/
         "created_at": "datetime",
         "updated_at": "datetime",
         "keywords": ["string"],
-        "authors": ["string"]
+        "authors": ["string"],
+        "team_id": 0,
+        "created_by_id": 0
     }
 ]
 ```
@@ -281,6 +294,7 @@ GET /api/papers/{paper_id}
 
 **错误码：**
 - 404: 论文不存在
+- 403: 无权限（非团队成员且非共有论文）
 
 #### 更新论文
 ```
@@ -300,7 +314,8 @@ PATCH /api/papers/{paper_id}
     "doi": "string",               // 可选
     "category_ids": [0],           // 可选
     "keyword_names": ["string"],    // 可选
-    "file_path": "string"          // 可选
+    "file_path": "string",         // 可选
+    "team_id": 0                   // 可选，团队ID（0表示共有）
 }
 ```
 
@@ -308,8 +323,9 @@ PATCH /api/papers/{paper_id}
 同PaperRead
 
 **错误码：**
-- 403: 无权限（非作者）
+- 403: 无权限（非创建者或非团队管理员）
 - 404: 论文不存在或分类不存在
+- 403: 无权限（目标团队的非成员，当修改team_id时）
 
 #### 删除论文
 ```
@@ -327,7 +343,7 @@ DELETE /api/papers/{paper_id}
 ```
 
 **错误码：**
-- 403: 无权限（非作者）
+- 403: 无权限（非创建者或非团队管理员）
 - 404: 论文不存在
 
 #### 计算论文工作量
@@ -661,398 +677,3 @@ GET /api/categories/
 ```
 GET /api/categories/{category_id}
 ```
-
-### 团队相关API
-
-#### 创建团队
-```
-POST /api/teams/
-```
-
-**请求体（TeamCreate）：**
-```json
-{
-    "name": "string",        // 必填，团队名称
-    "description": "string"  // 可选，团队描述
-}
-```
-
-**返回值（TeamRead）：**
-```json
-{
-    "id": 0,
-    "name": "string",
-    "description": "string",
-    "creator_id": 0,
-    "created_at": "datetime",
-    "updated_at": "datetime",
-    "member_count": 0,
-    "max_members": 0,
-    "is_active": true,
-    "last_active_at": "datetime"
-}
-```
-
-#### 添加团队成员
-```
-POST /api/teams/{team_id}/members/{username}
-```
-
-**参数：**
-- team_id: 团队ID（路径参数）
-- username: 用户名（路径参数）
-
-**返回值：**
-```json
-{
-    "ok": true
-}
-```
-
-**错误码：**
-- 403: 无权限（非管理员）
-- 404: 用户不存在
-- 400: 用户已是团队成员
-
-#### 获取团队成员列表
-```
-GET /api/teams/{team_id}/members
-```
-
-**参数：**
-- team_id: 团队ID（路径参数）
-
-**返回值（List[TeamMemberRead]）：**
-```json
-[
-    {
-        "id": 0,
-        "username": "string",
-        "email": "string",
-        "full_name": "string",
-        "is_active": true,
-        "is_superuser": false,
-        "created_at": "datetime",
-        "updated_at": "datetime",
-        "role": "string",
-        "joined_at": "datetime",
-        "is_admin": true
-    }
-]
-```
-
-**错误码：**
-- 403: 无权限（非团队成员）
-
-#### 移除团队成员
-```
-DELETE /api/teams/{team_id}/members/{user_id}
-```
-
-**参数：**
-- team_id: 团队ID（路径参数）
-- user_id: 用户ID（路径参数）
-
-**返回值：**
-```json
-{
-    "ok": true
-}
-```
-
-**错误码：**
-- 403: 无权限（非管理员）
-- 404: 用户不是团队成员
-- 400: 不能移除自己或团队拥有者
-
-#### 获取团队信息
-```
-GET /api/teams/{team_id}
-```
-
-**参数：**
-- team_id: 团队ID（路径参数）
-
-**返回值：**
-同TeamRead
-
-**错误码：**
-- 403: 无权限（非团队成员）
-- 404: 团队不存在
-
-#### 更新团队信息
-```
-PATCH /api/teams/{team_id}
-```
-
-**参数：**
-- team_id: 团队ID（路径参数）
-
-**请求体（TeamUpdate）：**
-```json
-{
-    "name": "string",        // 可选
-    "description": "string", // 可选
-    "max_members": 0,        // 可选
-    "is_active": true       // 可选
-}
-```
-
-**返回值：**
-同TeamRead
-
-**错误码：**
-- 403: 无权限（非管理员）
-- 404: 团队不存在
-
-#### 删除团队
-```
-DELETE /api/teams/{team_id}
-```
-
-**参数：**
-- team_id: 团队ID（路径参数）
-
-**返回值：**
-```json
-{
-    "ok": true
-}
-```
-
-**错误码：**
-- 403: 无权限（非团队拥有者）
-- 404: 团队不存在
-
-#### 获取团队列表
-```
-GET /api/teams/
-```
-
-**返回值：**
-```json
-[
-    {
-        "id": 0,
-        "name": "string",
-        "description": "string",
-        "creator_id": 0,
-        "created_at": "datetime",
-        "updated_at": "datetime",
-        "member_count": 0,
-        "max_members": 0,
-        "is_active": true,
-        "last_active_at": "datetime"
-    }
-]
-```
-
-#### 更新成员角色
-```
-PATCH /api/teams/{team_id}/members/{user_id}/role
-```
-
-**参数：**
-- team_id: 团队ID（路径参数）
-- user_id: 用户ID（路径参数）
-- role: 新角色（查询参数，MEMBER/ADMIN）
-
-**返回值：**
-```json
-{
-    "ok": true
-}
-```
-
-**错误码：**
-- 403: 无权限（非管理员）
-- 404: 用户不是团队成员
-- 400: 不能更改团队拥有者的角色
-
-### 参考文献相关API
-
-#### 创建参考文献
-```
-POST /api/references/
-```
-
-**请求体（ReferenceCreate）：**
-```json
-{
-    "title": "string",           // 必填，标题
-    "authors": "string",         // 必填，作者字符串
-    "doi": "string",            // 可选，DOI
-    "team_id": 0,               // 必填，团队ID
-    "category_id": 0,           // 可选，分类ID
-    "keyword_names": ["string"]  // 可选，关键词列表
-}
-```
-
-**返回值（ReferenceRead）：**
-```json
-{
-    "id": 0,
-    "title": "string",
-    "authors": "string",
-    "doi": "string",
-    "file_path": "string",
-    "created_at": "datetime",
-    "updated_at": "datetime",
-    "team_id": 0,
-    "created_by_id": 0,
-    "category_id": 0,
-    "keywords": ["string"]
-}
-```
-
-**错误码：**
-- 403: 无权限（非团队成员）
-- 404: 团队或分类不存在
-- 400: DOI已存在
-
-#### 获取参考文献列表
-```
-GET /api/references/
-```
-
-**查询参数：**
-- team_id: 团队ID（必填）
-- category_id: 分类ID（可选）
-- keyword: 关键词（可选）
-- skip: 跳过记录数（默认0）
-- limit: 返回记录数（默认100）
-
-**返回值：**
-```json
-[
-    {
-        "id": 0,
-        "title": "string",
-        "authors": "string",
-        "doi": "string",
-        "file_path": "string",
-        "created_at": "datetime",
-        "updated_at": "datetime",
-        "team_id": 0,
-        "created_by_id": 0,
-        "category_id": 0,
-        "keywords": ["string"]
-    }
-]
-```
-
-**错误码：**
-- 403: 无权限（非团队成员）
-
-#### 获取单个参考文献
-```
-GET /api/references/{reference_id}
-```
-
-**参数：**
-- reference_id: 参考文献ID（路径参数）
-
-**返回值：**
-同ReferenceRead
-
-**错误码：**
-- 403: 无权限（非团队成员）
-- 404: 参考文献不存在
-
-#### 更新参考文献
-```
-PATCH /api/references/{reference_id}
-```
-
-**参数：**
-- reference_id: 参考文献ID（路径参数）
-
-**请求体（ReferenceUpdate）：**
-```json
-{
-    "title": "string",           // 可选
-    "authors": "string",         // 可选
-    "doi": "string",            // 可选
-    "category_id": 0,           // 可选
-    "keyword_names": ["string"]  // 可选
-}
-```
-
-**返回值：**
-同ReferenceRead
-
-**错误码：**
-- 403: 无权限（非团队成员）
-- 404: 参考文献或分类不存在
-
-#### 删除参考文献
-```
-DELETE /api/references/{reference_id}
-```
-
-**参数：**
-- reference_id: 参考文献ID（路径参数）
-
-**返回值：**
-```json
-{
-    "ok": true
-}
-```
-
-**错误码：**
-- 403: 无权限（非团队成员）
-- 404: 参考文献不存在
-
-#### 上传参考文献文件
-```
-POST /api/references/{reference_id}/upload
-```
-
-**参数：**
-- reference_id: 参考文献ID（路径参数）
-- file: 文件（multipart/form-data）
-
-**返回值：**
-```json
-{
-    "filename": "string",
-    "file_path": "string"
-}
-```
-
-**错误码：**
-- 403: 无权限（非团队成员）
-- 404: 参考文献不存在
-- 400: 不支持的文件类型
-
-#### 下载参考文献（通过ID）
-```
-GET /api/references/{reference_id}/download
-```
-
-**参数：**
-- reference_id: 参考文献ID（路径参数）
-
-**返回值：**
-- 文件流（application/pdf）
-
-**错误码：**
-- 403: 无权限（非团队成员）
-- 404: 参考文献或文件不存在
-
-#### 下载参考文献（通过标题）
-```
-GET /api/references/download/by-title
-```
-
-**查询参数：**
-- title: 参考文献标题
-- team_id: 团队ID
-
-**返回值：**
-- 文件流（application/pdf）
-
-**错误码：**
-- 403: 无权限（非团队成员）
-- 404: 参考文献或文件不存在
