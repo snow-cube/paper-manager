@@ -7,9 +7,11 @@ from .paper import PaperCategory
 
 if TYPE_CHECKING:
     from .paper import Paper
-    from .reference import ReferencePaper
 
 class Category(SQLModel, table=True):
+    """分类"""
+    __tablename__ = "category"
+
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(index=True)
     description: Optional[str] = None
@@ -34,16 +36,16 @@ class Category(SQLModel, table=True):
         back_populates="category"
     )
 
-    reference_papers: List["ReferencePaper"] = Relationship(back_populates="category")
-
 
 class CategoryCreate(SQLModel):
+    """创建分类"""
     name: str
     description: Optional[str] = None
     parent_id: Optional[int] = None
 
 
 class CategoryRead(SQLModel):
+    """读取分类"""
     id: int
     name: str
     description: Optional[str] = None
@@ -51,6 +53,7 @@ class CategoryRead(SQLModel):
 
 
 class CategoryUpdate(SQLModel):
+    """更新分类"""
     name: Optional[str] = None
     description: Optional[str] = None
     parent_id: Optional[int] = None
