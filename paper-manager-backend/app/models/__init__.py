@@ -21,7 +21,7 @@ print(f"DEBUG: Imported .team. Registered tables: {list(SQLModel.metadata.tables
 
 from .reference import (
     ReferencePaper, ReferenceCreate, ReferenceRead, ReferenceUpdate,
-    ReferenceKeyword
+    ReferenceKeyword, ReferenceCategory, ReferenceCategoryRead
 )
 print(f"DEBUG: Imported .reference. Registered tables: {list(SQLModel.metadata.tables.keys())}")
 
@@ -34,6 +34,7 @@ __all__ = [
     "Team", "TeamCreate", "TeamRead", "TeamUpdate", "TeamUser",
     "Paper", "PaperCreate", "PaperRead", "PaperUpdate", "PaperAuthor", "PaperKeyword",
     "ReferencePaper", "ReferenceCreate", "ReferenceRead", "ReferenceUpdate", "ReferenceKeyword",
+    "ReferenceCategory", "ReferenceCategoryRead",
     "Keyword", "KeywordCreate", "KeywordRead", "KeywordUpdate"
 ]
 

@@ -5,7 +5,7 @@ from enum import Enum
 
 if TYPE_CHECKING:
     from .user import User, UserRead
-    from .reference import ReferencePaper
+    from .reference import ReferencePaper, ReferenceCategory
 
 
 class TeamRole(str, Enum):
@@ -40,16 +40,19 @@ class TeamUser(SQLModel, table=True):
         return self.role.is_admin
 
 
-class Team(SQLModel, table=True):
+class TeamBase(SQLModel):
+    name: str = Field(index=True)
+    description: Optional[str] = None
+    creator_id: int = Field(foreign_key="user.id")
+
+
+class Team(TeamBase, table=True):
     """团队表"""
     __tablename__ = "team"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    name: str = Field(index=True)
-    description: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)  # 添加更新时间
-    creator_id: int = Field(foreign_key="user.id")  # 创建者ID
     max_members: Optional[int] = None
     is_active: bool = Field(default=True)
     last_active_at: Optional[datetime] = None
@@ -60,22 +63,19 @@ class Team(SQLModel, table=True):
     references: List["ReferencePaper"] = Relationship(back_populates="team")
     creator: "User" = Relationship(back_populates="created_teams")
     papers: List["PaperTeam"] = Relationship(back_populates="team")
+    reference_categories: List["ReferenceCategory"] = Relationship(back_populates="team")
 
 
-class TeamCreate(SQLModel):
+class TeamCreate(TeamBase):
     """创建团队的请求模型"""
-    name: str
-    description: Optional[str] = None
+    pass
 
 
-class TeamRead(SQLModel):
+class TeamRead(TeamBase):
     """团队信息返回模型"""
     id: int
-    name: str
-    description: Optional[str] = None
     created_at: datetime
     updated_at: datetime
-    creator_id: int
     member_count: Optional[int] = None  # 成员数量
 
 
