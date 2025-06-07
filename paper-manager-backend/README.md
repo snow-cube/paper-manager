@@ -74,13 +74,14 @@ paper-manager-backend/
 | 字段名 | 类型 | 说明 | 约束 |
 |--------|------|------|------|
 | id | Integer | 论文ID | Primary Key |
-| title | String | 标题 | Not Null |
-| authors | String | 作者 | Not Null |
+| title | String | 标题 | Not Null, Index |
 | abstract | String | 摘要 | Nullable |
+| publication_date | DateTime | 发表日期 | Nullable |
+| journal | String | 期刊名称 | Nullable |
+| doi | String | DOI | Unique, Nullable |
 | file_path | String | 文件路径 | Nullable |
 | created_at | DateTime | 创建时间 | Default Now |
 | updated_at | DateTime | 更新时间 | Default Now |
-| category_id | Integer | 分类ID | Foreign Key -> Category.id |
 | created_by_id | Integer | 创建者ID | Foreign Key -> User.id |
 
 ### Category 论文分类表
@@ -131,6 +132,37 @@ paper-manager-backend/
 |--------|------|------|------|
 | paper_id | Integer | 论文ID | Primary Key, Foreign Key -> Paper.id |
 | keyword_id | Integer | 关键词ID | Primary Key, Foreign Key -> Keyword.id |
+
+### Author 作者表
+| 字段名 | 类型 | 说明 | 约束 |
+|--------|------|------|------|
+| id | Integer | 作者ID | Primary Key |
+| name | String | 作者姓名 | Index |
+| email | String | 邮箱 | Unique, Nullable |
+| affiliation | String | 所属机构 | Nullable |
+| created_at | DateTime | 创建时间 | Default Now |
+| updated_at | DateTime | 更新时间 | Default Now |
+
+### PaperAuthor 论文-作者关联表
+| 字段名 | 类型 | 说明 | 约束 |
+|--------|------|------|------|
+| paper_id | Integer | 论文ID | Primary Key, Foreign Key -> Paper.id |
+| author_id | Integer | 作者ID | Primary Key, Foreign Key -> Author.id |
+| contribution_ratio | Float | 贡献率 | Default 1.0 |
+| is_corresponding | Boolean | 是否通讯作者 | Default False |
+| author_order | Integer | 作者顺序 | Not Null |
+
+### PaperCategory 论文-分类关联表
+| 字段名 | 类型 | 说明 | 约束 |
+|--------|------|------|------|
+| paper_id | Integer | 论文ID | Primary Key, Foreign Key -> Paper.id |
+| category_id | Integer | 分类ID | Primary Key, Foreign Key -> Category.id |
+
+### PaperTeam 论文-团队关联表
+| 字段名 | 类型 | 说明 | 约束 |
+|--------|------|------|------|
+| paper_id | Integer | 论文ID | Primary Key, Foreign Key -> Paper.id |
+| team_id | Integer | 团队ID | Primary Key, Foreign Key -> Team.id |
 
 ## 3. API 文档
 
