@@ -6,32 +6,31 @@ uvicorn app.main:app --reload --log-level debug
 
 ```
 paper-manager-backend/
-├── app/
-│   ├── api/                # API 路由处理
-│   │   ├── deps.py        # 依赖注入（认证、权限等）
+├── app/                  # 应用主目录
+│   ├── api/             # API 路由处理
+│   │   ├── __init__.py
 │   │   ├── user.py        # 用户相关接口
 │   │   ├── team.py        # 团队相关接口
 │   │   ├── paper.py       # 论文相关接口
 │   │   ├── reference.py   # 参考文献相关接口
-│   │   └── category.py    # 分类相关接口
-│   ├── core/              # 核心配置
-│   │   ├── config.py      # 配置文件（数据库、JWT等）
-│   │   ├── security.py    # 安全相关（密码哈希、JWT）
-│   │   └── database.py    # 数据库配置和会话管理
-│   ├── models/            # SQLModel 数据模型
-│   │   ├── __init__.py    # 模型导出
-│   │   ├── user.py        # 用户模型
-│   │   ├── team.py        # 团队模型
-│   │   ├── paper.py       # 论文模型
-│   │   ├── reference.py   # 参考文献模型
-│   │   ├── category.py    # 分类模型
-│   │   └── keyword.py     # 关键词模型
-│   └── main.py            # 应用入口（FastAPI应用配置）
-├── data/                  # 数据文件
-│   ├── app.db            # SQLite 数据库文件
-│   ├── papers/           # 论文PDF文件存储
-│   └── references/       # 参考文献PDF文件存储
-└── requirements.txt      # 项目依赖
+│   │   ├── category.py    # 论文分类相关接口
+│   │   └── reference_category.py  # 参考文献分类相关接口
+│   ├── core/            # 核心配置
+│   │   ├── config_dev.py  # 开发环境配置
+│   │   ├── database.py    # 数据库配置
+│   │   └── dependencies.py # 依赖注入
+│   ├── models/          # 数据模型
+│   ├── schemas/         # Pydantic 模型
+│   ├── services/        # 业务逻辑服务
+│   ├── static/          # 静态文件
+│   └── main.py          # 应用入口
+├── data/                # 数据文件
+├── .env.example         # 环境变量示例
+├── .gitignore          # Git 忽略文件
+├── .python-version     # Python 版本配置
+├── MIGRATION_TO_SQLITE.md  # SQLite 迁移说明
+├── pyproject.toml      # 项目配置
+└── uv.lock             # 依赖锁定文件
 ```
 
 ## 2. 数据库表结构
