@@ -108,12 +108,18 @@
         </div>
       </div>
     </div>    <!-- 添加/编辑文献模态框 -->
-    <Modal v-if="showAddForm || editingReference" @close="closeForm">
+    <Modal
+      v-if="showAddForm || editingReference"
+      @close="closeForm"
+      :show-progress="true"
+      :progress="formProgress"
+    >
       <PaperForm
         :paper="editingReference"
         :paperType="'literature'"
         @saved="handleReferenceSaved"
         @cancel="closeForm"
+        @progress-update="handleProgressUpdate"
       />
     </Modal>
 
@@ -159,6 +165,7 @@ const deletingReference = ref(null);
 const searchQuery = ref('');
 const selectedCategoryId = ref('');
 const keywordFilter = ref('');
+const formProgress = ref(0);
 
 const filteredReferences = computed(() => {
   let filtered = references.value;
@@ -281,6 +288,11 @@ const handleReferenceSaved = (savedReference) => {
 const closeForm = () => {
   showAddForm.value = false;
   editingReference.value = null;
+  formProgress.value = 0;
+};
+
+const handleProgressUpdate = (progress) => {
+  formProgress.value = progress;
 };
 
 const formatDate = (dateString) => {

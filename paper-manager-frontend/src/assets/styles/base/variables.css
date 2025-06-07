@@ -1,6 +1,7 @@
 /* 设计系统变量 */
 :root {
   /* Primary colors - 更柔和的蓝紫色主题 */
+  --primary-25: #fcfcff;
   --primary-50: #f9f8ff;
   --primary-100: #f2effc;
   --primary-200: #e7e3f8;
@@ -11,8 +12,8 @@
   --primary-700: #6859a3;
   --primary-800: #534883;
   --primary-900: #433a68;
-
   /* Gray colors */
+  --gray-25: #fefefe;
   --gray-50: #f9fafb;
   --gray-100: #f3f4f6;
   --gray-200: #e5e7eb;
@@ -23,21 +24,23 @@
   --gray-700: #374151;
   --gray-800: #1f2937;
   --gray-900: #111827;
-
   /* Success colors */
+  --success-25: #feffef;
   --success-50: #f0fdf4;
   --success-500: #22c55e;
   --success-600: #16a34a;
 
   /* Warning colors */
+  --warning-25: #ffffee;
   --warning-50: #fffbeb;
   --warning-500: #f59e0b;
   --warning-600: #d97706;
-
   /* Error colors */
+  --error-25: #fffefe;
   --error-50: #fef2f2;
-  --error-500: #ef4444;
-  --error-600: #dc2626;
+  --error-400: #ff6b35;
+  --error-500: #ff5722;
+  --error-600: #e64a19;
 
   /* Basic colors */
   --white: #ffffff;
@@ -70,7 +73,8 @@
   --border-radius-lg: 12px;
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1),
+    0 4px 6px -4px rgb(0 0 0 / 0.1);
 
   /* 组件尺寸 */
   --card-padding: 1.5rem;

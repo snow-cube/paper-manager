@@ -6,15 +6,19 @@
         @add-new="showAddForm = true"
         @edit="handleEdit"
         @view="handleView"
-      />
-
-      <!-- 添加/编辑表单模态框 -->
-      <Modal v-if="showAddForm || editingPaper" @close="closeForm">
+      />      <!-- 添加/编辑表单模态框 -->
+      <Modal
+        v-if="showAddForm || editingPaper"
+        @close="closeForm"
+        :show-progress="true"
+        :progress="formProgress"
+      >
         <PaperForm
           :paper="editingPaper"
           :paperType="'published'"
           @saved="handlePaperSaved"
           @cancel="closeForm"
+          @progress-update="handleProgressUpdate"
         />
       </Modal>
 
@@ -46,6 +50,7 @@ const { loadCategories } = useCategories();
 const showAddForm = ref(false);
 const editingPaper = ref(null);
 const viewingPaper = ref(null);
+const formProgress = ref(0);
 
 // 论文管理器配置
 const paperManagerConfig = {
@@ -95,6 +100,11 @@ const handlePaperSaved = () => {
 const closeForm = () => {
   showAddForm.value = false;
   editingPaper.value = null;
+  formProgress.value = 0;
+};
+
+const handleProgressUpdate = (progress) => {
+  formProgress.value = progress;
 };
 
 // 生命周期

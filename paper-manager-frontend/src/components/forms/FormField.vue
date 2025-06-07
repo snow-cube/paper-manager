@@ -4,16 +4,22 @@
       {{ label }}
       <span v-if="required" class="required-indicator">*</span>
     </label>
-      <!-- 文本输入 -->
+    <!-- 文本输入 -->
     <input
-      v-if="type === 'text' || type === 'email' || type === 'url' || type === 'date'"
+      v-if="
+        type === 'text' || type === 'email' || type === 'url' || type === 'date'
+      "
       :id="id"
       :value="modelValue"
       :type="type"
       :placeholder="placeholder"
       :required="required"
-      :disabled="disabled"      class="form-input"
-      @input="$emit('update:modelValue', $event.target.value); $emit('input', $event.target.value)"
+      :disabled="disabled"
+      class="form-input"
+      @input="
+        $emit('update:modelValue', $event.target.value);
+        $emit('input', $event.target.value);
+      "
       @blur="$emit('blur', $event)"
     />
 
@@ -28,8 +34,12 @@
       :disabled="disabled"
       :step="step"
       :min="min"
-      :max="max"      class="form-input"
-      @input="$emit('update:modelValue', parseFloat($event.target.value) || 0); $emit('input', parseFloat($event.target.value) || 0)"
+      :max="max"
+      class="form-input"
+      @input="
+        $emit('update:modelValue', parseFloat($event.target.value) || 0);
+        $emit('input', parseFloat($event.target.value) || 0);
+      "
       @blur="$emit('blur', $event)"
     />
 
@@ -41,8 +51,12 @@
       :placeholder="placeholder"
       :required="required"
       :disabled="disabled"
-      :rows="rows"      class="form-textarea"
-      @input="$emit('update:modelValue', $event.target.value); $emit('input', $event.target.value)"
+      :rows="rows"
+      class="form-textarea"
+      @input="
+        $emit('update:modelValue', $event.target.value);
+        $emit('input', $event.target.value);
+      "
       @blur="$emit('blur', $event)"
     ></textarea>
 
@@ -53,12 +67,26 @@
       :value="modelValue"
       :required="required"
       :disabled="disabled"
-      :multiple="multiple"      class="form-select"
-      @change="$emit('update:modelValue', multiple ? Array.from($event.target.selectedOptions, option => option.value) : $event.target.value); $emit('change', $event)"
+      :multiple="multiple"
+      class="form-select"
+      @change="
+        $emit(
+          'update:modelValue',
+          multiple
+            ? Array.from(
+                $event.target.selectedOptions,
+                (option) => option.value
+              )
+            : $event.target.value
+        );
+        $emit('change', $event);
+      "
       @blur="$emit('blur', $event)"
     >
       <slot>
-        <option v-if="!multiple && placeholder" value="">{{ placeholder }}</option>
+        <option v-if="!multiple && placeholder" value="">
+          {{ placeholder }}
+        </option>
         <option
           v-for="option in options"
           :key="option.value"
@@ -80,7 +108,7 @@ defineProps({
   label: String,
   type: {
     type: String,
-    default: 'text'
+    default: "text",
   },
   modelValue: [String, Number, Array],
   placeholder: String,
@@ -90,7 +118,7 @@ defineProps({
   error: String,
   rows: {
     type: Number,
-    default: 3
+    default: 3,
   },
   step: String,
   min: [String, Number],
@@ -98,11 +126,11 @@ defineProps({
   multiple: Boolean,
   options: {
     type: Array,
-    default: () => []
-  }
-})
+    default: () => [],
+  },
+});
 
-defineEmits(['update:modelValue', 'input', 'blur', 'change'])
+defineEmits(["update:modelValue", "input", "blur", "change"]);
 </script>
 
 <style scoped>
