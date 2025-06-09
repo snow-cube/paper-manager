@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from app.core.database import get_session
 from app.models.paper import (
     Paper, PaperCreate, PaperRead, PaperUpdate,
-    PaperAuthor, PaperCategory, PaperKeyword, PaperTeam
+    PaperAuthor, PaperCategory, PaperKeyword
 )
 from app.models.keyword import Keyword
 from app.models.user import User
@@ -26,38 +26,10 @@ UPLOAD_DIR = str(PAPERS_DIR)
 
 
 def check_paper_access(paper_id: int, user: User, session: Session) -> Paper:
-    """检查用户是否有权限访问论文"""
+    """检查论文是否存在（所有论文都是公开的）"""
     paper = session.get(Paper, paper_id)
     if not paper:
         raise HTTPException(status_code=404, detail="Paper not found")
-
-    # 如果是管理员，直接允许访问
-    if user.is_superuser:
-        return paper
-
-    # 获取论文的团队
-    paper_team = session.exec(
-        select(PaperTeam).where(PaperTeam.paper_id == paper_id)
-    ).first()
-
-    # 如果是共有论文，允许访问
-    if not paper_team or paper_team.team_id == 0:
-        return paper
-
-    # 检查用户是否为团队成员
-    team_member = session.exec(
-        select(TeamUser).where(
-            TeamUser.team_id == paper_team.team_id,
-            TeamUser.user_id == user.id
-        )
-    ).first()
-
-    if not team_member:
-        raise HTTPException(
-            status_code=403,
-            detail="Not a member of the team that owns this paper"
-        )
-
     return paper
 
 
@@ -150,9 +122,22 @@ def create_paper(
     current_user: User = Depends(get_current_user)
 ):
     """创建论文"""
-    # 如果不是共有论文，检查用户是否为团队成员
-    if paper.team_id != 0:
-        check_team_member(paper.team_id, current_user, session)
+    # 验证团队是否存在
+    if paper.team_id == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Paper must be associated with a valid team (team_id cannot be 0)"
+        )
+
+    team = session.get(Team, paper.team_id)
+    if not team:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Team {paper.team_id} not found"
+        )
+
+    # 检查用户是否为团队成员
+    check_team_member(paper.team_id, current_user, session)
 
     # 检查DOI是否已存在
     if paper.doi:
@@ -172,14 +157,15 @@ def create_paper(
         publication_date=paper.publication_date,
         journal=paper.journal,
         doi=paper.doi,
-        created_by_id=current_user.id
+        created_by_id=current_user.id,
+        team_id=paper.team_id
     )
     session.add(db_paper)
     session.flush()  # 获取ID
 
     # 创建团队关联
-    paper_team = PaperTeam(paper_id=db_paper.id, team_id=paper.team_id)
-    session.add(paper_team)
+    # paper_team = PaperTeam(paper_id=db_paper.id, team_id=paper.team_id)
+    # session.add(paper_team)
 
     # 处理作者
     authors = []
@@ -327,33 +313,18 @@ def read_papers(
     # 基础查询
     query = select(Paper)
 
-    # 如果指定了团队，检查用户是否为团队成员
+    # 根据team_id进行过滤
     if team_id is not None and team_id != 0:
-        check_team_member(team_id, current_user, session)
-        query = (
-            query
-            .join(PaperTeam)
-            .where(
-                (PaperTeam.team_id == team_id)
-                | (PaperTeam.team_id == 0)
+        # 验证团队是否存在
+        team = session.get(Team, team_id)
+        if not team:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Team {team_id} not found"
             )
-        )
-    else:
-        # 获取用户所在的所有团队ID
-        user_team_ids = [
-            tu.team_id for tu in session.exec(
-                select(TeamUser).where(TeamUser.user_id == current_user.id)
-            ).all()
-        ]
-        # 查询用户所在团队的论文和共有论文
-        query = (
-            query
-            .join(PaperTeam)
-            .where(
-                (PaperTeam.team_id.in_(user_team_ids))
-                | (PaperTeam.team_id == 0)
-            )
-        )
+        # 过滤指定团队的论文
+        query = query.where(Paper.team_id == team_id)
+    # 如果team_id为0或None，返回所有论文（不添加团队过滤条件）
 
     # 应用其他过滤条件
     if title:
@@ -422,12 +393,7 @@ def read_papers(
             ).all()
         ]
 
-        # 获取团队ID
-        paper_team = session.exec(
-            select(PaperTeam).where(PaperTeam.paper_id == paper.id)
-        ).first()
-        team_id = paper_team.team_id if paper_team else 0
-
+        # 获取团队ID - 直接从论文对象获取
         results.append(
             PaperRead(
                 id=paper.id,
@@ -442,7 +408,7 @@ def read_papers(
                 keywords=keywords,
                 authors=authors,
                 categories=categories,
-                team_id=team_id,
+                team_id=paper.team_id,
                 created_by_id=paper.created_by_id
             )
         )
@@ -492,12 +458,6 @@ def read_paper(
         ).all()
     ]
 
-    # 获取团队ID
-    paper_team = session.exec(
-        select(PaperTeam).where(PaperTeam.paper_id == paper_id)
-    ).first()
-    team_id = paper_team.team_id if paper_team else 0
-
     return PaperRead(
         id=paper.id,
         title=paper.title,
@@ -511,7 +471,7 @@ def read_paper(
         keywords=keywords,
         authors=authors,
         categories=categories,
-        team_id=team_id,
+        team_id=paper.team_id,
         created_by_id=paper.created_by_id
     )
 
@@ -528,33 +488,30 @@ def update_paper(
 
     # 如果要更改团队，检查权限
     if paper_update.team_id is not None:
-        # 获取当前团队
-        current_team = session.exec(
-            select(PaperTeam).where(PaperTeam.paper_id == paper_id)
-        ).first()
-        current_team_id = current_team.team_id if current_team else 0
-
-        # 如果要更改到新团队（非0），检查用户是否为新团队成员
-        if paper_update.team_id != 0:
-            check_team_member(paper_update.team_id, current_user, session)
-
-        # 更新团队关联
-        if current_team:
-            current_team.team_id = paper_update.team_id
-        else:
-            paper_team = PaperTeam(
-                paper_id=paper_id,
-                team_id=paper_update.team_id
+        if paper_update.team_id == 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Paper must be associated with a valid team (team_id cannot be 0)"
             )
-            session.add(paper_team)
+
+        # 验证新团队是否存在
+        team = session.get(Team, paper_update.team_id)
+        if not team:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Team {paper_update.team_id} not found"
+            )
+
+        # 检查用户是否为新团队成员
+        check_team_member(paper_update.team_id, current_user, session)
 
     # 更新基本信息
     paper_data = paper_update.dict(exclude_unset=True)
     # 移除需要特殊处理的字段
-    special_fields = {"team_id", "category_ids", "keyword_names", "author_names", "author_contribution_ratios"}
+    special_fields = {"category_ids", "keyword_names", "author_names", "author_contribution_ratios"}
     update_data = {k: v for k, v in paper_data.items() if k not in special_fields}
-    
-    # 更新基本字段
+
+    # 更新基本字段（包括team_id）
     for key, value in update_data.items():
         setattr(paper, key, value)
 
@@ -629,9 +586,6 @@ def delete_paper(
     )
     session.exec(
         delete(PaperKeyword).where(PaperKeyword.paper_id == paper_id)
-    )
-    session.exec(
-        delete(PaperTeam).where(PaperTeam.paper_id == paper_id)
     )
 
     # 删除论文
@@ -731,7 +685,7 @@ async def download_paper_by_id(
     current_user: User = Depends(get_current_user)
 ):
     """通过ID下载论文PDF文件"""
-    # 检查用户是否有权限访问此论文
+    # 检查论文是否存在（所有论文都是公开的）
     paper = check_paper_access(paper_id, current_user, session)
 
     # 检查文件是否存在
@@ -769,7 +723,7 @@ async def download_paper_by_title(
             detail="Paper not found with the specified title"
         )
 
-    # 检查用户是否有权限访问此论文
+    # 检查论文是否存在（所有论文都是公开的）
     paper = check_paper_access(paper.id, current_user, session)
 
     # 检查文件是否存在

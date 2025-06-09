@@ -1,9 +1,16 @@
 <template>
   <div class="paper-card">    <div class="paper-header">
-      <div :class="['paper-type-badge', paper.paper_type]">
-        <span class="badge-icon">{{ paper.paper_type === 'published' ? '🎓' : '📚' }}</span>
-        {{ paper.paper_type === 'published' ? '发表论文' : '文献' }}
-      </div>      <div class="paper-actions">
+      <div class="badge-group">
+        <div :class="['paper-type-badge', paper.paper_type]">
+          <span class="badge-icon">{{ paper.paper_type === 'published' ? '🎓' : '📚' }}</span>
+          {{ paper.paper_type === 'published' ? '发表论文' : '文献' }}
+        </div>
+        <!-- 团队标签 -->
+        <div v-if="paper.team_name || teamName" class="team-badge">
+          <span class="team-icon">👥</span>
+          {{ paper.team_name || teamName }}
+        </div>
+      </div><div class="paper-actions">
         <button
           @click="$emit('view', paper)"
           class="action-btn view-btn"
@@ -109,6 +116,19 @@ const { currentTeam } = useTeam();
 
 // 下载状态
 const downloading = ref(false);
+
+// 计算团队名称
+const teamName = computed(() => {
+  // 如果论文数据中有团队信息，优先使用
+  if (props.paper.team_name) {
+    return props.paper.team_name;
+  }
+  // 如果论文属于当前团队，显示当前团队名称
+  if (props.paper.team_id && currentTeam.value?.id === props.paper.team_id) {
+    return currentTeam.value.name;
+  }
+  return null;
+});
 
 // 加载适当的分类数据
 const loadAppropriateCategories = async () => {
@@ -257,6 +277,12 @@ const handleDownload = async () => {
   align-items: flex-start;
 }
 
+.badge-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
 .paper-type-badge {
   /* 使用徽章基础模板 */
   display: inline-flex;
@@ -287,6 +313,28 @@ const handleDownload = async () => {
   );
   color: var(--white);
   box-shadow: 0 3px 8px rgba(5, 150, 105, 0.15);
+}
+
+.team-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) 0.8rem;
+  border-radius: 15px;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  background: linear-gradient(
+    135deg,
+    #f59e0b 0%,
+    #d97706 100%
+  );
+  color: var(--white);
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.2);
+  max-width: 150px;
+}
+
+.team-icon {
+  font-size: 0.8rem;
 }
 
 .badge-icon {

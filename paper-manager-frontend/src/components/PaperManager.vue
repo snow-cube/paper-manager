@@ -142,7 +142,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from "vue";
+import { computed, onMounted, watch } from "vue";
 import { RouterLink } from "vue-router";
 import CategoryTree from "./CategoryTree.vue";
 import PaperCard from "./PaperCard.vue";
@@ -181,7 +181,7 @@ const {
   clearSearch,
 } = usePapers({
   type: props.config.type || "papers",
-  requireTeam: props.config.requireTeam || false,
+  requireTeam: computed(() => props.config.requireTeam || false),
   loadData: props.config.loadData,
   deleteData: props.config.deleteData,
 });

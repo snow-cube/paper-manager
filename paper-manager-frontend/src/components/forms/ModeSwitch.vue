@@ -1,5 +1,9 @@
 <template>
-  <div class="mode-switch" :data-active="modelValue">
+  <div
+    class="mode-switch"
+    :data-active="modelValue"
+    :style="sliderStyle"
+  >
     <button
       v-for="option in options"
       :key="option.value"
@@ -14,15 +18,28 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
+
 const props = defineProps({
   modelValue: { type: String, default: "" },
   options: { type: Array, required: true },
   disabled: { type: Boolean, default: false },
 });
 const emit = defineEmits(["update:modelValue"]);
+
 function update(value) {
   emit("update:modelValue", value);
 }
+
+// 计算滑块位置
+const sliderStyle = computed(() => {
+  const activeIndex = props.options.findIndex(option => option.value === props.modelValue);
+  const translateX = activeIndex > 0 ? (activeIndex * 100) + '%' : '0%';
+
+  return {
+    '--slider-position': translateX
+  };
+});
 </script>
 
 <style scoped>
@@ -79,6 +96,7 @@ function update(value) {
     inset 0 1px 1px rgba(255, 255, 255, 0.2);
   transition: transform var(--transition-bounce);
   z-index: 1;
+  transform: translateX(var(--slider-position, 0%));
 }
 
 /* 添加光泽效果 */
@@ -98,17 +116,7 @@ function update(value) {
   transition: transform var(--transition-bounce);
   z-index: 2;
   pointer-events: none;
-}
-
-/* 滑块位置控制 */
-.mode-switch[data-active="published"]::before,
-.mode-switch[data-active="published"]::after {
-  transform: translateX(100%);
-}
-
-.mode-switch[data-active="literature"]::before,
-.mode-switch[data-active="literature"]::after {
-  transform: translateX(0);
+  transform: translateX(var(--slider-position, 0%));
 }
 
 /* 按钮悬停状态 */

@@ -1,6 +1,15 @@
 <template>
   <div class="publications-page">
     <div class="container">
+      <!-- 模式切换 -->
+      <div class="page-controls">
+        <ModeSwitch
+          v-model="viewMode"
+          :options="viewModeOptions"
+          class="team-mode-switch"
+        />
+      </div>
+
       <PaperManager
         :config="paperManagerConfig"
         @add-new="showAddForm = true"
@@ -36,39 +45,51 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import PaperManager from "../components/PaperManager.vue";
 import PaperForm from "../components/PaperForm.vue";
 import PaperDetail from "../components/PaperDetail.vue";
 import Modal from "../components/Modal.vue";
+import ModeSwitch from "../components/forms/ModeSwitch.vue";
 import { useToast } from "../composables/useToast";
 import { useCategories } from "../composables/useCategories";
+import { useTeam } from "../composables/useTeam";
 
 const { showToast } = useToast();
 const { loadCategories } = useCategories();
+const { currentTeam } = useTeam();
 
 // 响应式数据
 const showAddForm = ref(false);
 const editingPaper = ref(null);
 const viewingPaper = ref(null);
 const formProgress = ref(0);
+const viewMode = ref("all"); // "team" 或 "all"
+
+// 模式切换选项
+const viewModeOptions = [
+  { value: "all", label: "所有论文" },
+  { value: "team", label: "本团队论文" },
+];
 
 // 论文管理器配置
-const paperManagerConfig = {
+const paperManagerConfig = computed(() => ({
   title: "发表论文管理",
   icon: "📄",
-  description: "管理您已发表的学术论文",
+  description: viewMode.value === "team" && currentTeam.value
+    ? `管理 "${currentTeam.value.name}" 团队的发表论文`
+    : "管理所有发表论文",
   paperType: "published",
   categoryType: "papers",
   type: "papers",
-  requireTeam: true,
+  requireTeam: viewMode.value === "team",
   teamRequiredText: "发表论文",
   searchPlaceholder: "论文标题、作者、关键词",
   addButtonText: "添加论文",
   emptyIcon: "📄",
   emptyTitle: "暂无发表论文",
   emptyDescription: "开始添加您的第一篇发表论文吧",
-};
+}));
 
 // 处理编辑
 const handleEdit = (paper) => {
@@ -127,5 +148,19 @@ onMounted(() => {
   max-width: 1400px;
   margin: 0 auto;
   padding: 2rem 1rem;
+}
+
+.page-controls {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: var(--white);
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.team-mode-switch {
+  transform: scale(1.1);
 }
 </style>

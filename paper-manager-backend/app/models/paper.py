@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from .author import Author
     from .keyword import Keyword
     from .team import Team
+    from .user import User
 
 class PaperCategory(SQLModel, table=True):
     """论文-分类关联表"""
@@ -50,17 +51,6 @@ class PaperKeyword(SQLModel, table=True):
     keyword: "Keyword" = Relationship(back_populates="paper_links")
 
 
-class PaperTeam(SQLModel, table=True):
-    """论文-团队关联表"""
-    __tablename__ = "paper_team"
-
-    paper_id: int = Field(foreign_key="paper.id", primary_key=True)
-    team_id: int = Field(foreign_key="team.id", primary_key=True)  # 0表示共有
-
-    paper: "Paper" = Relationship(back_populates="teams")
-    team: "Team" = Relationship(back_populates="papers")
-
-
 class PaperBase(SQLModel):
     title: str = Field(index=True)
     abstract: Optional[str] = None
@@ -77,6 +67,7 @@ class Paper(PaperBase, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     created_by_id: int = Field(foreign_key="user.id")
+    team_id: int = Field(foreign_key="team.id")
 
     # Relationships
     categories: List["Category"] = Relationship(
@@ -103,7 +94,7 @@ class Paper(PaperBase, table=True):
         back_populates="paper"
     )
 
-    teams: List["PaperTeam"] = Relationship(back_populates="paper")
+    team: "Team" = Relationship(back_populates="papers")
     created_by: "User" = Relationship(back_populates="papers")
 
 
@@ -119,7 +110,7 @@ class PaperCreate(SQLModel):
     keyword_names: List[str]
     author_contribution_ratios: Optional[List[float]] = None
     corresponding_author_name: Optional[str] = None
-    team_id: int  # 0表示共有
+    team_id: int
 
 
 class PaperRead(SQLModel):
@@ -150,4 +141,4 @@ class PaperUpdate(SQLModel):
     category_ids: Optional[List[int]] = None
     keyword_names: Optional[List[str]] = None
     file_path: Optional[str] = None
-    team_id: Optional[int] = None  # 0表示共有
+    team_id: Optional[int] = None

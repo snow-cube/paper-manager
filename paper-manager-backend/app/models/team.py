@@ -6,6 +6,7 @@ from enum import Enum
 if TYPE_CHECKING:
     from .user import User, UserRead
     from .reference import ReferencePaper, ReferenceCategory
+    from .paper import Paper
 
 
 class TeamRole(str, Enum):
@@ -62,7 +63,7 @@ class Team(TeamBase, table=True):
     member_links: List[TeamUser] = Relationship(back_populates="team")
     references: List["ReferencePaper"] = Relationship(back_populates="team")
     creator: "User" = Relationship(back_populates="created_teams")
-    papers: List["PaperTeam"] = Relationship(back_populates="team")
+    papers: List["Paper"] = Relationship(back_populates="team")
     reference_categories: List["ReferenceCategory"] = Relationship(back_populates="team")
 
 
@@ -82,4 +83,4 @@ class TeamRead(TeamBase):
 class TeamUpdate(SQLModel):
     """更新团队的请求模型"""
     name: Optional[str] = None
-    description: Optional[str] = None 
+    description: Optional[str] = None
