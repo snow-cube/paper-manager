@@ -109,6 +109,45 @@
   --text-xl: 1.25rem;
   --text-2xl: 1.5rem;
   --text-3xl: 1.875rem;
+
+  /* 页面布局变量 */
+  --page-header-bg: linear-gradient(135deg, var(--white), var(--primary-25));
+  --page-header-border: var(--primary-100);
+  --page-content-bg: var(--color-background-soft);
+  --page-controls-bg: var(--white);
+
+  /* 卡片统一样式 */
+  --card-bg: var(--white);
+  --card-border: var(--primary-100);
+  --card-hover-shadow: var(--shadow-xl);
+  --card-header-bg: linear-gradient(135deg, var(--white), var(--primary-50));
+
+  /* 标签页统一样式 */
+  --tab-bg: var(--primary-25);
+  --tab-active-bg: var(--white);
+  --tab-hover-bg: var(--primary-50);
+  --tab-active-color: var(--primary-600);
+  --tab-border-color: var(--primary-500);
+
+  /* 按钮统一样式 */
+  --btn-primary-bg: var(--primary-500);
+  --btn-primary-hover-bg: var(--primary-600);
+  --btn-secondary-bg: var(--gray-600);
+  --btn-secondary-hover-bg: var(--gray-700);
+
+  /* 警告组件样式 */
+  --warning-bg: linear-gradient(135deg, var(--warning-25), var(--color-background-soft));
+  --warning-border: var(--warning-200);
+  --warning-text: var(--warning-700);
+
+  /* 更多尺寸变量 */
+  --border-radius-sm: 6px;
+  --border-radius-xl: 16px;
+  --space-3xl: 4rem;
+  --space-4xl: 5rem;
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 10px 10px -5px rgb(0 0 0 / 0.04);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+
 }
 
 @media (prefers-color-scheme: dark) {

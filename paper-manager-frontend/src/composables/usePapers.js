@@ -1,10 +1,10 @@
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { getPapers, getReferences, deletePaper, deleteReference } from '../services/api'
 import { useToast } from './useToast'
 import { useTeam } from './useTeam'
 
 /**
- * 通用论文/文献管理组合式函数
+ * 通用论文/文献管理组合式函数 - 支持服务端分页
  * @param {Object} options 配置选项
  * @param {string} options.type - 类型: 'papers' | 'literature'
  * @param {boolean|import('vue').Ref<boolean>} options.requireTeam - 是否需要团队
@@ -28,7 +28,6 @@ export function usePapers(options = {}) {
       ? requireTeam.value
       : requireTeam
   })
-
   // 响应式数据
   const papers = ref([])
   const loading = ref(false)
@@ -36,7 +35,12 @@ export function usePapers(options = {}) {
   const searchQuery = ref('')
   const selectedCategoryId = ref(null)
   const currentPage = ref(1)
-  const itemsPerPage = 12
+  const itemsPerPage = 10 // 服务端分页每页数量
+  const totalItems = ref(0) // 服务端返回的总数量
+  const totalPages = ref(0) // 计算得出的总页数
+
+  // 搜索防抖定时器
+  let searchDebounceTimer = null
 
   // 辅助函数：处理作者数据
   const getAuthorsText = (authors) => {
@@ -57,81 +61,50 @@ export function usePapers(options = {}) {
     }
     return ''
   }
-  // 计算属性：过滤后的论文列表
+
+  // 计算属性：当前页的论文列表（直接返回从服务端获取的数据）
   const filteredPapers = computed(() => {
     // 如果需要团队但没有选择团队，返回空数组
     if (requireTeamRef.value && !currentTeam.value) return []
-
-    let filtered = papers.value
-
-    // 团队筛选（只对参考文献有效）
-    if (requireTeamRef.value && currentTeam.value) {
-      filtered = filtered.filter(paper => paper.team_id === currentTeam.value.id)
-    }
-
-    // 分类筛选
-    if (selectedCategoryId.value) {
-      filtered = filtered.filter(paper => {
-        if (Array.isArray(paper.categories)) {
-          return paper.categories.some(cat => cat.id === selectedCategoryId.value)
-        }
-        return paper.category_id === selectedCategoryId.value
-      })
-    }
-
-    // 搜索筛选
-    if (searchQuery.value.trim()) {
-      const query = searchQuery.value.toLowerCase()
-      filtered = filtered.filter(paper =>
-        paper.title?.toLowerCase().includes(query) ||
-        getAuthorsText(paper.authors)?.toLowerCase().includes(query) ||
-        paper.abstract?.toLowerCase().includes(query) ||
-        getKeywordsText(paper.keywords)?.toLowerCase().includes(query)
-      )
-    }
-
-    // 分页
-    const start = (currentPage.value - 1) * itemsPerPage
-    const end = start + itemsPerPage
-    return filtered.slice(start, end)
+    return papers.value
   })
-  // 计算属性：总页数
-  const totalPages = computed(() => {
-    if (requireTeamRef.value && !currentTeam.value) return 0
 
-    let filtered = papers.value
+  // 构建查询参数
+  const buildQueryParams = () => {
+    const skip = (currentPage.value - 1) * itemsPerPage
+    const limit = itemsPerPage
 
-    // 团队筛选
-    if (requireTeamRef.value && currentTeam.value) {
-      filtered = filtered.filter(paper => paper.team_id === currentTeam.value.id)
-    }
+    const params = { skip, limit }
 
-    // 分类筛选
-    if (selectedCategoryId.value) {
-      filtered = filtered.filter(paper => {
-        if (Array.isArray(paper.categories)) {
-          return paper.categories.some(cat => cat.id === selectedCategoryId.value)
-        }
-        return paper.category_id === selectedCategoryId.value
-      })
-    }
-
-    // 搜索筛选
+    // 添加搜索关键词
     if (searchQuery.value.trim()) {
-      const query = searchQuery.value.toLowerCase()
-      filtered = filtered.filter(paper =>
-        paper.title?.toLowerCase().includes(query) ||
-        getAuthorsText(paper.authors)?.toLowerCase().includes(query) ||
-        paper.abstract?.toLowerCase().includes(query) ||
-        getKeywordsText(paper.keywords)?.toLowerCase().includes(query)
-      )
+      if (type === 'literature') {
+        params.keyword = searchQuery.value.trim()
+      } else {
+        // 对于论文，我们使用 keyword 参数进行全文搜索
+        params.keyword = searchQuery.value.trim()
+      }
     }
 
-    return Math.ceil(filtered.length / itemsPerPage)
-  })  // 加载数据
+    // 添加分类筛选
+    if (selectedCategoryId.value) {
+      params.category_id = selectedCategoryId.value
+    }
+
+    // 添加团队筛选
+    if (requireTeamRef.value && currentTeam.value) {
+      params.team_id = currentTeam.value.id
+    }
+
+    return params
+  }
+
+  // 加载数据
   const loadPapers = async () => {
     if (requireTeamRef.value && !currentTeam.value) {
       papers.value = []
+      totalItems.value = 0
+      totalPages.value = 0
       return
     }
 
@@ -139,16 +112,41 @@ export function usePapers(options = {}) {
     error.value = null
 
     try {
-      let data
+      let response
+      const params = buildQueryParams()
+
       if (loadData) {
-        data = await loadData()
+        response = await loadData(params)
       } else if (type === 'literature') {
-        data = await getReferences(currentTeam.value.id)
+        response = await getReferences(currentTeam.value.id, params)
       } else {
-        // 对于发表论文，根据 requireTeamRef 决定是否传递团队ID作为过滤参数
-        const params = requireTeamRef.value && currentTeam.value ? { team_id: currentTeam.value.id } : {}
-        data = await getPapers(params)
-      }papers.value = data || []
+        response = await getPapers(params)
+      }
+
+      // 处理响应数据
+      if (response && typeof response === 'object') {
+        // 检查是否有分页信息
+        if ('items' in response || 'data' in response) {
+          // 标准分页响应格式
+          papers.value = response.items || response.data || []
+          totalItems.value = response.total || response.total_count || 0
+          totalPages.value = Math.ceil(totalItems.value / itemsPerPage)
+        } else if (Array.isArray(response)) {
+          // 直接数组响应（向后兼容）
+          papers.value = response
+          totalItems.value = response.length
+          totalPages.value = Math.ceil(totalItems.value / itemsPerPage)
+        } else {
+          // 未知响应格式
+          papers.value = []
+          totalItems.value = 0
+          totalPages.value = 0
+        }
+      } else {
+        papers.value = response || []
+        totalItems.value = papers.value.length
+        totalPages.value = Math.ceil(totalItems.value / itemsPerPage)
+      }
 
       // 为每个数据项添加明确的类型标识
       papers.value.forEach(item => {
@@ -164,10 +162,13 @@ export function usePapers(options = {}) {
           }
         }
       })
+
     } catch (err) {
       console.error('加载数据失败:', err)
       error.value = err.message || '加载失败，请重试'
       papers.value = []
+      totalItems.value = 0
+      totalPages.value = 0
       showToast(
         type === 'literature' ? '加载文献失败' : '加载论文失败',
         'error'
@@ -193,8 +194,15 @@ export function usePapers(options = {}) {
         await deletePaper(paper.id)
       }
 
+      // 删除后重新加载当前页
       await loadPapers()
       showToast(`${paperType}删除成功`, 'success')
+
+      // 如果当前页没有数据了，回到上一页
+      if (papers.value.length === 0 && currentPage.value > 1) {
+        currentPage.value = currentPage.value - 1
+        await loadPapers()
+      }
     } catch (err) {
       console.error('删除失败:', err)
       showToast(`删除${paperType}失败`, 'error')
@@ -205,37 +213,57 @@ export function usePapers(options = {}) {
   const handleCategorySelect = (categoryId) => {
     selectedCategoryId.value = categoryId
     currentPage.value = 1
+    loadPapers()
   }
 
-  // 处理搜索
+  // 处理搜索（带防抖）
   const handleSearch = () => {
-    currentPage.value = 1
+    // 清除之前的定时器
+    if (searchDebounceTimer) {
+      clearTimeout(searchDebounceTimer)
+    }
+
+    // 设置新的定时器
+    searchDebounceTimer = setTimeout(() => {
+      currentPage.value = 1
+      loadPapers()
+    }, 300) // 300ms 防抖延迟
   }
 
   // 清空搜索
   const clearSearch = () => {
     searchQuery.value = ''
     currentPage.value = 1
+    loadPapers()
+  }
+
+  // 页面变化处理
+  const changePage = (page) => {
+    if (page >= 1 && page <= totalPages.value && page !== currentPage.value) {
+      currentPage.value = page
+      loadPapers()
+    }
   }
 
   // 监听器
-  watch([selectedCategoryId, searchQuery], () => {
-    currentPage.value = 1
+  watch(searchQuery, () => {
+    handleSearch()
   })
+
   // 监听当前团队变化（仅当需要团队时）
   watch(() => currentTeam.value, () => {
     if (requireTeamRef.value) {
-      loadPapers()
       currentPage.value = 1
       selectedCategoryId.value = null
+      loadPapers()
     }
   })
 
   // 监听 requireTeam 变化
   watch(requireTeamRef, () => {
-    loadPapers()
     currentPage.value = 1
     selectedCategoryId.value = null
+    loadPapers()
   })
 
   return {
@@ -247,10 +275,11 @@ export function usePapers(options = {}) {
     selectedCategoryId,
     currentPage,
     itemsPerPage,
+    totalItems,
+    totalPages,
 
     // 计算属性
     filteredPapers,
-    totalPages,
 
     // 方法
     loadPapers,
@@ -258,6 +287,7 @@ export function usePapers(options = {}) {
     handleCategorySelect,
     handleSearch,
     clearSearch,
+    changePage,
 
     // 辅助函数
     getAuthorsText,

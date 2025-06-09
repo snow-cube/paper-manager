@@ -1,43 +1,39 @@
 <template>
-  <div class="categories-page">
-    <div class="page-header">
-      <h1 class="page-title">🏷️ 分类管理</h1>
-      <p class="page-subtitle">管理论文和文献分类体系</p>
-    </div>
-
-    <!-- 分类类型切换 -->
-    <div class="category-tabs">
-      <button
-        :class="['tab-btn', { active: activeTab === 'papers' }]"
-        @click="activeTab = 'papers'"
-      >
-        <span class="tab-icon">🎓</span>
-        <span class="tab-text">论文分类</span>
-        <span class="tab-badge">公共</span>
-      </button>
-      <button
-        :class="['tab-btn', { active: activeTab === 'references' }]"
-        @click="activeTab = 'references'"
-      >
-        <span class="tab-icon">📚</span>
-        <span class="tab-text">文献分类</span>
-        <span class="tab-badge">团队私有</span>
-      </button>
-    </div>
+  <StandardPageLayout
+    title="分类管理"
+    icon="📂"
+    description="管理论文和文献的分类体系"
+  >
+    <!-- 分类类型切换控制器 -->
+    <template #controls>
+      <div class="category-tabs">        <button
+          v-for="tab in categoryTabs"
+          :key="tab.value"
+          @click="activeTab = tab.value; categoryTreeKey++"
+          :class="['tab-btn', { active: activeTab === tab.value }]"
+        >
+          <span class="tab-icon">{{ tab.icon }}</span>
+          <span class="tab-text">{{ tab.label }}</span>
+          <span class="tab-badge">{{ tab.badge }}</span>
+        </button>
+      </div>
+    </template>
 
     <!-- 论文分类（公共） -->
     <div v-if="activeTab === 'papers'" class="card">
       <div class="card-header">
         <h2>
-          <span class="header-icon">🎓</span>
-          论文分类
-          <span class="header-description">所有用户共享</span>
+          <span class="header-icon">📄</span>
+          发表论文分类
+          <span class="header-description">公共分类</span>
         </h2>
       </div>
       <div class="card-body">
         <CategoryTree
-          categoryType="papers"
-          :key="'papers-' + categoryTreeKey"
+          :key="categoryTreeKey"
+          paper-type="published"
+          category-type="papers"
+          :team-id="null"
         />
       </div>
     </div>
@@ -47,35 +43,45 @@
       <div class="card-header">
         <h2>
           <span class="header-icon">📚</span>
-          文献分类
-          <span class="header-description">
-            {{ currentTeam ? `"${currentTeam.name}" 团队专用` : '请先选择团队' }}
+          参考文献分类
+          <span class="header-description" v-if="currentTeam">
+            {{ currentTeam.name }} 团队
           </span>
         </h2>
       </div>
       <div class="card-body">
-        <div v-if="!currentTeam" class="no-team-warning">
-          <div class="warning-icon">⚠️</div>
-          <h3>请先选择团队</h3>
-          <p>文献分类是团队私有的，您需要先选择一个团队才能管理文献分类。</p>
-          <RouterLink to="/teams" class="btn btn-primary">
-            转到团队管理
-          </RouterLink>
-        </div>
+        <!-- 无团队警告 -->
+        <StandardWarning
+          v-if="!currentTeam"
+          icon="⚠️"
+          title="请先选择团队"
+          message="参考文献分类是团队私有的，您需要先选择一个团队才能管理分类。"
+        >
+          <template #actions>
+            <RouterLink to="/teams" class="btn btn-primary">
+              转到团队管理
+            </RouterLink>
+          </template>
+        </StandardWarning>
+
+        <!-- 分类树 -->
         <CategoryTree
           v-else
-          categoryType="references"
-          :teamId="currentTeam.id"
-          :key="'references-' + categoryTreeKey + '-' + currentTeam.id"
+          :key="categoryTreeKey"
+          paper-type="literature"
+          category-type="references"
+          :team-id="currentTeam.id"
         />
       </div>
     </div>
-  </div>
+  </StandardPageLayout>
 </template>
 
 <script setup>
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 import { RouterLink } from "vue-router";
+import StandardPageLayout from "../components/StandardPageLayout.vue";
+import StandardWarning from "../components/StandardWarning.vue";
 import CategoryTree from "../components/CategoryTree.vue";
 import { useTeam } from "../composables/useTeam";
 
@@ -86,6 +92,22 @@ const activeTab = ref('papers');
 
 // 用于强制重新渲染CategoryTree的key
 const categoryTreeKey = ref(0);
+
+// 分类标签页配置
+const categoryTabs = computed(() => [
+  {
+    value: 'papers',
+    label: '论文分类',
+    icon: '📄',
+    badge: '公共'
+  },
+  {
+    value: 'references',
+    label: '文献分类',
+    icon: '📚',
+    badge: currentTeam.value ? '团队' : '需要团队'
+  }
+]);
 
 // 监听团队变化，重新渲染组件
 watch(currentTeam, () => {
@@ -99,44 +121,10 @@ watch(activeTab, () => {
 </script>
 
 <style scoped>
-.categories-page {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: var(--space-2xl) var(--space-md);
-}
-
-.page-header {
-  text-align: center;
-  margin-bottom: var(--space-2xl);
-  padding: var(--space-2xl) 0;
-  background: linear-gradient(135deg, var(--primary-50), var(--color-background-soft));
-  border-radius: var(--border-radius-lg);
-  border: 1px solid var(--primary-100);
-}
-
-.page-title {
-  font-size: clamp(var(--text-2xl), 4vw, var(--text-3xl));
-  font-weight: 800;
-  color: var(--color-heading);
-  margin-bottom: var(--space-md);
-  background: linear-gradient(135deg, var(--primary-600), var(--primary-400));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.page-subtitle {
-  font-size: var(--text-lg);
-  color: var(--color-text);
-  max-width: 500px;
-  margin: 0 auto;
-}
-
 /* 分类标签页 */
 .category-tabs {
   display: flex;
   gap: var(--space-sm);
-  margin-bottom: var(--space-2xl);
   background: var(--white);
   padding: var(--space-sm);
   border-radius: var(--border-radius-lg);
@@ -195,13 +183,16 @@ watch(activeTab, () => {
 }
 
 .card {
-  box-shadow: var(--shadow);
-  transition: all 0.3s ease;
+  background: var(--white);
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--shadow-lg);
   border: 1px solid var(--primary-100);
+  overflow: hidden;
+  transition: all 0.3s ease;
 }
 
 .card:hover {
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-xl);
   transform: translateY(-2px);
 }
 
@@ -230,64 +221,67 @@ watch(activeTab, () => {
   font-weight: 400;
   color: var(--color-text-light);
   margin-left: auto;
+  background: var(--primary-100);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius-sm);
 }
 
 .card-body {
   padding: 0;
 }
 
-/* 无团队警告 */
-.no-team-warning {
-  text-align: center;
-  padding: var(--space-4xl) var(--space-xl);
-  background: linear-gradient(135deg, var(--warning-50), var(--color-background-soft));
+.btn {
+  padding: var(--space-md) var(--space-lg);
+  border: none;
   border-radius: var(--border-radius);
-  margin: var(--space-xl);
+  font-size: var(--text-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
 }
 
-.warning-icon {
-  font-size: var(--space-4xl);
-  margin-bottom: var(--space-lg);
+.btn-primary {
+  background: var(--color-primary);
+  color: var(--white);
 }
 
-.no-team-warning h3 {
-  color: var(--warning-700);
-  margin-bottom: var(--space-md);
-  font-size: var(--text-xl);
-}
-
-.no-team-warning p {
-  color: var(--color-text);
-  margin-bottom: var(--space-xl);
-  max-width: 400px;
-  margin-left: auto;
-  margin-right: auto;
+.btn-primary:hover {
+  background: var(--color-primary-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 @media (max-width: 768px) {
-  .categories-page {
-    padding: var(--space-md) var(--space-sm);
-  }
-
-  .page-header {
-    margin-bottom: var(--space-xl);
-    padding: var(--space-lg) var(--space-md);
-  }
-
-  .page-title {
-    font-size: var(--text-xl);
-  }
-
   .category-tabs {
     flex-direction: column;
+    gap: var(--space-xs);
   }
 
   .tab-btn {
-    padding: var(--space-md) var(--space-lg);
+    padding: var(--space-md);
   }
 
   .tab-text {
-    font-size: var(--text-sm);
+    display: none;
+  }
+
+  .card-header {
+    padding: var(--space-md);
+  }
+
+  .card-header h2 {
+    font-size: var(--text-lg);
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
+
+  .header-description {
+    margin-left: 0;
   }
 }
 </style>

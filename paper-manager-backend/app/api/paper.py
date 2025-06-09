@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from app.core.database import get_session
 from app.models.paper import (
     Paper, PaperCreate, PaperRead, PaperUpdate,
-    PaperAuthor, PaperCategory, PaperKeyword
+    PaperAuthor, PaperCategory, PaperKeyword, PaginatedPaperResponse
 )
 from app.models.keyword import Keyword
 from app.models.user import User
@@ -228,9 +228,7 @@ def create_paper(
         if not keyword:
             keyword = Keyword(name=name)
             session.add(keyword)
-            session.flush()
-
-        # 创建论文-关键词关联
+            session.flush()        # 创建论文-关键词关联
         paper_keyword = PaperKeyword(
             paper_id=db_paper.id,
             keyword_id=keyword.id
@@ -240,6 +238,13 @@ def create_paper(
 
     session.commit()
     session.refresh(db_paper)
+
+    # 获取团队名称
+    team_name = None
+    if paper.team_id:
+        team = session.get(Team, paper.team_id)
+        if team:
+            team_name = team.name
 
     return PaperRead(
         id=db_paper.id,
@@ -254,6 +259,7 @@ def create_paper(
         keywords=keywords,
         authors=authors,
         team_id=paper.team_id,
+        team_name=team_name,
         created_by_id=current_user.id
     )
 
@@ -295,7 +301,7 @@ async def upload_paper_file(
     }
 
 
-@router.get("/", response_model=List[PaperRead])
+@router.get("/", response_model=PaginatedPaperResponse)
 def read_papers(
     skip: int = 0,
     limit: int = 100,
@@ -354,7 +360,10 @@ def read_papers(
     if end_date:
         query = query.where(Paper.publication_date <= end_date)
 
-    # 执行查询
+    # 计算总数量（在应用 offset/limit 之前）
+    total_count = len(session.exec(query).all())
+
+    # 执行分页查询
     papers = session.exec(query.offset(skip).limit(limit)).all()
 
     # 构建返回数据
@@ -377,9 +386,7 @@ def read_papers(
                 .where(PaperAuthor.paper_id == paper.id)
                 .order_by(PaperAuthor.author_order)
             ).all()
-        ]
-
-        # 获取分类
+        ]        # 获取分类
         categories = [
             {
                 "id": category.id,
@@ -392,6 +399,13 @@ def read_papers(
                 .where(PaperCategory.paper_id == paper.id)
             ).all()
         ]
+
+        # 获取团队名称
+        team_name = None
+        if paper.team_id:
+            team = session.get(Team, paper.team_id)
+            if team:
+                team_name = team.name
 
         # 获取团队ID - 直接从论文对象获取
         results.append(
@@ -409,11 +423,23 @@ def read_papers(
                 authors=authors,
                 categories=categories,
                 team_id=paper.team_id,
+                team_name=team_name,
                 created_by_id=paper.created_by_id
             )
         )
 
-    return results
+    # 计算分页信息
+    current_page = (skip // limit) + 1
+    total_pages = (total_count + limit - 1) // limit  # 向上取整
+
+    # 返回分页响应
+    return PaginatedPaperResponse(
+        items=results,
+        total=total_count,
+        page=current_page,
+        size=limit,
+        pages=total_pages
+    )
 
 
 @router.get("/{paper_id}", response_model=PaperRead)
@@ -442,9 +468,7 @@ def read_paper(
             .where(PaperAuthor.paper_id == paper_id)
             .order_by(PaperAuthor.author_order)
         ).all()
-    ]
-
-    # 获取分类
+    ]    # 获取分类
     categories = [
         {
             "id": category.id,
@@ -457,6 +481,13 @@ def read_paper(
             .where(PaperCategory.paper_id == paper_id)
         ).all()
     ]
+
+    # 获取团队名称
+    team_name = None
+    if paper.team_id:
+        team = session.get(Team, paper.team_id)
+        if team:
+            team_name = team.name
 
     return PaperRead(
         id=paper.id,
@@ -472,6 +503,7 @@ def read_paper(
         authors=authors,
         categories=categories,
         team_id=paper.team_id,
+        team_name=team_name,
         created_by_id=paper.created_by_id
     )
 

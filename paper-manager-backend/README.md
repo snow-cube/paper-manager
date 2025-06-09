@@ -2,6 +2,60 @@
 
 一个用于管理学术论文和参考文献的后端API系统，支持团队协作、论文管理、参考文献管理、分类管理等功能。
 
+## 🔄 更新日志
+
+### v2.1.0 - 2025年6月9日
+
+#### ✨ 新增功能：论文API响应增强
+
+**团队名称信息支持**
+- 所有论文相关的API响应现在都包含 `team_name` 字段
+- 提供更丰富的团队信息，减少前端额外的API调用需求
+- 提升用户体验，支持直接显示团队名称而无需额外查询
+
+**影响的API端点：**
+- `POST /api/papers/` - 创建论文
+- `GET /api/papers/` - 获取论文列表
+- `GET /api/papers/{paper_id}` - 获取单个论文
+- `PATCH /api/papers/{paper_id}` - 更新论文
+
+**API响应变更示例：**
+
+*之前的响应格式：*
+```json
+{
+    "id": 1,
+    "title": "论文标题",
+    "team_id": 2,
+    "created_by_id": 1
+    // ... 其他字段
+}
+```
+
+*现在的响应格式：*
+```json
+{
+    "id": 1,
+    "title": "论文标题",
+    "team_id": 2,
+    "team_name": "研究团队A",
+    "created_by_id": 1
+    // ... 其他字段
+}
+```
+
+**技术细节：**
+- 后端通过数据库JOIN查询自动填充团队名称
+- 保持向后兼容性，现有的`team_id`字段保持不变
+- 新增的`team_name`字段为可选字段，不影响现有客户端
+
+**开发者收益：**
+- 前端显示论文列表时无需额外调用团队API
+- 减少网络请求次数，提升应用性能
+- 简化前端数据处理逻辑
+
+---
+
 ## 快速开始
 
 ### 环境要求
@@ -51,6 +105,55 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 - API 文档: <http://localhost:8000/docs>
 - ReDoc 文档: <http://localhost:8000/redoc>
+
+## 📋 更新日志
+
+### [最新] 论文API增强 - 团队名称支持
+
+**变更类型：** API增强
+
+**影响范围：** 论文相关API响应
+
+**变更内容：**
+
+1. **PaperRead模型更新**
+   - 新增 `team_name` 字段（可选字符串类型）
+   - 为所有论文API响应提供团队名称信息
+
+2. **API响应增强**
+   - `GET /api/papers/` - 论文列表API现在包含团队名称
+   - `GET /api/papers/{paper_id}` - 单个论文API现在包含团队名称
+   - `POST /api/papers/` - 创建论文API响应现在包含团队名称
+
+3. **前端开发优势**
+   - 前端无需额外API调用即可显示团队名称
+   - 减少API请求次数，提升用户体验
+   - 便于在论文列表中直接显示所属团队信息
+
+**向后兼容性：** ✅ 完全兼容
+- 现有API调用不受影响
+- 新增字段为可选字段，不会破坏现有集成
+
+**示例响应变化：**
+
+```json
+// 之前
+{
+  "id": 1,
+  "title": "论文标题",
+  "team_id": 5
+}
+
+// 现在
+{
+  "id": 1,
+  "title": "论文标题",
+  "team_id": 5,
+  "team_name": "研究团队A"
+}
+```
+
+---
 
 ## 1. 项目结构
 
@@ -246,6 +349,26 @@ paper-manager-backend/
 
 - 论文和参考文献都可以有多个关键词（多对多）
 - 关键词全局唯一，可被多个资源共享
+
+### API响应字段说明
+
+#### 计算字段
+
+除了数据库中直接存储的字段外，某些API响应还包含通过数据库关联查询计算得出的字段：
+
+**论文API响应中的计算字段：**
+- `team_name`: 通过 `team_id` 关联查询 `Team` 表获得的团队名称
+- `keywords`: 通过 `PaperKeyword` 关联表获得的关键词名称列表
+- `authors`: 通过 `PaperAuthor` 关联表获得的作者姓名列表
+- `categories`: 通过 `PaperCategory` 关联表获得的分类信息列表
+
+**团队API响应中的计算字段：**
+- `member_count`: 通过 `TeamUser` 关联表统计的团队成员数量
+
+**设计优势：**
+- 减少前端API调用次数，提升用户体验
+- 在单次查询中提供完整的业务信息
+- 保持数据库规范化设计的同时，优化API响应结构
 
 ## 3. API 文档
 
@@ -701,6 +824,7 @@ client_secret: string (可选)
     "authors": ["string"],
     "categories": [{}],
     "team_id": "integer",
+    "team_name": "string",
     "created_by_id": "integer"
 }
 ```
@@ -739,6 +863,7 @@ client_secret: string (可选)
         "authors": ["string"],
         "categories": [{}],
         "team_id": "integer",
+        "team_name": "string",
         "created_by_id": "integer"
     }
 ]
@@ -769,6 +894,7 @@ client_secret: string (可选)
     "authors": ["string"],
     "categories": [{}],
     "team_id": "integer",
+    "team_name": "string",
     "created_by_id": "integer"
 }
 ```
@@ -814,6 +940,7 @@ client_secret: string (可选)
     "authors": ["string"],
     "categories": [{}],
     "team_id": "integer",
+    "team_name": "string",
     "created_by_id": "integer"
 }
 ```

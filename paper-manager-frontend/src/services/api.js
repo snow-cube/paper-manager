@@ -73,7 +73,36 @@ export const updateUser = async (userId, userData) =>
 // ==================== 论文管理 APIs ====================
 // 获取论文列表
 export const getPapers = async (params = {}) => {
-  return (await api.get("/papers/", { params })).data;
+  // 确保分页参数有默认值
+  const {
+    skip = 0,
+    limit = 20,
+    title,
+    category_id,
+    author_name,
+    keyword,
+    start_date,
+    end_date,
+    team_id,
+    ...otherParams
+  } = params;
+
+  const queryParams = {
+    skip,
+    limit,
+    ...otherParams
+  };
+
+  // 只添加非空的可选参数
+  if (title) queryParams.title = title;
+  if (category_id) queryParams.category_id = category_id;
+  if (author_name) queryParams.author_name = author_name;
+  if (keyword) queryParams.keyword = keyword;
+  if (start_date) queryParams.start_date = start_date;
+  if (end_date) queryParams.end_date = end_date;
+  if (team_id) queryParams.team_id = team_id;
+
+  return (await api.get("/papers/", { params: queryParams })).data;
 };
 
 // 创建论文
@@ -245,7 +274,26 @@ export const updateMemberRole = async (teamId, userId, role) =>
 // ==================== 参考文献管理 APIs ====================
 // 获取参考文献列表
 export const getReferences = async (teamId, params = {}) => {
-  const queryParams = { team_id: teamId, ...params };
+  // 确保分页参数有默认值
+  const {
+    skip = 0,
+    limit = 20,
+    category_id,
+    keyword,
+    ...otherParams
+  } = params;
+
+  const queryParams = {
+    team_id: teamId,
+    skip,
+    limit,
+    ...otherParams
+  };
+
+  // 只添加非空的可选参数
+  if (category_id) queryParams.category_id = category_id;
+  if (keyword) queryParams.keyword = keyword;
+
   return (await api.get("/references/", { params: queryParams })).data;
 };
 

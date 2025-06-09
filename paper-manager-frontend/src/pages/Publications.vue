@@ -1,51 +1,56 @@
 <template>
-  <div class="publications-page">
-    <div class="container">
-      <!-- 模式切换 -->
-      <div class="page-controls">
-        <ModeSwitch
-          v-model="viewMode"
-          :options="viewModeOptions"
-          class="team-mode-switch"
-        />
-      </div>
-
-      <PaperManager
-        :config="paperManagerConfig"
-        @add-new="showAddForm = true"
-        @edit="handleEdit"
-        @view="handleView"
+  <StandardPageLayout
+    title="发表论文管理"
+    icon="📄"
+    :description="pageDescription"
+  >
+    <!-- 模式切换控制器 -->
+    <template #controls>
+      <ModeSwitch
+        v-model="viewMode"
+        :options="viewModeOptions"
+        class="team-mode-switch"
       />
-      <!-- 添加/编辑表单模态框 -->
-      <Modal
-        v-if="showAddForm || editingPaper"
-        @close="closeForm"
-        :show-progress="true"
-        :progress="formProgress"
-      >
-        <PaperForm
-          :paper="editingPaper"
-          :paperType="'published'"
-          @saved="handlePaperSaved"
-          @cancel="closeForm"
-          @progress-update="handleProgressUpdate"
-        />
-      </Modal>
+    </template>
 
-      <!-- 论文详情模态框 -->
-      <Modal v-if="viewingPaper" @close="closeViewPaper">
-        <PaperDetail
-          :paper="viewingPaper"
-          @edit="handleEditPaper"
-          @close="closeViewPaper"
-        />
-      </Modal>
-    </div>
-  </div>
+    <!-- 论文管理器 -->
+    <PaperManager
+      :config="paperManagerConfig"
+      @add-new="showAddForm = true"
+      @edit="handleEdit"
+      @view="handleView"
+    />
+
+    <!-- 添加/编辑表单模态框 -->
+    <Modal
+      v-if="showAddForm || editingPaper"
+      @close="closeForm"
+      :show-progress="true"
+      :progress="formProgress"
+    >
+      <PaperForm
+        :paper="editingPaper"
+        :paperType="'published'"
+        @saved="handlePaperSaved"
+        @cancel="closeForm"
+        @progress-update="handleProgressUpdate"
+      />
+    </Modal>
+
+    <!-- 论文详情模态框 -->
+    <Modal v-if="viewingPaper" @close="closeViewPaper">
+      <PaperDetail
+        :paper="viewingPaper"
+        @edit="handleEditPaper"
+        @close="closeViewPaper"
+      />
+    </Modal>
+  </StandardPageLayout>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted } from "vue";
+import StandardPageLayout from "../components/StandardPageLayout.vue";
 import PaperManager from "../components/PaperManager.vue";
 import PaperForm from "../components/PaperForm.vue";
 import PaperDetail from "../components/PaperDetail.vue";
@@ -72,13 +77,18 @@ const viewModeOptions = [
   { value: "team", label: "本团队论文" },
 ];
 
+// 页面描述
+const pageDescription = computed(() => {
+  return viewMode.value === "team" && currentTeam.value
+    ? `管理 "${currentTeam.value.name}" 团队的发表论文`
+    : "管理所有发表论文";
+});
+
 // 论文管理器配置
 const paperManagerConfig = computed(() => ({
   title: "发表论文管理",
   icon: "📄",
-  description: viewMode.value === "team" && currentTeam.value
-    ? `管理 "${currentTeam.value.name}" 团队的发表论文`
-    : "管理所有发表论文",
+  description: pageDescription.value,
   paperType: "published",
   categoryType: "papers",
   type: "papers",
@@ -139,27 +149,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.publications-page {
-  min-height: calc(100vh - 120px);
-  background: var(--color-bg-soft);
-}
-
-.container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 2rem 1rem;
-}
-
-.page-controls {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 2rem;
-  padding: 1.5rem;
-  background: var(--white);
-  border-radius: var(--border-radius-xl);
-  box-shadow: var(--shadow-sm);
-}
-
 .team-mode-switch {
   transform: scale(1.1);
 }

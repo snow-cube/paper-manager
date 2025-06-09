@@ -128,6 +128,7 @@ class PaperRead(SQLModel):
     authors: List[str] = []
     categories: List[Dict[str, Any]] = []  # 包含分类信息的列表
     team_id: int
+    team_name: Optional[str] = None  # 添加团队名称字段
     created_by_id: int
 
 
@@ -142,3 +143,12 @@ class PaperUpdate(SQLModel):
     keyword_names: Optional[List[str]] = None
     file_path: Optional[str] = None
     team_id: Optional[int] = None
+
+
+class PaginatedPaperResponse(SQLModel):
+    """分页论文响应模型"""
+    items: List[PaperRead]
+    total: int
+    page: int
+    size: int
+    pages: int

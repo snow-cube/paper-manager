@@ -10,7 +10,7 @@ from app.core.database import get_session
 from app.core.config_dev import get_team_upload_dir
 from app.models.reference import (
     ReferencePaper, ReferenceCreate, ReferenceRead, ReferenceUpdate,
-    ReferenceCategory, ReferenceKeyword, ReferenceCategoryRead
+    ReferenceCategory, ReferenceKeyword, ReferenceCategoryRead, PaginatedReferenceResponse
 )
 from app.models.keyword import Keyword
 from app.models.user import User
@@ -126,7 +126,7 @@ def create_reference(
     return get_reference_read(db_reference, session)
 
 
-@router.get("/", response_model=List[ReferenceRead])
+@router.get("/", response_model=PaginatedReferenceResponse)
 def read_references(
     skip: int = 0,
     limit: int = 100,
@@ -163,8 +163,27 @@ def read_references(
             .where(Keyword.name == keyword)
         )
 
+    # 计算总数量（在应用 offset/limit 之前）
+    total_count = len(session.exec(query).all())
+
+    # 执行分页查询
     references = session.exec(query.offset(skip).limit(limit)).all()
-    return [get_reference_read(ref, session) for ref in references]
+
+    # 构建返回数据
+    results = [get_reference_read(ref, session) for ref in references]
+
+    # 计算分页信息
+    current_page = (skip // limit) + 1
+    total_pages = (total_count + limit - 1) // limit  # 向上取整
+
+    # 返回分页响应
+    return PaginatedReferenceResponse(
+        items=results,
+        total=total_count,
+        page=current_page,
+        size=limit,
+        pages=total_pages
+    )
 
 
 @router.get("/{reference_id}", response_model=ReferenceRead)
@@ -206,7 +225,7 @@ def update_reference(
     ).first()
 
     # 只有创建者和团队管理员可以修改
-    if (db_reference.created_by_id != current_user.id and 
+    if (db_reference.created_by_id != current_user.id and
         not (team_user and team_user.role in [TeamRole.OWNER, TeamRole.ADMIN])):
         raise HTTPException(
             status_code=403,
@@ -285,7 +304,7 @@ def delete_reference(
     ).first()
 
     # 只有创建者和团队管理员可以删除
-    if (reference.created_by_id != current_user.id and 
+    if (reference.created_by_id != current_user.id and
         not (team_user and team_user.role in [TeamRole.OWNER, TeamRole.ADMIN])):
         raise HTTPException(
             status_code=403,

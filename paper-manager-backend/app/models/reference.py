@@ -116,3 +116,12 @@ class ReferenceUpdate(SQLModel):
     file_path: Optional[str] = None
     category_id: Optional[int] = None
     keyword_names: Optional[List[str]] = None
+
+
+class PaginatedReferenceResponse(SQLModel):
+    """分页参考文献响应模型"""
+    items: List[ReferenceRead]
+    total: int
+    page: int
+    size: int
+    pages: int

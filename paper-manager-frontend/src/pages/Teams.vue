@@ -1,65 +1,60 @@
 <template>
-  <div class="teams-page">
-    <div class="container">
-      <div class="page-header">
-        <h1 class="page-title">
-          <span class="page-icon">👥</span>
-          团队管理
-        </h1>
-        <p class="page-description">创建和管理您的科研团队</p>
+  <StandardPageLayout
+    title="团队管理"
+    icon="👥"
+    description="创建和管理您的科研团队"
+  >
+    <div v-if="!selectedTeam" class="teams-overview">
+      <TeamList @team-selected="handleTeamSelected" />
+    </div>
+
+    <div v-else class="team-detail">
+      <div class="team-header">
+        <button @click="selectedTeam = null" class="btn btn-secondary">
+          ← 返回团队列表
+        </button>
+        <h2>{{ selectedTeam.name }}</h2>
       </div>
 
-      <div v-if="!selectedTeam" class="teams-overview">
-        <TeamList @team-selected="handleTeamSelected" />
+      <div class="team-tabs">
+        <button
+          v-for="tab in tabs"
+          :key="tab.key"
+          @click="activeTab = tab.key"
+          :class="['tab-btn', { active: activeTab === tab.key }]"
+        >
+          <span class="tab-icon">{{ tab.icon }}</span>
+          {{ tab.label }}
+        </button>
       </div>
 
-      <div v-else class="team-detail">
-        <div class="team-header">
-          <button @click="selectedTeam = null" class="btn btn-secondary">
-            ← 返回团队列表
-          </button>
-          <h2>{{ selectedTeam.name }}</h2>
+      <div class="tab-content">
+        <!-- 团队信息 -->
+        <div v-if="activeTab === 'info'" class="team-info-tab">
+          <TeamInfo :team="selectedTeam" @updated="handleTeamUpdated" />
         </div>
 
-        <div class="team-tabs">
-          <button
-            v-for="tab in tabs"
-            :key="tab.key"
-            @click="activeTab = tab.key"
-            :class="['tab-btn', { active: activeTab === tab.key }]"
-          >
-            <span class="tab-icon">{{ tab.icon }}</span>
-            {{ tab.label }}
-          </button>
+        <!-- 团队成员 -->
+        <div v-if="activeTab === 'members'" class="team-members-tab">
+          <TeamMembers
+            :team="selectedTeam"
+            @member-added="handleMemberAdded"
+            @member-removed="handleMemberRemoved"
+          />
         </div>
 
-        <div class="tab-content">
-          <!-- 团队信息 -->
-          <div v-if="activeTab === 'info'" class="team-info-tab">
-            <TeamInfo :team="selectedTeam" @updated="handleTeamUpdated" />
-          </div>
-
-          <!-- 团队成员 -->
-          <div v-if="activeTab === 'members'" class="team-members-tab">
-            <TeamMembers
-              :team="selectedTeam"
-              @member-added="handleMemberAdded"
-              @member-removed="handleMemberRemoved"
-            />
-          </div>
-
-          <!-- 团队参考文献 -->
-          <div v-if="activeTab === 'references'" class="team-references-tab">
-            <TeamReferences :team="selectedTeam" />
-          </div>
+        <!-- 团队参考文献 -->
+        <div v-if="activeTab === 'references'" class="team-references-tab">
+          <TeamReferences :team="selectedTeam" />
         </div>
       </div>
     </div>
-  </div>
+  </StandardPageLayout>
 </template>
 
 <script setup>
 import { ref } from 'vue';
+import StandardPageLayout from '../components/StandardPageLayout.vue';
 import TeamList from '../components/TeamList.vue';
 import TeamInfo from '../components/TeamInfo.vue';
 import TeamMembers from '../components/TeamMembers.vue';
@@ -93,72 +88,42 @@ const handleMemberRemoved = () => {
 </script>
 
 <style scoped>
-.teams-page {
-  min-height: 100vh;
-  background: var(--color-bg-soft);
-}
-
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: var(--space-xl);
-}
-
-.page-header {
-  text-align: center;
-  margin-bottom: var(--space-3xl);
-}
-
-.page-title {
-  font-size: var(--text-3xl);
-  color: var(--color-heading);
-  margin-bottom: var(--space-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-md);
-}
-
-.page-icon {
-  font-size: var(--text-3xl);
-}
-
-.page-description {
-  color: var(--color-text-light);
-  font-size: var(--text-lg);
-  margin: 0;
-}
-
 .teams-overview {
   background: var(--white);
-  border-radius: var(--border-radius-lg);
+  border-radius: var(--border-radius-xl);
   box-shadow: var(--shadow-lg);
+  border: 1px solid var(--primary-100);
 }
 
 .team-detail {
   background: var(--white);
-  border-radius: var(--card-border-radius);
-  box-shadow: var(--shadow-card);
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--primary-100);
   overflow: hidden;
 }
 
 .team-header {
   padding: var(--space-xl);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--primary-100);
   display: flex;
   align-items: center;
   gap: var(--space-md);
+  background: linear-gradient(135deg, var(--white), var(--primary-25));
 }
 
 .team-header h2 {
   color: var(--color-heading);
   margin: 0;
   flex: 1;
+  font-size: var(--text-xl);
+  font-weight: 600;
 }
 
 .team-tabs {
   display: flex;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--primary-100);
+  background: var(--primary-25);
 }
 
 .tab-btn {
@@ -167,38 +132,48 @@ const handleMemberRemoved = () => {
   background: none;
   cursor: pointer;
   font-size: var(--text-base);
-  color: var(--color-text-light);
+  color: var(--color-text);
   transition: all var(--transition-normal);
   display: flex;
   align-items: center;
   gap: var(--space-sm);
   border-bottom: 3px solid transparent;
+  font-weight: 500;
 }
 
 .tab-btn:hover {
-  background: var(--color-background-soft);
-  color: var(--color-heading);
+  background: var(--primary-50);
+  color: var(--primary-700);
 }
 
 .tab-btn.active {
-  color: var(--color-primary);
-  border-bottom-color: var(--color-primary);
-  background: var(--color-background-soft);
+  color: var(--primary-600);
+  border-bottom-color: var(--primary-500);
+  background: var(--white);
+  font-weight: 600;
+}
+
+.tab-icon {
+  font-size: var(--text-lg);
 }
 
 .tab-content {
   padding: var(--space-xl);
   min-height: 400px;
+  background: var(--white);
 }
 
 .btn {
-  padding: 0.75rem 1.5rem;
+  padding: var(--space-md) var(--space-lg);
   border: none;
   border-radius: var(--border-radius);
   font-size: var(--text-base);
   font-weight: 500;
   cursor: pointer;
   transition: all var(--transition-normal);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
 }
 
 .btn-secondary {
@@ -208,5 +183,28 @@ const handleMemberRemoved = () => {
 
 .btn-secondary:hover {
   background: var(--gray-700);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 768px) {
+  .team-header {
+    padding: var(--space-lg) var(--space-md);
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .team-tabs {
+    flex-direction: column;
+  }
+
+  .tab-btn {
+    padding: var(--space-md);
+    justify-content: center;
+  }
+
+  .tab-content {
+    padding: var(--space-lg) var(--space-md);
+  }
 }
 </style>
