@@ -73,7 +73,36 @@ export const updateUser = async (userId, userData) =>
 // ==================== 论文管理 APIs ====================
 // 获取论文列表
 export const getPapers = async (params = {}) => {
-  return (await api.get("/papers/", { params })).data;
+  // 确保分页参数有默认值
+  const {
+    skip = 0,
+    limit = 20,
+    title,
+    category_id,
+    author_name,
+    keyword,
+    start_date,
+    end_date,
+    team_id,
+    ...otherParams
+  } = params;
+
+  const queryParams = {
+    skip,
+    limit,
+    ...otherParams
+  };
+
+  // 只添加非空的可选参数
+  if (title) queryParams.title = title;
+  if (category_id) queryParams.category_id = category_id;
+  if (author_name) queryParams.author_name = author_name;
+  if (keyword) queryParams.keyword = keyword;
+  if (start_date) queryParams.start_date = start_date;
+  if (end_date) queryParams.end_date = end_date;
+  if (team_id) queryParams.team_id = team_id;
+
+  return (await api.get("/papers/", { params: queryParams })).data;
 };
 
 // 创建论文
@@ -183,6 +212,29 @@ export const updateCategory = async (categoryId, categoryData) =>
 export const deleteCategory = async (categoryId) =>
   (await api.delete(`/categories/${categoryId}`)).data;
 
+// ==================== 参考文献分类管理 APIs ====================
+// 获取参考文献分类列表
+export const getReferenceCategories = async (teamId, skip = 0, limit = 100) => {
+  const params = { team_id: teamId, skip, limit };
+  return (await api.get("/reference-categories/", { params })).data;
+};
+
+// 创建参考文献分类
+export const createReferenceCategory = async (categoryData) =>
+  (await api.post("/reference-categories/", categoryData)).data;
+
+// 获取单个参考文献分类
+export const getReferenceCategory = async (categoryId) =>
+  (await api.get(`/reference-categories/${categoryId}`)).data;
+
+// 更新参考文献分类
+export const updateReferenceCategory = async (categoryId, categoryData) =>
+  (await api.patch(`/reference-categories/${categoryId}`, categoryData)).data;
+
+// 删除参考文献分类
+export const deleteReferenceCategory = async (categoryId) =>
+  (await api.delete(`/reference-categories/${categoryId}`)).data;
+
 // ==================== 团队管理 APIs ====================
 // 获取团队列表
 export const getTeams = async () => (await api.get("/teams/")).data;
@@ -203,9 +255,9 @@ export const updateTeam = async (teamId, teamData) =>
 export const deleteTeam = async (teamId) =>
   (await api.delete(`/teams/${teamId}`)).data;
 
-// 添加团队成员
-export const addTeamMember = async (teamId, username) =>
-  (await api.post(`/teams/${teamId}/members/${username}`)).data;
+// 添加团队成员 (通过用户ID)
+export const addTeamMember = async (teamId, userId, role = 'MEMBER') =>
+  (await api.post(`/teams/${teamId}/members/${userId}?role=${role}`)).data;
 
 // 获取团队成员列表
 export const getTeamMembers = async (teamId) =>
@@ -216,17 +268,32 @@ export const removeTeamMember = async (teamId, userId) =>
   (await api.delete(`/teams/${teamId}/members/${userId}`)).data;
 
 // 更新成员角色
-export const updateMemberRole = async (teamId, userId, role) => {
-  const params = { role };
-  return (
-    await api.patch(`/teams/${teamId}/members/${userId}/role`, null, { params })
-  ).data;
-};
+export const updateMemberRole = async (teamId, userId, role) =>
+  (await api.patch(`/teams/${teamId}/members/${userId}?role=${role}`)).data;
 
 // ==================== 参考文献管理 APIs ====================
 // 获取参考文献列表
 export const getReferences = async (teamId, params = {}) => {
-  const queryParams = { team_id: teamId, ...params };
+  // 确保分页参数有默认值
+  const {
+    skip = 0,
+    limit = 20,
+    category_id,
+    keyword,
+    ...otherParams
+  } = params;
+
+  const queryParams = {
+    team_id: teamId,
+    skip,
+    limit,
+    ...otherParams
+  };
+
+  // 只添加非空的可选参数
+  if (category_id) queryParams.category_id = category_id;
+  if (keyword) queryParams.keyword = keyword;
+
   return (await api.get("/references/", { params: queryParams })).data;
 };
 

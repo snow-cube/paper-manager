@@ -1,0 +1,125 @@
+/* 卡片组件样式 */
+
+/* 卡片基础类 */
+.card-base {
+  background: var(--white);
+  border-radius: var(--card-border-radius);
+  padding: var(--card-padding);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-normal);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.card-base:hover {
+  box-shadow: var(--shadow-hover);
+  border-color: var(--primary-200);
+}
+
+/* 标准卡片 */
+.card {
+  background: var(--white);
+  border-radius: var(--card-border-radius);
+  padding: var(--card-padding);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-normal);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-hover);
+  border-color: var(--primary-200);
+}
+
+.card-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-background-soft);
+}
+
+.card-body {
+  padding: 1.5rem;
+}
+
+/* 卡片变体 */
+.card-elevated {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(0);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-elevated:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1),
+    0 10px 10px -5px rgb(0 0 0 / 0.04);
+}
+
+.card-primary {
+  border-color: var(--primary-200);
+  background: linear-gradient(135deg, var(--white), var(--primary-50));
+}
+
+.card-success {
+  border-color: var(--success-500);
+  background: linear-gradient(135deg, var(--white), var(--success-50));
+}
+
+/* 卡片变体模板 */
+.card-variant-elevated {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(0);
+  transition: transform var(--transition-bounce), box-shadow var(--transition-bounce);
+}
+
+.card-variant-elevated:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1),
+    0 10px 10px -5px rgb(0 0 0 / 0.04);
+}
+
+.card-variant-primary {
+  border-color: var(--primary-200);
+  background: linear-gradient(135deg, var(--white), var(--primary-50));
+}
+
+.card-variant-success {
+  border-color: var(--success-500);
+  background: linear-gradient(135deg, var(--white), var(--success-50));
+}
+
+.card-variant-interactive {
+  cursor: pointer;
+  transition: all var(--transition-bounce);
+}
+
+.card-variant-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+  border-color: var(--primary-300);
+}
+
+/* 统计卡片 */
+.stat-card {
+  background: var(--white);
+  border-radius: var(--card-border-radius);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-normal);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+  text-align: center;
+}
+
+.stat-number {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.stat-label {
+  font-size: var(--text-sm);
+  color: var(--color-text-light);
+  font-weight: 500;
+}

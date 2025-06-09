@@ -20,7 +20,8 @@
             <span class="logo-subtitle">Research Paper Management System</span>
           </div>
         </div>
-      </div>      <div class="auth-content">
+      </div>
+      <div class="auth-content">
         <div class="form-container">
           <transition name="slide-fade" mode="out-in">
             <LoginForm
@@ -41,23 +42,25 @@
 
       <!-- 底部信息 -->
       <div class="auth-footer">
-        <p>&copy; {{ new Date().getFullYear() }} 科研论文管理系统. All rights reserved.</p>
+        <p>
+          &copy; {{ new Date().getFullYear() }} 科研论文管理系统. All rights
+          reserved.
+        </p>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import LoginForm from '../components/LoginForm.vue';
-import RegisterForm from '../components/RegisterForm.vue';
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+import { LoginForm, RegisterForm } from "@/components";
 
 const router = useRouter();
 const showRegister = ref(false);
 
 const handleLoginSuccess = () => {
-  router.push('/');
+  router.push("/");
 };
 
 const handleRegisterSuccess = () => {
@@ -96,7 +99,11 @@ const handleRegisterSuccess = () => {
 .floating-shape {
   position: absolute;
   border-radius: 50%;
-  background: linear-gradient(45deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+  background: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.05)
+  );
   animation: float 6s ease-in-out infinite;
 }
 
@@ -133,7 +140,8 @@ const handleRegisterSuccess = () => {
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px) rotate(0deg);
     opacity: 0.5;
   }
@@ -194,13 +202,14 @@ const handleRegisterSuccess = () => {
   transform: translate(-50%, -50%);
   width: 60px;
   height: 60px;
-  background: radial-gradient(circle, rgba(255,255,255,0.3), transparent);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.3), transparent);
   border-radius: 50%;
   animation: pulse 2s infinite;
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate(-50%, -50%) scale(1);
     opacity: 0.7;
   }

@@ -13,42 +13,43 @@ const routes = [
     path: "/login",
     name: "Auth",
     component: Auth,
-    meta: { requiresGuest: true }
+    meta: { requiresGuest: true },
   },
   {
     path: "/",
     name: "Home",
     component: Home,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
     path: "/literature",
     name: "Literature",
     component: Literature,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
     path: "/publications",
     name: "Publications",
     component: Publications,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
     path: "/categories",
     name: "Categories",
     component: Categories,
-    meta: { requiresAuth: true }
-  },  {
+    meta: { requiresAuth: true },
+  },
+  {
     path: "/teams",
     name: "Teams",
     component: Teams,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
     path: "/collaboration",
     name: "CollaborationSearch",
     component: CollaborationSearch,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   // 重定向旧的论文路由到文献管理
   { path: "/papers", redirect: "/literature" },
@@ -70,13 +71,13 @@ router.beforeEach(async (to, from, next) => {
 
   // 检查是否需要认证
   if (to.meta.requiresAuth && !isAuthenticated.value) {
-    next('/login');
+    next("/login");
     return;
   }
 
   // 检查是否需要访客状态（如登录页面）
   if (to.meta.requiresGuest && isAuthenticated.value) {
-    next('/');
+    next("/");
     return;
   }
 

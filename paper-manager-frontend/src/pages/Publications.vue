@@ -1,66 +1,107 @@
 <template>
-  <div class="publications-page">
-    <div class="container">
-      <PaperManager
-        :config="paperManagerConfig"
-        @add-new="showAddForm = true"
-        @edit="handleEdit"
-        @view="handleView"
+  <StandardPageLayout
+    title="发表论文管理"
+    icon="📄"
+    :description="pageDescription"
+  >
+    <!-- 模式切换控制器 -->
+    <template #controls>
+      <ModeSwitch
+        v-model="viewMode"
+        :options="viewModeOptions"
+        class="team-mode-switch"
       />
+    </template>
 
-      <!-- 添加/编辑表单模态框 -->
-      <Modal v-if="showAddForm || editingPaper" @close="closeForm">
-        <PaperForm
-          :paper="editingPaper"
-          :paperType="'published'"
-          @saved="handlePaperSaved"
-          @cancel="closeForm"
-        />
-      </Modal>
+    <!-- 论文管理器 -->
+    <PaperManager
+      :config="paperManagerConfig"
+      @add-new="showAddForm = true"
+      @edit="handleEdit"
+      @view="handleView"
+    />
 
-      <!-- 论文详情模态框 -->
-      <Modal v-if="viewingPaper" @close="closeViewPaper">
-        <PaperDetail
-          :paper="viewingPaper"
-          @edit="handleEditPaper"
-          @close="closeViewPaper"
-        />
-      </Modal>
-    </div>
-  </div>
+    <!-- 添加/编辑表单模态框 -->
+    <Modal
+      v-if="showAddForm || editingPaper"
+      @close="closeForm"
+      :show-progress="true"
+      :progress="formProgress"
+    >
+      <PaperForm
+        :paper="editingPaper"
+        :paperType="'published'"
+        @saved="handlePaperSaved"
+        @cancel="closeForm"
+        @progress-update="handleProgressUpdate"
+      />
+    </Modal>
+
+    <!-- 论文详情模态框 -->
+    <Modal v-if="viewingPaper" @close="closeViewPaper">
+      <PaperDetail
+        :paper="viewingPaper"
+        @edit="handleEditPaper"
+        @close="closeViewPaper"
+      />
+    </Modal>
+  </StandardPageLayout>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
-import PaperManager from "../components/PaperManager.vue";
-import PaperForm from "../components/PaperForm.vue";
-import PaperDetail from "../components/PaperDetail.vue";
-import Modal from "../components/Modal.vue";
+import { ref, computed, onMounted } from "vue";
+import {
+  StandardPageLayout,
+  PaperManager,
+  PaperForm,
+  PaperDetail,
+  Modal,
+  ModeSwitch,
+} from "@/components";
 import { useToast } from "../composables/useToast";
 import { useCategories } from "../composables/useCategories";
+import { useTeam } from "../composables/useTeam";
 
 const { showToast } = useToast();
 const { loadCategories } = useCategories();
+const { currentTeam } = useTeam();
 
 // 响应式数据
 const showAddForm = ref(false);
 const editingPaper = ref(null);
 const viewingPaper = ref(null);
+const formProgress = ref(0);
+const viewMode = ref("all"); // "team" 或 "all"
+
+// 模式切换选项
+const viewModeOptions = [
+  { value: "all", label: "所有论文" },
+  { value: "team", label: "本团队论文" },
+];
+
+// 页面描述
+const pageDescription = computed(() => {
+  return viewMode.value === "team" && currentTeam.value
+    ? `管理 "${currentTeam.value.name}" 团队的发表论文`
+    : "管理所有发表论文";
+});
 
 // 论文管理器配置
-const paperManagerConfig = {
-  title: '发表论文管理',
-  icon: '📄',
-  description: '管理您已发表的学术论文',
-  paperType: 'published',
-  type: 'papers',
-  requireTeam: false,
-  searchPlaceholder: '论文标题、作者、关键词',
-  addButtonText: '添加论文',
-  emptyIcon: '📄',
-  emptyTitle: '暂无发表论文',
-  emptyDescription: '开始添加您的第一篇发表论文吧'
-};
+const paperManagerConfig = computed(() => ({
+  title: "发表论文管理",
+  icon: "📄",
+  description: pageDescription.value,
+  paperType: "published",
+  categoryType: "papers",
+  type: "papers",
+  requireTeam: viewMode.value === "team",
+  teamRequiredText: "发表论文",
+  searchPlaceholder: "论文标题、作者、关键词",
+  addButtonText: "添加论文",
+  emptyIcon: "📄",
+  emptyTitle: "暂无发表论文",
+  emptyDescription: "开始添加您的第一篇发表论文吧",
+}));
 
 // 处理编辑
 const handleEdit = (paper) => {
@@ -95,23 +136,22 @@ const handlePaperSaved = () => {
 const closeForm = () => {
   showAddForm.value = false;
   editingPaper.value = null;
+  formProgress.value = 0;
+};
+
+const handleProgressUpdate = (progress) => {
+  formProgress.value = progress;
 };
 
 // 生命周期
 onMounted(() => {
-  loadCategories();
+  // 加载发表论文分类（公共分类）
+  loadCategories("papers");
 });
 </script>
 
 <style scoped>
-.publications-page {
-  min-height: calc(100vh - 120px);
-  background: var(--color-bg-soft);
-}
-
-.container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 2rem 1rem;
+.team-mode-switch {
+  transform: scale(1.1);
 }
 </style>

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from fastapi.responses import FileResponse
-from sqlmodel import Session, select
+from sqlmodel import Session, select, delete
 from typing import List, Optional
 from datetime import datetime
 import os
@@ -10,11 +10,11 @@ from app.core.database import get_session
 from app.core.config_dev import get_team_upload_dir
 from app.models.reference import (
     ReferencePaper, ReferenceCreate, ReferenceRead, ReferenceUpdate,
-    ReferenceKeyword
+    ReferenceCategory, ReferenceKeyword, ReferenceCategoryRead, PaginatedReferenceResponse
 )
 from app.models.keyword import Keyword
 from app.models.user import User
-from app.models.category import Category
+from app.models.team import TeamUser, TeamRole
 from app.api.user import get_current_user
 from app.api.team import check_team_member
 from app.models.team import Team
@@ -41,30 +41,51 @@ def get_or_create_keywords(session: Session, keyword_names: List[str]) -> List[K
     return keywords
 
 
+def check_team_member(team_id: int, user: User, session: Session):
+    """检查用户是否为团队成员"""
+    if team_id == 0:  # 0 表示公开，不需要检查
+        return True
+
+    team_user = session.exec(
+        select(TeamUser).where(
+            TeamUser.team_id == team_id,
+            TeamUser.user_id == user.id
+        )
+    ).first()
+
+    if not team_user:
+        raise HTTPException(
+            status_code=403,
+            detail="Not a member of this team"
+        )
+    return True
+
+
 @router.post("/", response_model=ReferenceRead)
 def create_reference(
     reference: ReferenceCreate,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user)
 ):
-    """创建参考文献"""    # 检查团队是否存在
-    if reference.team_id is None:
-        raise HTTPException(status_code=400, detail="Team ID is required")
-
-    team = session.get(Team, reference.team_id)
-    if not team:
-        raise HTTPException(status_code=404, detail="Team not found")
-
-    # 检查是否为团队成员
+    """创建参考文献"""
+    # 检查用户是否为团队成员
     check_team_member(reference.team_id, current_user, session)
 
-    # 如果提供了分类ID，检查分类是否存在
-    if reference.category_id is not None:
-        category = session.get(Category, reference.category_id)
+    # 如果指定了分类，检查分类是否存在且属于同一团队
+    if reference.category_id:
+        category = session.get(ReferenceCategory, reference.category_id)
         if not category:
-            raise HTTPException(status_code=404, detail="Category not found")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Category {reference.category_id} not found"
+            )
+        if category.team_id != reference.team_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Category must belong to the same team"
+            )
 
-    # 如果提供了DOI，检查是否已存在
+    # 检查DOI是否已存在
     if reference.doi:
         existing_reference = session.exec(
             select(ReferencePaper).where(ReferencePaper.doi == reference.doi)
@@ -72,82 +93,69 @@ def create_reference(
         if existing_reference:
             raise HTTPException(
                 status_code=400,
-                detail="A reference with this DOI already exists"
-            )    # 检查 current_user.id 是否为 None
-    if current_user.id is None:
-        raise HTTPException(status_code=400, detail="User ID is required")
+                detail="Reference with this DOI already exists"
+            )
 
     # 创建参考文献
-    db_reference = ReferencePaper(
-        title=reference.title,
-        authors=reference.authors,
-        doi=reference.doi,
-        team_id=reference.team_id,
-        category_id=reference.category_id,
-        created_by_id=current_user.id,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
-    )
+    db_reference = ReferencePaper.from_orm(reference)
+    db_reference.created_by_id = current_user.id
     session.add(db_reference)
-    session.flush()  # 获取 ID
 
     # 处理关键词
-    keyword_list = []  # 用于存储关键词名称
-    if reference.keyword_names:
-        keywords = get_or_create_keywords(session, reference.keyword_names)
-        for keyword in keywords:
-            # 创建关联
-            ref_keyword = ReferenceKeyword(
-                reference_id=db_reference.id,
-                keyword_id=keyword.id
-            )
-            session.add(ref_keyword)
-            keyword_list.append(keyword.name)
+    for name in reference.keyword_names:
+        # 查找或创建关键词
+        keyword = session.exec(
+            select(Keyword).where(Keyword.name == name)
+        ).first()
+        if not keyword:
+            keyword = Keyword(name=name)
+            session.add(keyword)
+            session.flush()  # 获取新创建的关键词ID
+
+        # 创建参考文献-关键词关联
+        reference_keyword = ReferenceKeyword(
+            reference_id=db_reference.id,
+            keyword_id=keyword.id
+        )
+        session.add(reference_keyword)
 
     session.commit()
     session.refresh(db_reference)
 
     # 构建返回数据
-    reference_dict = {
-        "id": db_reference.id,
-        "title": db_reference.title,
-        "authors": db_reference.authors,
-        "doi": db_reference.doi,
-        "file_path": db_reference.file_path,
-        "created_at": db_reference.created_at,
-        "updated_at": db_reference.updated_at,
-        "team_id": db_reference.team_id,
-        "created_by_id": db_reference.created_by_id,
-        "category_id": db_reference.category_id,
-        "keywords": keyword_list
-    }
-
-    return ReferenceRead(**reference_dict)
+    return get_reference_read(db_reference, session)
 
 
-@router.get("/", response_model=List[ReferenceRead])
+@router.get("/", response_model=PaginatedReferenceResponse)
 def read_references(
-    team_id: int,
-    category_id: Optional[int] = None,
-    keyword: Optional[str] = None,
     skip: int = 0,
     limit: int = 100,
+    team_id: Optional[int] = None,
+    category_id: Optional[int] = None,
+    keyword: Optional[str] = None,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user)
 ):
-    """获取团队的参考文献列表"""
-    # 检查用户是否为团队成员
-    check_team_member(team_id, current_user, session)
+    """获取参考文献列表"""
+    # 基础查询
+    query = select(ReferencePaper)
 
-    # 构建查询
-    query = select(ReferencePaper).where(ReferencePaper.team_id == team_id)
+    # 如果指定了团队，检查用户是否为团队成员
+    if team_id is not None:
+        check_team_member(team_id, current_user, session)
+        query = query.where(ReferencePaper.team_id == team_id)
+    else:
+        # 获取用户所在的所有团队ID
+        user_teams = session.exec(
+            select(TeamUser).where(TeamUser.user_id == current_user.id)
+        ).all()
+        team_ids = [0] + [tu.team_id for tu in user_teams]  # 包括公开的参考文献
+        query = query.where(ReferencePaper.team_id.in_(team_ids))
 
-    # 如果指定了分类，添加分类过滤
-    if category_id is not None:
+    # 应用其他过滤条件
+    if category_id:
         query = query.where(ReferencePaper.category_id == category_id)
-
-    # 如果指定了关键字，添加关键字过滤
-    if keyword is not None:
+    if keyword:
         query = (
             query
             .join(ReferenceKeyword)
@@ -155,31 +163,27 @@ def read_references(
             .where(Keyword.name == keyword)
         )
 
-    # 执行查询
-    references = session.exec(
-        query.offset(skip).limit(limit)
-    ).all()
+    # 计算总数量（在应用 offset/limit 之前）
+    total_count = len(session.exec(query).all())
 
-    # 准备返回数据
-    results = []
-    for reference in references:
-        # 构建返回数据字典
-        reference_dict = {
-            "id": reference.id,
-            "title": reference.title,
-            "authors": reference.authors,
-            "doi": reference.doi,
-            "file_path": reference.file_path,
-            "created_at": reference.created_at,
-            "updated_at": reference.updated_at,
-            "team_id": reference.team_id,
-            "created_by_id": reference.created_by_id,
-            "category_id": reference.category_id,
-            "keywords": [kw.name for kw in reference.keywords]  # 直接提取关键词名称
-        }
-        results.append(ReferenceRead(**reference_dict))
+    # 执行分页查询
+    references = session.exec(query.offset(skip).limit(limit)).all()
 
-    return results
+    # 构建返回数据
+    results = [get_reference_read(ref, session) for ref in references]
+
+    # 计算分页信息
+    current_page = (skip // limit) + 1
+    total_pages = (total_count + limit - 1) // limit  # 向上取整
+
+    # 返回分页响应
+    return PaginatedReferenceResponse(
+        items=results,
+        total=total_count,
+        page=current_page,
+        size=limit,
+        pages=total_pages
+    )
 
 
 @router.get("/{reference_id}", response_model=ReferenceRead)
@@ -188,32 +192,15 @@ def read_reference(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user)
 ):
-    """获取特定参考文献的详细信息"""
+    """获取单个参考文献"""
     reference = session.get(ReferencePaper, reference_id)
     if not reference:
-        raise HTTPException(status_code=404, detail="Reference paper not found")
+        raise HTTPException(status_code=404, detail="Reference not found")
 
-    # 检查用户是否为团队成员
-    if reference.team_id is None:
-        raise HTTPException(status_code=400, detail="Reference has no associated team")
+    # 检查用户是否有权限访问
     check_team_member(reference.team_id, current_user, session)
 
-    # 构建返回数据字典
-    reference_dict = {
-        "id": reference.id,
-        "title": reference.title,
-        "authors": reference.authors,
-        "doi": reference.doi,
-        "file_path": reference.file_path,
-        "created_at": reference.created_at,
-        "updated_at": reference.updated_at,
-        "team_id": reference.team_id,
-        "created_by_id": reference.created_by_id,
-        "category_id": reference.category_id,
-        "keywords": [keyword.name for keyword in reference.keywords]
-    }
-
-    return ReferenceRead(**reference_dict)
+    return get_reference_read(reference, session)
 
 
 @router.patch("/{reference_id}", response_model=ReferenceRead)
@@ -223,70 +210,77 @@ def update_reference(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user)
 ):
-    """更新参考文献信息"""
+    """更新参考文献"""
     db_reference = session.get(ReferencePaper, reference_id)
     if not db_reference:
-        raise HTTPException(status_code=404, detail="Reference paper not found")
+        raise HTTPException(status_code=404, detail="Reference not found")
 
-    # 检查用户是否为团队成员
-    if db_reference.team_id is None:
-        raise HTTPException(status_code=400, detail="Reference has no associated team")
+    # 检查用户是否有权限修改
     check_team_member(db_reference.team_id, current_user, session)
+    team_user = session.exec(
+        select(TeamUser).where(
+            TeamUser.team_id == db_reference.team_id,
+            TeamUser.user_id == current_user.id
+        )
+    ).first()
 
-    # 检查分类是否存在（如果要更新分类）
+    # 只有创建者和团队管理员可以修改
+    if (db_reference.created_by_id != current_user.id and
+        not (team_user and team_user.role in [TeamRole.OWNER, TeamRole.ADMIN])):
+        raise HTTPException(
+            status_code=403,
+            detail="Only the creator or team administrators can modify this reference"
+        )
+
+    # 如果要更新分类，检查分类是否存在且属于同一团队
     if reference_update.category_id is not None:
-        category = session.get(Category, reference_update.category_id)
-        if not category:
-            raise HTTPException(status_code=404, detail="Category not found")
+        if reference_update.category_id != 0:  # 0 表示无分类
+            category = session.get(ReferenceCategory, reference_update.category_id)
+            if not category:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Category {reference_update.category_id} not found"
+                )
+            if category.team_id != db_reference.team_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Category must belong to the same team"
+                )
 
-    # 更新参考文献信息
+    # 更新基本信息
     reference_data = reference_update.dict(exclude_unset=True)
-    keyword_names = reference_data.pop("keyword_names", None)
-
     for key, value in reference_data.items():
-        setattr(db_reference, key, value)
+        if key != "keyword_names":
+            setattr(db_reference, key, value)
 
-    # 如果提供了关键字，更新关键字
-    if keyword_names is not None:
-        # 删除现有关键字链接
-        existing_links = session.exec(
-            select(ReferenceKeyword).where(ReferenceKeyword.reference_id == reference_id)
-        ).all()
-        for link in existing_links:
-            session.delete(link)
+    # 如果提供了关键词，更新关键词
+    if reference_update.keyword_names is not None:
+        # 删除现有关键词关联
+        session.exec(
+            delete(ReferenceKeyword).where(ReferenceKeyword.reference_id == reference_id)
+        )
 
-        # 创建新的关键字链接
-        keywords = get_or_create_keywords(session, keyword_names)
-        for keyword in keywords:
-            keyword_link = ReferenceKeyword(
+        # 添加新的关键词
+        for name in reference_update.keyword_names:
+            keyword = session.exec(
+                select(Keyword).where(Keyword.name == name)
+            ).first()
+            if not keyword:
+                keyword = Keyword(name=name)
+                session.add(keyword)
+                session.flush()
+
+            reference_keyword = ReferenceKeyword(
                 reference_id=reference_id,
                 keyword_id=keyword.id
             )
-            session.add(keyword_link)
+            session.add(reference_keyword)
 
-    # 更新修改时间
     db_reference.updated_at = datetime.utcnow()
-
-    session.add(db_reference)
     session.commit()
     session.refresh(db_reference)
 
-    # 构建返回数据字典
-    reference_dict = {
-        "id": db_reference.id,
-        "title": db_reference.title,
-        "authors": db_reference.authors,
-        "doi": db_reference.doi,
-        "file_path": db_reference.file_path,
-        "created_at": db_reference.created_at,
-        "updated_at": db_reference.updated_at,
-        "team_id": db_reference.team_id,
-        "created_by_id": db_reference.created_by_id,
-        "category_id": db_reference.category_id,
-        "keywords": [keyword.name for keyword in db_reference.keywords]
-    }
-
-    return ReferenceRead(**reference_dict)
+    return get_reference_read(db_reference, session)
 
 
 @router.delete("/{reference_id}")
@@ -296,35 +290,69 @@ def delete_reference(
     current_user: User = Depends(get_current_user)
 ):
     """删除参考文献"""
-    db_reference = session.get(ReferencePaper, reference_id)
-    if not db_reference:
-        raise HTTPException(status_code=404, detail="Reference paper not found")
+    reference = session.get(ReferencePaper, reference_id)
+    if not reference:
+        raise HTTPException(status_code=404, detail="Reference not found")
 
-    # 检查用户是否为团队成员
-    if db_reference.team_id is None:
-        raise HTTPException(status_code=400, detail="Reference has no associated team")
-    check_team_member(db_reference.team_id, current_user, session)
+    # 检查用户是否有权限删除
+    check_team_member(reference.team_id, current_user, session)
+    team_user = session.exec(
+        select(TeamUser).where(
+            TeamUser.team_id == reference.team_id,
+            TeamUser.user_id == current_user.id
+        )
+    ).first()
 
-    # 删除关键词关联
-    existing_links = session.exec(
-        select(ReferenceKeyword).where(ReferenceKeyword.reference_id == reference_id)
-    ).all()
-    for link in existing_links:
-        session.delete(link)
+    # 只有创建者和团队管理员可以删除
+    if (reference.created_by_id != current_user.id and
+        not (team_user and team_user.role in [TeamRole.OWNER, TeamRole.ADMIN])):
+        raise HTTPException(
+            status_code=403,
+            detail="Only the creator or team administrators can delete this reference"
+        )
 
-    # 如果存在关联的文件，删除文件
-    if db_reference.file_path and os.path.exists(db_reference.file_path):
-        try:
-            os.remove(db_reference.file_path)
-        except OSError as e:
-            # 记录错误但不中断删除操作
-            print(f"Error deleting file {db_reference.file_path}: {e}")
+    # 删除关联的关键词
+    session.exec(
+        delete(ReferenceKeyword).where(ReferenceKeyword.reference_id == reference_id)
+    )
 
-    # 删除参考文献
-    session.delete(db_reference)
+    session.delete(reference)
     session.commit()
-
     return {"ok": True}
+
+
+def get_reference_read(reference: ReferencePaper, session: Session) -> ReferenceRead:
+    """构建参考文献返回数据"""
+    # 获取关键词
+    keywords = [
+        kw.name for kw in session.exec(
+            select(Keyword)
+            .join(ReferenceKeyword)
+            .where(ReferenceKeyword.reference_id == reference.id)
+        ).all()
+    ]
+
+    # 获取分类信息
+    category_info = None
+    if reference.category_id:
+        category = session.get(ReferenceCategory, reference.category_id)
+        if category:
+            category_info = ReferenceCategoryRead.from_orm(category)
+
+    return ReferenceRead(
+        id=reference.id,
+        title=reference.title,
+        authors=reference.authors,
+        doi=reference.doi,
+        file_path=reference.file_path,
+        created_at=reference.created_at,
+        updated_at=reference.updated_at,
+        team_id=reference.team_id,
+        created_by_id=reference.created_by_id,
+        category_id=reference.category_id,
+        keywords=keywords,
+        category=category_info
+    )
 
 
 @router.post("/{reference_id}/upload")

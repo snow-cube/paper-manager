@@ -5,19 +5,20 @@ from enum import Enum
 
 if TYPE_CHECKING:
     from .user import User, UserRead
-    from .reference import ReferencePaper
+    from .reference import ReferencePaper, ReferenceCategory
+    from .paper import Paper
 
 
 class TeamRole(str, Enum):
     """团队角色枚举"""
-    OWNER = "owner"  # 创建者/拥有者
-    ADMIN = "admin"  # 管理员
-    MEMBER = "member"  # 普通成员
+    OWNER = "OWNER"  # 创建者/拥有者
+    ADMIN = "ADMIN"  # 管理员
+    MEMBER = "MEMBER"  # 普通成员
 
     @property
     def is_admin(self) -> bool:
         """是否具有管理员权限"""
-        return self in (TeamRole.OWNER, TeamRole.ADMIN)
+        return self in [TeamRole.OWNER, TeamRole.ADMIN]
 
 
 class TeamUser(SQLModel, table=True):
@@ -40,42 +41,46 @@ class TeamUser(SQLModel, table=True):
         return self.role.is_admin
 
 
-class Team(SQLModel, table=True):
-    """团队表"""
-    id: Optional[int] = Field(default=None, primary_key=True)
+class TeamBase(SQLModel):
     name: str = Field(index=True)
     description: Optional[str] = None
+    creator_id: int = Field(foreign_key="user.id")
+
+
+class Team(TeamBase, table=True):
+    """团队表"""
+    __tablename__ = "team"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)  # 添加更新时间
-    creator_id: int = Field(foreign_key="user.id")  # 创建者ID
+    max_members: Optional[int] = None
+    is_active: bool = Field(default=True)
+    last_active_at: Optional[datetime] = None
 
     # Relationships
-    members: List["User"] = Relationship(
-        back_populates="teams",
-        link_model=TeamUser
-    )
+    members: List["TeamUser"] = Relationship(back_populates="team")
     member_links: List[TeamUser] = Relationship(back_populates="team")
     references: List["ReferencePaper"] = Relationship(back_populates="team")
+    creator: "User" = Relationship(back_populates="created_teams")
+    papers: List["Paper"] = Relationship(back_populates="team")
+    reference_categories: List["ReferenceCategory"] = Relationship(back_populates="team")
 
 
-class TeamCreate(SQLModel):
+class TeamCreate(TeamBase):
     """创建团队的请求模型"""
-    name: str
-    description: Optional[str] = None
+    pass
 
 
-class TeamRead(SQLModel):
+class TeamRead(TeamBase):
     """团队信息返回模型"""
     id: int
-    name: str
-    description: Optional[str] = None
     created_at: datetime
     updated_at: datetime
-    creator_id: int
     member_count: Optional[int] = None  # 成员数量
 
 
 class TeamUpdate(SQLModel):
     """更新团队的请求模型"""
     name: Optional[str] = None
-    description: Optional[str] = None 
+    description: Optional[str] = None

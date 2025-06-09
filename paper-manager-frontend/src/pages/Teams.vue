@@ -1,82 +1,79 @@
 <template>
-  <div class="teams-page">
-    <div class="container">
-      <div class="page-header">
-        <h1 class="page-title">
-          <span class="page-icon">👥</span>
-          团队管理
-        </h1>
-        <p class="page-description">创建和管理您的科研团队</p>
+  <StandardPageLayout
+    title="团队管理"
+    icon="👥"
+    description="创建和管理您的科研团队"
+  >
+    <div v-if="!selectedTeam" class="teams-overview">
+      <TeamList @team-selected="handleTeamSelected" />
+    </div>
+
+    <div v-else class="team-detail">
+      <div class="team-header">
+        <button @click="selectedTeam = null" class="btn btn-secondary">
+          ← 返回团队列表
+        </button>
+        <h2>{{ selectedTeam.name }}</h2>
       </div>
 
-      <div v-if="!selectedTeam" class="teams-overview">
-        <TeamList @team-selected="handleTeamSelected" />
+      <div class="team-tabs">
+        <button
+          v-for="tab in tabs"
+          :key="tab.key"
+          @click="activeTab = tab.key"
+          :class="['tab-btn', { active: activeTab === tab.key }]"
+        >
+          <span class="tab-icon">{{ tab.icon }}</span>
+          {{ tab.label }}
+        </button>
       </div>
 
-      <div v-else class="team-detail">
-        <div class="team-header">
-          <button @click="selectedTeam = null" class="btn btn-secondary">
-            ← 返回团队列表
-          </button>
-          <h2>{{ selectedTeam.name }}</h2>
+      <div class="tab-content">
+        <!-- 团队信息 -->
+        <div v-if="activeTab === 'info'" class="team-info-tab">
+          <TeamInfo :team="selectedTeam" @updated="handleTeamUpdated" />
         </div>
 
-        <div class="team-tabs">
-          <button
-            v-for="tab in tabs"
-            :key="tab.key"
-            @click="activeTab = tab.key"
-            :class="['tab-btn', { active: activeTab === tab.key }]"
-          >
-            <span class="tab-icon">{{ tab.icon }}</span>
-            {{ tab.label }}
-          </button>
+        <!-- 团队成员 -->
+        <div v-if="activeTab === 'members'" class="team-members-tab">
+          <TeamMembers
+            :team="selectedTeam"
+            @member-added="handleMemberAdded"
+            @member-removed="handleMemberRemoved"
+          />
         </div>
 
-        <div class="tab-content">
-          <!-- 团队信息 -->
-          <div v-if="activeTab === 'info'" class="team-info-tab">
-            <TeamInfo :team="selectedTeam" @updated="handleTeamUpdated" />
-          </div>
-
-          <!-- 团队成员 -->
-          <div v-if="activeTab === 'members'" class="team-members-tab">
-            <TeamMembers
-              :team="selectedTeam"
-              @member-added="handleMemberAdded"
-              @member-removed="handleMemberRemoved"
-            />
-          </div>
-
-          <!-- 团队参考文献 -->
-          <div v-if="activeTab === 'references'" class="team-references-tab">
-            <TeamReferences :team="selectedTeam" />
-          </div>
+        <!-- 团队参考文献 -->
+        <div v-if="activeTab === 'references'" class="team-references-tab">
+          <TeamReferences :team="selectedTeam" />
         </div>
       </div>
     </div>
-  </div>
+  </StandardPageLayout>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import TeamList from '../components/TeamList.vue';
-import TeamInfo from '../components/TeamInfo.vue';
-import TeamMembers from '../components/TeamMembers.vue';
-import TeamReferences from '../components/TeamReferences.vue';
+import { ref } from "vue";
+import {
+  StandardPageLayout,
+  TeamList,
+  TeamInfo,
+  TeamMembers,
+  TeamReferences,
+} from "@/components";
 
 const selectedTeam = ref(null);
-const activeTab = ref('info');
+const activeTab = ref("info");
 
 const tabs = [
-  { key: 'info', label: '团队信息', icon: 'ℹ️' },
-  { key: 'members', label: '团队成员', icon: '👤' },
-  { key: 'references', label: '参考文献', icon: '📚' }
+  { key: "info", label: "团队信息", icon: "ℹ️" },
+  { key: "members", label: "团队成员", icon: "👤" },
+  { key: "references", label: "参考文献", icon: "📚" },
 ];
 
 const handleTeamSelected = (team) => {
   selectedTeam.value = team;
-  activeTab.value = 'info';
+  activeTab.value = "info";
 };
 
 const handleTeamUpdated = (updatedTeam) => {
@@ -93,120 +90,123 @@ const handleMemberRemoved = () => {
 </script>
 
 <style scoped>
-.teams-page {
-  min-height: 100vh;
-  background: #f8fafc;
-}
-
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
-}
-
-.page-header {
-  text-align: center;
-  margin-bottom: 3rem;
-}
-
-.page-title {
-  font-size: 2.5rem;
-  color: #333;
-  margin-bottom: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-}
-
-.page-icon {
-  font-size: 2.5rem;
-}
-
-.page-description {
-  color: #666;
-  font-size: 1.1rem;
-  margin: 0;
-}
-
 .teams-overview {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  background: var(--white);
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--primary-100);
 }
 
 .team-detail {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  background: var(--white);
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--primary-100);
   overflow: hidden;
 }
 
 .team-header {
-  padding: 2rem;
-  border-bottom: 1px solid #e1e5e9;
+  padding: var(--space-xl);
+  border-bottom: 1px solid var(--primary-100);
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: var(--space-md);
+  background: linear-gradient(135deg, var(--white), var(--primary-25));
 }
 
 .team-header h2 {
-  color: #333;
+  color: var(--color-heading);
   margin: 0;
   flex: 1;
+  font-size: var(--text-xl);
+  font-weight: 600;
 }
 
 .team-tabs {
   display: flex;
-  border-bottom: 1px solid #e1e5e9;
+  border-bottom: 1px solid var(--primary-100);
+  background: var(--primary-25);
 }
 
 .tab-btn {
-  padding: 1rem 2rem;
+  padding: var(--space-md) var(--space-xl);
   border: none;
   background: none;
   cursor: pointer;
-  font-size: 1rem;
-  color: #666;
-  transition: all 0.3s ease;
+  font-size: var(--text-base);
+  color: var(--color-text);
+  transition: all var(--transition-normal);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-sm);
   border-bottom: 3px solid transparent;
+  font-weight: 500;
 }
 
 .tab-btn:hover {
-  background: #f8fafc;
-  color: #333;
+  background: var(--primary-50);
+  color: var(--primary-700);
 }
 
 .tab-btn.active {
-  color: #6366f1;
-  border-bottom-color: #6366f1;
-  background: #f8fafc;
+  color: var(--primary-600);
+  border-bottom-color: var(--primary-500);
+  background: var(--white);
+  font-weight: 600;
+}
+
+.tab-icon {
+  font-size: var(--text-lg);
 }
 
 .tab-content {
-  padding: 2rem;
+  padding: var(--space-xl);
   min-height: 400px;
+  background: var(--white);
 }
 
 .btn {
-  padding: 0.75rem 1.5rem;
+  padding: var(--space-md) var(--space-lg);
   border: none;
-  border-radius: 8px;
-  font-size: 1rem;
+  border-radius: var(--border-radius);
+  font-size: var(--text-base);
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
 }
 
 .btn-secondary {
-  background: #6b7280;
-  color: white;
+  background: var(--gray-600);
+  color: var(--white);
 }
 
 .btn-secondary:hover {
-  background: #5b6470;
+  background: var(--gray-700);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 768px) {
+  .team-header {
+    padding: var(--space-lg) var(--space-md);
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .team-tabs {
+    flex-direction: column;
+  }
+
+  .tab-btn {
+    padding: var(--space-md);
+    justify-content: center;
+  }
+
+  .tab-content {
+    padding: var(--space-lg) var(--space-md);
+  }
 }
 </style>

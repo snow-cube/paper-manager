@@ -1,0 +1,83 @@
+/* 列表和表格组件样式 */
+
+/* 列表项目 */
+.list-item {
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-border);
+  transition: background-color 0.2s ease;
+}
+
+.list-item:hover {
+  background: var(--color-background-soft);
+}
+
+.list-item:last-child {
+  border-bottom: none;
+}
+
+/* 列表容器 */
+.list-container {
+  background: var(--white);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.list-header {
+  padding: var(--space-md) var(--space-lg);
+  background: var(--color-background-soft);
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 600;
+  color: var(--color-heading);
+}
+
+.list-item-base {
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+  transition: background-color var(--transition-fast);
+  cursor: pointer;
+}
+
+.list-item-base:hover {
+  background: var(--color-background-soft);
+}
+
+.list-item-base:last-child {
+  border-bottom: none;
+}
+
+/* 表格组件 */
+.table-container {
+  overflow-x: auto;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-border);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--white);
+}
+
+.table th {
+  background: var(--color-background-soft);
+  padding: var(--space-md);
+  text-align: left;
+  font-weight: 600;
+  color: var(--color-heading);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.table td {
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.table tbody tr:hover {
+  background: var(--color-background-soft);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}

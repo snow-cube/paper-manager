@@ -1,0 +1,101 @@
+/* 树形组件样式 */
+
+.tree-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--white);
+  border: 1px solid var(--primary-200);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.tree-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--primary-100);
+  background: linear-gradient(to right, var(--primary-50), var(--white));
+}
+
+.tree-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-heading);
+}
+
+.tree-icon {
+  font-size: var(--text-lg);
+}
+
+.tree-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-sm) 0;
+}
+
+.tree-node {
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  position: relative;
+}
+
+.tree-node:hover {
+  background: var(--primary-50);
+}
+
+.tree-node-active {
+  background: var(--primary-50);
+  border-right: 3px solid var(--primary-600);
+}
+
+.tree-node-content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  position: relative;
+}
+
+.tree-node-icon {
+  font-size: var(--text-base);
+  width: var(--space-lg);
+  text-align: center;
+}
+
+.tree-node-label {
+  flex: 1;
+  font-weight: 500;
+  color: var(--color-heading);
+}
+
+.tree-node-count {
+  font-size: var(--text-xs);
+  background: var(--white);
+  color: var(--primary-600);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: 50px;
+  font-weight: 500;
+  border: 1px solid var(--primary-200);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-normal);
+}
+
+.tree-node:hover .tree-node-count {
+  background: var(--white);
+  color: var(--primary-700);
+  border-color: var(--primary-300);
+  box-shadow: var(--shadow-hover);
+}
+
+.tree-node-active .tree-node-count {
+  background: var(--white);
+  color: var(--primary-700);
+  border-color: var(--primary-300);
+  box-shadow: var(--shadow-hover);
+}

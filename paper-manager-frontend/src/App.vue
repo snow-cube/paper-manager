@@ -7,149 +7,239 @@
       </ErrorBoundary>
     </template>
     <template v-else>
-      <!-- 普通页面：显示完整布局 -->      <header class="header">
+      <!-- 普通页面：显示完整布局 -->
+      <header class="header">
         <div class="container">
           <div class="header-content">
             <!-- 左侧：Logo + 导航 -->
-          <div class="left-section">
-            <div class="logo">
-              <span class="logo-icon">📚</span>
-              <span class="logo-text">科研论文管理系统</span>
-            </div>
-            <nav class="nav">
-              <RouterLink to="/" class="nav-link">
-                <span class="nav-icon">🏠</span>
-                <span class="nav-text">首页</span>
-              </RouterLink>
-              <template v-if="isAuthenticated">
-                <RouterLink to="/literature" class="nav-link">
-                  <span class="nav-icon">📚</span>
-                  <span class="nav-text">文献管理</span>
-                </RouterLink>
-                <RouterLink to="/publications" class="nav-link">
-                  <span class="nav-icon">🎓</span>
-                  <span class="nav-text">发表论文</span>
-                </RouterLink>
-                <RouterLink to="/teams" class="nav-link">
-                  <span class="nav-icon">👥</span>
-                  <span class="nav-text">团队管理</span>
-                </RouterLink>
-                <RouterLink to="/categories" class="nav-link">
-                  <span class="nav-icon">🏷️</span>
-                  <span class="nav-text">分类管理</span>
-                </RouterLink>
-                <RouterLink to="/collaboration" class="nav-link">
-                  <span class="nav-icon">🔗</span>
-                  <span class="nav-text">合作网络</span>
-                </RouterLink>
-              </template>
-            </nav>
-          </div>
-
-          <!-- 右侧：团队选择器 + 用户信息 -->
-          <div class="right-section">
-            <template v-if="isAuthenticated && hasTeams">
-              <div class="team-wrapper">
-                <TeamSelector />
+            <div class="left-section">
+              <div class="logo">
+                <span class="logo-icon">📚</span>
+                <span class="logo-text">科研论文管理系统</span>
               </div>
-            </template>            <div class="user-section">
-              <template v-if="isAuthenticated">
-                <div v-if="isLoading" class="user-loading">
-                  <div class="loading-avatar"></div>
-                  <div class="loading-text">
-                    <div class="loading-line"></div>
-                    <div class="loading-line short"></div>
-                  </div>
-                </div>
-                <div v-else class="user-dropdown" :class="{ 'open': isUserDropdownOpen }"><button @click="toggleUserDropdown" class="user-btn">
-                    <div class="user-avatar">
-                      <img v-if="currentUser?.avatar" :src="currentUser.avatar" :alt="currentUser.username" class="avatar-img" />
-                      <span v-else class="user-initials">{{ getUserAvatar(currentUser) }}</span>
-                    </div><div class="user-info">
-                      <span class="user-name">{{ currentUser?.full_name || currentUser?.username || '用户' }}</span>
-                      <span class="user-role">{{ getRoleDisplayName(currentUser?.role) }}</span>
-                    </div>
-                    <span class="dropdown-arrow" :class="{ 'rotated': isUserDropdownOpen }">
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-                        <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                      </svg>
-                    </span>
-                  </button>
+              <nav class="nav">
+                <RouterLink to="/" class="nav-link">
+                  <span class="nav-icon">🏠</span>
+                  <span class="nav-text">首页</span>
+                </RouterLink>
+                <template v-if="isAuthenticated">
+                  <RouterLink to="/literature" class="nav-link">
+                    <span class="nav-icon">📚</span>
+                    <span class="nav-text">文献管理</span>
+                  </RouterLink>
+                  <RouterLink to="/publications" class="nav-link">
+                    <span class="nav-icon">🎓</span>
+                    <span class="nav-text">发表论文</span>
+                  </RouterLink>
+                  <RouterLink to="/teams" class="nav-link">
+                    <span class="nav-icon">👥</span>
+                    <span class="nav-text">团队管理</span>
+                  </RouterLink>
+                  <RouterLink to="/categories" class="nav-link">
+                    <span class="nav-icon">🏷️</span>
+                    <span class="nav-text">分类管理</span>
+                  </RouterLink>
+                  <RouterLink to="/collaboration" class="nav-link">
+                    <span class="nav-icon">🔗</span>
+                    <span class="nav-text">合作网络</span>
+                  </RouterLink>
+                </template>
+              </nav>
+            </div>
 
-                  <transition name="user-dropdown">
-                    <div v-if="isUserDropdownOpen" class="user-dropdown-menu">                      <div class="user-dropdown-header">
-                        <div class="user-avatar-large">
-                          <img v-if="currentUser?.avatar" :src="currentUser.avatar" :alt="currentUser.username" class="avatar-img-large" />
-                          <span v-else class="user-initials-large">{{ getUserAvatar(currentUser) }}</span>
-                          <div class="status-indicator"></div>
-                        </div>                        <div class="user-details">
-                          <div class="user-display-name">{{ currentUser?.full_name || currentUser?.username || '用户' }}</div>
-                          <div v-if="currentUser?.email" class="user-email">{{ currentUser.email }}</div>
-                          <div class="user-status">
-                            <span class="status-dot"></span>
-                            在线
+            <!-- 右侧：团队选择器 + 用户信息 -->
+            <div class="right-section">
+              <template v-if="isAuthenticated && hasTeams">
+                <div class="team-wrapper">
+                  <TeamSelector />
+                </div>
+              </template>
+              <div class="user-section">
+                <template v-if="isAuthenticated">
+                  <div v-if="isLoading" class="user-loading">
+                    <div class="loading-avatar"></div>
+                    <div class="loading-text">
+                      <div class="loading-line"></div>
+                      <div class="loading-line short"></div>
+                    </div>
+                  </div>
+                  <div
+                    v-else
+                    class="user-dropdown"
+                    :class="{ open: isUserDropdownOpen }"
+                  >
+                    <button @click="toggleUserDropdown" class="user-btn">
+                      <div class="user-avatar">
+                        <img
+                          v-if="currentUser?.avatar"
+                          :src="currentUser.avatar"
+                          :alt="currentUser.username"
+                          class="avatar-img"
+                        />
+                        <span v-else class="user-initials">{{
+                          getUserAvatar(currentUser)
+                        }}</span>
+                      </div>
+                      <div class="user-info">
+                        <span class="user-name">{{
+                          currentUser?.full_name ||
+                          currentUser?.username ||
+                          "用户"
+                        }}</span>
+                        <span class="user-role">{{
+                          getRoleDisplayName(currentUser?.role)
+                        }}</span>
+                      </div>
+                      <span
+                        class="dropdown-arrow"
+                        :class="{ rotated: isUserDropdownOpen }"
+                      >
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 12 12"
+                          fill="currentColor"
+                        >
+                          <path
+                            d="M2.5 4.5L6 8L9.5 4.5"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            fill="none"
+                          />
+                        </svg>
+                      </span>
+                    </button>
+
+                    <transition name="user-dropdown">
+                      <div v-if="isUserDropdownOpen" class="user-dropdown-menu">
+                        <div class="user-dropdown-header">
+                          <div class="user-avatar-large">
+                            <img
+                              v-if="currentUser?.avatar"
+                              :src="currentUser.avatar"
+                              :alt="currentUser.username"
+                              class="avatar-img-large"
+                            />
+                            <span v-else class="user-initials-large">{{
+                              getUserAvatar(currentUser)
+                            }}</span>
+                            <div class="status-indicator"></div>
+                          </div>
+                          <div class="user-details">
+                            <div class="user-display-name">
+                              {{
+                                currentUser?.full_name ||
+                                currentUser?.username ||
+                                "用户"
+                              }}
+                            </div>
+                            <div v-if="currentUser?.email" class="user-email">
+                              {{ currentUser.email }}
+                            </div>
+                            <div class="user-status">
+                              <span class="status-dot"></span>
+                              在线
+                            </div>
                           </div>
                         </div>
+
+                        <div class="user-dropdown-section">
+                          <button
+                            @click="handleUserProfile"
+                            class="user-dropdown-item"
+                          >
+                            <span class="item-icon">
+                              <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 16 16"
+                                fill="currentColor"
+                              >
+                                <path
+                                  d="M8 8a3 3 0 100-6 3 3 0 000 6zM12.735 14c.618 0 1.093-.561.872-1.139a6.002 6.002 0 00-11.215 0c-.22.578.254 1.139.872 1.139h9.47z"
+                                />
+                              </svg>
+                            </span>
+                            <span>个人资料</span>
+                          </button>
+                          <button
+                            @click="handleUserSettings"
+                            class="user-dropdown-item"
+                          >
+                            <span class="item-icon">
+                              <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 16 16"
+                                fill="currentColor"
+                              >
+                                <path
+                                  d="M8 4.754a3.246 3.246 0 100 6.492 3.246 3.246 0 000-6.492zM5.754 8a2.246 2.246 0 114.492 0 2.246 2.246 0 01-4.492 0z"
+                                />
+                                <path
+                                  d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 01-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 01-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 01.52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 011.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 011.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 01.52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 01-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 01-1.255-.52l-.094-.319z"
+                                />
+                              </svg>
+                            </span>
+                            <span>账户设置</span>
+                          </button>
+
+                          <div class="dropdown-divider"></div>
+
+                          <button
+                            @click="handleLogout"
+                            class="user-dropdown-item logout-item"
+                          >
+                            <span class="item-icon">
+                              <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 16 16"
+                                fill="currentColor"
+                              >
+                                <path
+                                  d="M3 3a1 1 0 011-1h4a1 1 0 010 2H5v8h3a1 1 0 010 2H4a1 1 0 01-1-1V3zM10.293 5.293a1 1 0 011.414 1.414L9.414 8l2.293 2.293a1 1 0 01-1.414 1.414L8 9.414l-2.293 2.293a1 1 0 01-1.414-1.414L6.586 8 4.293 5.707a1 1 0 011.414-1.414L8 7.586l2.293-2.293z"
+                                />
+                              </svg>
+                            </span>
+                            <span>退出登录</span>
+                            <span class="logout-shortcut">Ctrl+Q</span>
+                          </button>
+                        </div>
                       </div>
-
-                      <div class="user-dropdown-section">
-                        <button @click="handleUserProfile" class="user-dropdown-item">
-                          <span class="item-icon">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                              <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM12.735 14c.618 0 1.093-.561.872-1.139a6.002 6.002 0 00-11.215 0c-.22.578.254 1.139.872 1.139h9.47z"/>
-                            </svg>
-                          </span>
-                          <span>个人资料</span>
-                        </button>
-                        <button @click="handleUserSettings" class="user-dropdown-item">
-                          <span class="item-icon">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                              <path d="M8 4.754a3.246 3.246 0 100 6.492 3.246 3.246 0 000-6.492zM5.754 8a2.246 2.246 0 114.492 0 2.246 2.246 0 01-4.492 0z"/>
-                              <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 01-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 01-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 01.52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 011.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 011.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 01.52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 01-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 01-1.255-.52l-.094-.319z"/>
-                            </svg>
-                          </span>
-                          <span>账户设置</span>
-                        </button>
-
-                        <div class="dropdown-divider"></div>
-
-                        <button @click="handleLogout" class="user-dropdown-item logout-item">
-                          <span class="item-icon">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                              <path d="M3 3a1 1 0 011-1h4a1 1 0 010 2H5v8h3a1 1 0 010 2H4a1 1 0 01-1-1V3zM10.293 5.293a1 1 0 011.414 1.414L9.414 8l2.293 2.293a1 1 0 01-1.414 1.414L8 9.414l-2.293 2.293a1 1 0 01-1.414-1.414L6.586 8 4.293 5.707a1 1 0 011.414-1.414L8 7.586l2.293-2.293z"/>
-                            </svg>
-                          </span>
-                          <span>退出登录</span>
-                          <span class="logout-shortcut">Ctrl+Q</span>
-                        </button>
-                      </div>                    </div>
-                  </transition>
-                </div>
-              </template>
-              <template v-else>
-                <RouterLink to="/login" class="login-btn">
-                  <span class="login-icon">🔑</span>
-                  <span class="login-text">登录</span>
-                </RouterLink>
-              </template>
+                    </transition>
+                  </div>
+                </template>
+                <template v-else>
+                  <RouterLink to="/login" class="login-btn">
+                    <span class="login-icon">🔑</span>
+                    <span class="login-text">登录</span>
+                  </RouterLink>
+                </template>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
 
-    <main class="main">
-      <ErrorBoundary @retry="handleRetry">
-        <RouterView />
-      </ErrorBoundary>
-    </main>
+      <main class="main">
+        <ErrorBoundary @retry="handleRetry">
+          <RouterView />
+        </ErrorBoundary>
+      </main>
 
-    <footer class="footer">
-      <div class="container">
-        <p>&copy; {{ new Date().getFullYear() }} 科研论文管理系统. All rights reserved.</p>
-      </div>
-    </footer>    <!-- Toast通知容器 -->
-    <ToastContainer />
+      <footer class="footer">
+        <div class="container">
+          <p>
+            &copy; {{ new Date().getFullYear() }} 科研论文管理系统. All rights
+            reserved.
+          </p>
+        </div>
+      </footer>
+      <!-- Toast通知容器 -->
+      <ToastContainer />
     </template>
   </div>
 </template>
@@ -157,9 +247,7 @@
 <script setup>
 import { RouterLink, RouterView } from "vue-router";
 import { ref, onMounted, onUnmounted } from "vue";
-import ToastContainer from "./components/ToastContainer.vue";
-import ErrorBoundary from "./components/ErrorBoundary.vue";
-import TeamSelector from "./components/TeamSelector.vue";
+import { ToastContainer, ErrorBoundary, TeamSelector } from "@/components";
 import { useAuth } from "./composables/useAuth";
 import { useTeam } from "./composables/useTeam";
 
@@ -171,7 +259,7 @@ const isUserDropdownOpen = ref(false);
 
 const handleRetry = () => {
   // 这里可以添加重试逻辑，比如重新加载数据
-  console.log('Application retry triggered');
+  console.log("Application retry triggered");
 };
 
 const toggleUserDropdown = () => {
@@ -190,13 +278,13 @@ const handleLogout = async () => {
 const handleUserProfile = () => {
   closeUserDropdown();
   // 跳转到个人资料页面
-  console.log('Navigate to user profile');
+  console.log("Navigate to user profile");
 };
 
 const handleUserSettings = () => {
   closeUserDropdown();
   // 跳转到账户设置页面
-  console.log('Navigate to user settings');
+  console.log("Navigate to user settings");
 };
 
 // 获取用户头像或首字母
@@ -205,34 +293,34 @@ const getUserAvatar = (user) => {
     return user.avatar;
   }
   // 如果没有头像，返回用户名或全名的首字母
-  const name = user?.full_name || user?.username || '用户';
+  const name = user?.full_name || user?.username || "用户";
   return name.charAt(0).toUpperCase();
 };
 
 // 获取角色显示名称
 const getRoleDisplayName = (role) => {
   const roleMap = {
-    'admin': '管理员',
-    'user': '普通用户',
-    'researcher': '研究员',
-    'student': '学生'
+    admin: "管理员",
+    user: "普通用户",
+    researcher: "研究员",
+    student: "学生",
   };
-  return roleMap[role] || '用户';
+  return roleMap[role] || "用户";
 };
 
 // 点击外部关闭下拉菜单
 const handleClickOutside = (event) => {
-  if (!event.target.closest('.user-dropdown')) {
+  if (!event.target.closest(".user-dropdown")) {
     closeUserDropdown();
   }
 };
 
 onMounted(() => {
-  document.addEventListener('click', handleClickOutside);
+  document.addEventListener("click", handleClickOutside);
 });
 
 onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside);
+  document.removeEventListener("click", handleClickOutside);
 });
 </script>
 
@@ -339,7 +427,7 @@ onUnmounted(() => {
 }
 
 .nav-link::before {
-  content: '';
+  content: "";
   position: absolute;
   bottom: 0;
   left: 50%;
@@ -392,8 +480,8 @@ onUnmounted(() => {
 .user-loading {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 0.875rem;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-lg);
 }
 
 .loading-avatar {
@@ -408,11 +496,11 @@ onUnmounted(() => {
 .loading-text {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-xs);
 }
 
 .loading-line {
-  height: 0.75rem;
+  height: var(--space-md);
   background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
   background-size: 200% 100%;
   border-radius: 4px;
@@ -422,7 +510,7 @@ onUnmounted(() => {
 
 .loading-line.short {
   width: 60px;
-  height: 0.625rem;
+  height: var(--space-sm);
 }
 
 @keyframes shimmer {
@@ -444,14 +532,14 @@ onUnmounted(() => {
 .user-btn {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 0.875rem;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-lg);
   background: linear-gradient(135deg, var(--white), #f8fafc);
   border: 1px solid rgba(226, 232, 240, 0.8);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   font-weight: 500;
   color: var(--color-text);
   min-width: 0;
@@ -515,7 +603,7 @@ onUnmounted(() => {
 .user-info .user-name {
   font-weight: 600;
   color: var(--color-heading);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -523,7 +611,7 @@ onUnmounted(() => {
 }
 
 .user-info .user-role {
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   color: var(--color-text-light);
   font-weight: 400;
   overflow: hidden;
@@ -559,8 +647,8 @@ onUnmounted(() => {
 .user-dropdown-header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
+  gap: var(--space-md);
+  padding: var(--space-md);
   background: linear-gradient(135deg, var(--primary-50), var(--primary-100));
   border-bottom: 1px solid var(--primary-200);
   position: relative;
@@ -617,27 +705,27 @@ onUnmounted(() => {
 .user-display-name {
   font-weight: 600;
   color: var(--color-heading);
-  font-size: 0.95rem;
-  margin-bottom: 0.25rem;
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-xs);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .user-email {
-  font-size: 0.8rem;
+  font-size: var(--text-xs);
   color: var(--color-text-light);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--space-xs);
 }
 
 .user-status {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
-  font-size: 0.75rem;
+  gap: var(--space-sm);
+  font-size: var(--text-xs);
   color: var(--primary-600);
   font-weight: 500;
 }
@@ -651,20 +739,20 @@ onUnmounted(() => {
 }
 
 .user-dropdown-section {
-  padding: 0.5rem 0;
+  padding: var(--space-sm) 0;
 }
 
 .user-dropdown-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--space-md);
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: var(--space-md) var(--space-md);
   border: none;
   background: none;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   font-weight: 500;
   color: var(--color-text);
   text-align: left;
@@ -672,13 +760,17 @@ onUnmounted(() => {
 }
 
 .user-dropdown-item:hover {
-  background: linear-gradient(135deg, var(--primary-50), rgba(59, 130, 246, 0.08));
+  background: linear-gradient(
+    135deg,
+    var(--primary-50),
+    rgba(59, 130, 246, 0.08)
+  );
   color: var(--primary-700);
 }
 
 .user-dropdown-item.logout-item {
   color: #dc2626;
-  margin-top: 0.25rem;
+  margin-top: var(--space-xs);
 }
 
 .user-dropdown-item.logout-item:hover {
@@ -699,17 +791,17 @@ onUnmounted(() => {
 .dropdown-divider {
   height: 1px;
   background: var(--color-border);
-  margin: 0.5rem 0;
+  margin: var(--space-sm) 0;
 }
 
 .logout-shortcut {
   margin-left: auto;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   color: var(--color-text-light);
   background: var(--color-background-mute);
-  padding: 0.125rem 0.375rem;
+  padding: var(--space-xs) var(--space-sm);
   border-radius: 4px;
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+  font-family: "SF Mono", "Monaco", "Inconsolata", "Roboto Mono", monospace;
 }
 
 /* 用户下拉菜单动画 */
@@ -733,15 +825,15 @@ onUnmounted(() => {
 .login-btn {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 0.75rem;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--border-radius);
   font-weight: 500;
   transition: all 0.2s ease;
   text-decoration: none;
   border: none;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   flex-shrink: 0;
   background: var(--primary-500);
   color: var(--white);
@@ -775,14 +867,14 @@ onUnmounted(() => {
 .footer {
   background: var(--color-background-mute);
   border-top: 1px solid var(--color-border);
-  padding: 1.5rem 0;
-  margin-top: 2rem;
+  padding: var(--space-lg) 0;
+  margin-top: var(--space-2xl);
 }
 
 .footer p {
   text-align: center;
   color: var(--color-text-light);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   margin: 0;
 }
 
@@ -866,14 +958,14 @@ onUnmounted(() => {
 @media (max-width: 768px) {
   .header-content {
     flex-direction: column;
-    gap: 0.75rem;
-    padding: 0.75rem 0;
+    gap: var(--space-md);
+    padding: var(--space-md) 0;
   }
 
   .left-section {
     width: 100%;
     justify-content: space-between;
-    gap: 1rem;
+    gap: var(--space-md);
   }
 
   .logo {
@@ -881,11 +973,11 @@ onUnmounted(() => {
   }
 
   .logo-text {
-    font-size: 1.25rem;
+    font-size: var(--text-xl);
   }
 
   .nav {
-    gap: 0.5rem;
+    gap: var(--space-sm);
     flex-wrap: wrap;
     justify-content: center;
     order: 2;
@@ -897,18 +989,17 @@ onUnmounted(() => {
   }
 
   .nav-link {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.875rem;
-    gap: 0.4rem;
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--text-sm);
+    gap: var(--space-sm);
   }
 
   .right-section {
     order: 1;
     width: 100%;
     justify-content: center;
-    gap: 1rem;
+    gap: var(--space-md);
   }
-
   .team-wrapper {
     min-width: auto;
     max-width: 200px;
@@ -927,8 +1018,8 @@ onUnmounted(() => {
   }
 
   .login-btn {
-    padding: 0.6rem 1rem;
-    font-size: 0.9rem;
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--text-sm);
     min-width: 120px;
     justify-content: center;
   }
@@ -942,21 +1033,21 @@ onUnmounted(() => {
 
 @media (max-width: 480px) {
   .nav {
-    gap: 0.25rem;
+    gap: var(--space-xs);
   }
 
   .nav-link {
-    padding: 0.4rem 0.6rem;
-    font-size: 0.8rem;
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--text-xs);
   }
 
   .nav-icon {
-    font-size: 0.9rem;
+    font-size: var(--text-sm);
   }
 
   .right-section {
     flex-direction: column;
-    gap: 0.75rem;
+    gap: var(--space-md);
   }
 
   .team-wrapper {

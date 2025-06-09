@@ -1,0 +1,26 @@
+/* 过渡动画样式 */
+
+/* Vue过渡类 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity var(--transition-normal);
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-fade-enter-active {
+  transition: all var(--transition-bounce);
+}
+
+.slide-fade-leave-active {
+  transition: all var(--transition-normal);
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  transform: translateX(20px);
+  opacity: 0;
+}
