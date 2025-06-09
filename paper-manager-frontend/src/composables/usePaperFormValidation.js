@@ -115,8 +115,7 @@ export function usePaperFormValidation(form) {
           if (!isAllowed) {
             return "只支持 PDF、DOC、DOCX 格式的文件";
           }
-        }
-        return true;
+        }        return true;
       },
     },
   };

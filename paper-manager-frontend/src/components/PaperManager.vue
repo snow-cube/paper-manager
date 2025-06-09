@@ -15,7 +15,11 @@
     <div v-if="config.requireTeam && !currentTeam" class="no-team-warning">
       <div class="warning-icon">⚠️</div>
       <h3>请先选择团队</h3>
-      <p>您需要先选择一个团队才能管理{{ config.teamRequiredText }}。团队中的所有{{ config.teamRequiredText }}将对团队成员共享。</p>
+      <p>
+        您需要先选择一个团队才能管理{{
+          config.teamRequiredText
+        }}。团队中的所有{{ config.teamRequiredText }}将对团队成员共享。
+      </p>
       <RouterLink to="/teams" class="btn btn-primary">
         转到团队管理
       </RouterLink>
@@ -27,8 +31,14 @@
       <div class="sidebar">
         <div class="sidebar-header">
           <h3>分类</h3>
-        </div>        <CategoryTree
+        </div>
+        <CategoryTree
           :paperType="config.paperType"
+          :categoryType="
+            config.categoryType ||
+            (config.paperType === 'literature' ? 'references' : 'papers')
+          "
+          :teamId="config.requireTeam ? currentTeam?.id : null"
           :selectedCategoryId="selectedCategoryId"
           @select="handleCategorySelect"
         />
@@ -56,10 +66,7 @@
               ✕
             </button>
           </div>
-          <button
-            @click="$emit('add-new')"
-            class="btn btn-outline-purple"
-          >
+          <button @click="$emit('add-new')" class="btn btn-outline-purple">
             <span class="btn-icon">+</span>
             {{ config.addButtonText }}
           </button>
@@ -86,8 +93,14 @@
           <!-- 空状态 -->
           <div v-else-if="filteredPapers.length === 0" class="empty-state">
             <div class="empty-icon">{{ config.emptyIcon }}</div>
-            <h3>{{ searchQuery ? '未找到匹配的结果' : config.emptyTitle }}</h3>
-            <p>{{ searchQuery ? '试试调整搜索关键词或选择其他分类' : config.emptyDescription }}</p>
+            <h3>{{ searchQuery ? "未找到匹配的结果" : config.emptyTitle }}</h3>
+            <p>
+              {{
+                searchQuery
+                  ? "试试调整搜索关键词或选择其他分类"
+                  : config.emptyDescription
+              }}
+            </p>
             <button
               v-if="!searchQuery"
               @click="$emit('add-new')"
@@ -129,27 +142,27 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
-import { RouterLink } from 'vue-router'
-import CategoryTree from './CategoryTree.vue'
-import PaperCard from './PaperCard.vue'
-import { usePapers } from '../composables/usePapers'
-import { useTeam } from '../composables/useTeam'
+import { computed, onMounted } from "vue";
+import { RouterLink } from "vue-router";
+import CategoryTree from "./CategoryTree.vue";
+import PaperCard from "./PaperCard.vue";
+import { usePapers } from "../composables/usePapers";
+import { useTeam } from "../composables/useTeam";
 
 const props = defineProps({
   config: {
     type: Object,
     required: true,
     validator: (config) => {
-      const required = ['title', 'icon', 'paperType']
-      return required.every(key => key in config)
-    }
-  }
-})
+      const required = ["title", "icon", "paperType"];
+      return required.every((key) => key in config);
+    },
+  },
+});
 
-const emit = defineEmits(['add-new', 'edit', 'view'])
+const emit = defineEmits(["add-new", "edit", "view"]);
 
-const { currentTeam } = useTeam()
+const { currentTeam } = useTeam();
 
 // 使用通用的论文管理逻辑
 const {
@@ -165,33 +178,36 @@ const {
   handleDelete,
   handleCategorySelect,
   handleSearch,
-  clearSearch
+  clearSearch,
 } = usePapers({
-  type: props.config.type || 'papers',
+  type: props.config.type || "papers",
   requireTeam: props.config.requireTeam || false,
   loadData: props.config.loadData,
-  deleteData: props.config.deleteData
-})
+  deleteData: props.config.deleteData,
+});
 
 // 动态描述
 const description = computed(() => {
   if (props.config.requireTeam && currentTeam.value) {
-    return props.config.description.replace('{teamName}', currentTeam.value.name)
+    return props.config.description.replace(
+      "{teamName}",
+      currentTeam.value.name
+    );
   }
-  return props.config.description
-})
+  return props.config.description;
+});
 
 // 生命周期
 onMounted(() => {
-  loadPapers()
-})
+  loadPapers();
+});
 
 // 暴露给父组件的方法
 defineExpose({
   loadPapers,
   papers,
-  loading
-})
+  loading,
+});
 </script>
 
 <style scoped>
@@ -348,8 +364,12 @@ defineExpose({
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .error-state,
@@ -437,7 +457,8 @@ defineExpose({
   margin: 0 0 var(--space-2xl) 0;
 }
 
-@media (max-width: 768px) {  .content-layout {
+@media (max-width: 768px) {
+  .content-layout {
     grid-template-columns: 1fr;
     gap: var(--space-md);
   }

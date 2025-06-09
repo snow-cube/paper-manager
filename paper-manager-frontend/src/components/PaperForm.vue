@@ -283,6 +283,7 @@
 
 <script setup>
 import { computed, watch, ref } from "vue";
+import { onMounted } from "vue";
 import FormField from "./forms/FormField.vue";
 import FileUpload from "./forms/FileUpload.vue";
 import AuthorContributions from "./forms/AuthorContributions.vue";
@@ -291,6 +292,7 @@ import { usePaperFormInitialization } from "../composables/usePaperFormInitializ
 import { usePaperFormValidation } from "../composables/usePaperFormValidation";
 import { usePaperFormData } from "../composables/usePaperFormData";
 import { useCategories } from "../composables/useCategories";
+import { useTeam } from "../composables/useTeam";
 
 const props = defineProps({
   paper: {
@@ -315,7 +317,8 @@ const modeOptions = [
 ];
 
 // 使用组合式函数
-const { categories } = useCategories();
+const { categories, loadCategories } = useCategories();
+const { currentTeam } = useTeam();
 const { form, file, authorContributions, isEdit, initializeForm, resetForm } =
   usePaperFormInitialization(props);
 const {
@@ -409,8 +412,33 @@ const handleReset = () => {
   resetValidation();
 };
 
+// 根据论文类型加载合适的分类
+const loadAppropriateCategories = async () => {
+  if (form.value.paper_type === 'literature') {
+    // 文献使用参考文献分类（团队特定）
+    await loadCategories('references', currentTeam.value?.id);
+  } else {
+    // 发表论文使用公共论文分类
+    await loadCategories('papers');
+  }
+};
+
+// 监听论文类型变化，重新加载分类
+watch(() => form.value.paper_type, async (newType) => {
+  if (newType) {
+    await loadAppropriateCategories();
+  }
+});
+
 // 初始化表单
 initializeForm();
+
+// 初始加载分类
+onMounted(async () => {
+  if (form.value.paper_type) {
+    await loadAppropriateCategories();
+  }
+});
 </script>
 
 <style scoped>

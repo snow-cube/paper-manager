@@ -48,8 +48,7 @@ export function usePaperFormData(form, file, authorContributions) {
     } else {
       return Array.isArray(categoryIds) ? categoryIds[0] : categoryIds;
     }
-  };
-  // 准备发表论文数据
+  };  // 准备发表论文数据
   const preparePaperData = (form, authorContributions) => {
     return {
       title: form.title,
@@ -67,6 +66,7 @@ export function usePaperFormData(form, file, authorContributions) {
         : undefined,
       corresponding_author_name:
         authorContributions.correspondingAuthor || null,
+      team_id: currentTeam?.value?.id,
     };
   };
 
@@ -109,8 +109,7 @@ export function usePaperFormData(form, file, authorContributions) {
   // 更新参考文献
   const updateReferenceData = async (referenceId, referenceData) => {
     return await updateReference(referenceId, referenceData);
-  };
-  // 主要的提交处理函数
+  };  // 主要的提交处理函数
   const handleSubmit = async (props, isEdit) => {
     if (!form?.value) {
       showToast("表单数据不可用", "error");
@@ -124,6 +123,12 @@ export function usePaperFormData(form, file, authorContributions) {
       let result;
 
       if (paperType === "published") {
+        // 验证团队选择（发表论文必须选择团队）
+        if (!currentTeam?.value) {
+          showToast("发表论文必须选择团队", "error");
+          throw new Error("发表论文必须选择团队");
+        }
+
         // 处理发表论文
         const paperData = preparePaperData(
           form.value,

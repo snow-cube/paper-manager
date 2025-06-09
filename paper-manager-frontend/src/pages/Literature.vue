@@ -6,7 +6,8 @@
         @add-new="showAddForm = true"
         @edit="handleEdit"
         @view="handleView"
-      />      <!-- 添加/编辑表单模态框 -->
+      />
+      <!-- 添加/编辑表单模态框 -->
       <Modal
         v-if="showAddForm || editingPaper"
         @close="closeForm"
@@ -35,7 +36,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import PaperManager from "../components/PaperManager.vue";
 import PaperForm from "../components/PaperForm.vue";
 import PaperDetail from "../components/PaperDetail.vue";
@@ -56,20 +57,21 @@ const formProgress = ref(0);
 
 // 论文管理器配置
 const paperManagerConfig = computed(() => ({
-  title: '文献管理',
-  icon: '📚',
-  description: currentTeam.value ?
-    `管理 "${currentTeam.value.name}" 团队的学术文献` :
-    '请先选择一个团队',
-  paperType: 'literature',
-  type: 'literature',
+  title: "文献管理",
+  icon: "📚",
+  description: currentTeam.value
+    ? `管理 "${currentTeam.value.name}" 团队的学术文献`
+    : "请先选择一个团队",
+  paperType: "literature",
+  categoryType: "references",
+  type: "literature",
   requireTeam: true,
-  teamRequiredText: '参考文献',
-  searchPlaceholder: '文献标题、作者、关键词',
-  addButtonText: '添加文献',
-  emptyIcon: '📚',
-  emptyTitle: '暂无参考文献',
-  emptyDescription: '开始添加您团队的第一篇参考文献吧'
+  teamRequiredText: "参考文献",
+  searchPlaceholder: "文献标题、作者、关键词",
+  addButtonText: "添加文献",
+  emptyIcon: "📚",
+  emptyTitle: "暂无参考文献",
+  emptyDescription: "开始添加您团队的第一篇参考文献吧",
 }));
 
 // 处理编辑
@@ -117,9 +119,22 @@ const handleProgressUpdate = (progress) => {
   formProgress.value = progress;
 };
 
+// 监听团队变化，重新加载参考文献分类
+watch(
+  () => currentTeam.value,
+  (newTeam) => {
+    if (newTeam) {
+      loadCategories("references", newTeam.id);
+    }
+  }
+);
+
 // 生命周期
 onMounted(() => {
-  loadCategories();
+  // 加载参考文献分类（团队特定）
+  if (currentTeam.value) {
+    loadCategories("references", currentTeam.value.id);
+  }
 });
 </script>
 

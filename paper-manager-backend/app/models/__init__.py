@@ -6,6 +6,9 @@ print("DEBUG: Starting app.models.__init__.py execution")
 from .category import Category, CategoryCreate, CategoryRead, CategoryUpdate
 print(f"DEBUG: Imported .category. Registered tables: {list(SQLModel.metadata.tables.keys())}")
 
+from .author import Author # Import Author model
+print(f"DEBUG: Imported .author. Registered tables: {list(SQLModel.metadata.tables.keys())}")
+
 from .keyword import Keyword, KeywordCreate, KeywordRead, KeywordUpdate
 print(f"DEBUG: Imported .keyword. Registered tables: {list(SQLModel.metadata.tables.keys())}")
 
@@ -29,6 +32,7 @@ from .user import User, UserCreate, UserRead, UserUpdate
 print(f"DEBUG: Imported .user. Registered tables: {list(SQLModel.metadata.tables.keys())}")
 
 __all__ = [
+    "Author", # Add Author to __all__
     "User", "UserCreate", "UserRead", "UserUpdate",
     "Category", "CategoryCreate", "CategoryRead", "CategoryUpdate",
     "Team", "TeamCreate", "TeamRead", "TeamUpdate", "TeamUser",
@@ -38,4 +42,4 @@ __all__ = [
     "Keyword", "KeywordCreate", "KeywordRead", "KeywordUpdate"
 ]
 
-print("DEBUG: Finished app.models.__init__.py execution") 
+print("DEBUG: Finished app.models.__init__.py execution")

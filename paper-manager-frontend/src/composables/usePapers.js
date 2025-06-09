@@ -124,7 +124,6 @@ export function usePapers(options = {}) {
 
     return Math.ceil(filtered.length / itemsPerPage)
   })
-
   // 加载数据
   const loadPapers = async () => {
     if (requireTeam && !currentTeam.value) {
@@ -142,8 +141,10 @@ export function usePapers(options = {}) {
       } else if (type === 'literature') {
         data = await getReferences(currentTeam.value.id)
       } else {
-        data = await getPapers()
-      }      papers.value = data || []
+        // 对于发表论文，如果需要团队，则传递团队ID作为过滤参数
+        const params = requireTeam && currentTeam.value ? { team_id: currentTeam.value.id } : {}
+        data = await getPapers(params)
+      }papers.value = data || []
 
       // 为每个数据项添加明确的类型标识
       papers.value.forEach(item => {

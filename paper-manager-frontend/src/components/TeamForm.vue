@@ -57,6 +57,7 @@
 import { ref, reactive, watch } from 'vue';
 import { createTeam, updateTeam } from '../services/api.js';
 import { useToast } from '../composables/useToast.js';
+import { useAuth } from '../composables/useAuth.js';
 
 const props = defineProps({
   team: {
@@ -68,6 +69,7 @@ const props = defineProps({
 const emit = defineEmits(['saved', 'cancel']);
 
 const { showToast } = useToast();
+const { currentUser } = useAuth();
 const loading = ref(false);
 const error = ref('');
 
@@ -110,8 +112,18 @@ const handleSubmit = async () => {
       result = await updateTeam(props.team.id, formData);
       showToast('团队信息更新成功！', 'success');
     } else {
-      // 创建团队
-      result = await createTeam(formData);
+      // 创建团队 - 添加creator_id字段
+      const teamCreateData = {
+        ...formData,
+        creator_id: currentUser.value?.id
+      };
+
+      if (!teamCreateData.creator_id) {
+        error.value = '用户信息无效，请重新登录';
+        return;
+      }
+
+      result = await createTeam(teamCreateData);
       showToast('团队创建成功！', 'success');
     }
 

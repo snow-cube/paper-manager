@@ -139,7 +139,7 @@ import {
   getReferences,
   deleteReference as deleteReferenceAPI,
   downloadReference as downloadReferenceAPI,
-  getCategories
+  getReferenceCategories
 } from '../services/api.js';
 import { useToast } from '../composables/useToast.js';
 import LoadingSpinner from './LoadingSpinner.vue';
@@ -207,9 +207,9 @@ const loadReferences = async () => {
 
 const loadCategories = async () => {
   try {
-    categories.value = await getCategories();
+    categories.value = await getReferenceCategories(props.team.id);
   } catch (error) {
-    console.error('Failed to load categories:', error);
+    console.error('Failed to load reference categories:', error);
   }
 };
 

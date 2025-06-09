@@ -9,4 +9,5 @@ dependencies = [
     "sqlmodel>=0.0.24",
     "python-jose[cryptography]",
     "passlib[bcrypt]",
+    "colorama>=0.4.6",
 ]

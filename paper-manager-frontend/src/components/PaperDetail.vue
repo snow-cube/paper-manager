@@ -239,6 +239,7 @@ import { computed, ref, onMounted, watch } from "vue";
 import { useCategories } from "../composables/useCategories";
 import { downloadPaper, downloadReference, getPaperWorkload } from "../services/api";
 import { useToast } from "../composables/useToast";
+import { useTeam } from "../composables/useTeam";
 import PdfViewer from "./PdfViewer.vue";
 
 const props = defineProps({
@@ -250,8 +251,9 @@ const props = defineProps({
 
 defineEmits(["edit", "close"]);
 
-const { getCategoryName } = useCategories();
+const { getCategoryName, loadCategories } = useCategories();
 const { showToast } = useToast();
+const { currentTeam } = useTeam();
 
 const showPreview = ref(false);
 const previewUrl = ref("");
@@ -431,16 +433,28 @@ const fetchWorkload = async () => {
       workloadError.value = "找不到该论文的工作量数据。";
     }
   } finally {
-    isLoadingWorkload.value = false;
+    isLoadingWorkload.value = false;  }
+};
+
+// 加载适当的分类数据
+const loadAppropriateCategories = async () => {
+  if (props.paper?.paper_type === 'literature') {
+    // 文献使用参考文献分类（团队特定）
+    await loadCategories('references', currentTeam.value?.id);
+  } else {
+    // 发表论文使用公共论文分类
+    await loadCategories('papers');
   }
 };
 
 onMounted(() => {
   fetchWorkload();
+  loadAppropriateCategories();
 });
 
 watch(() => props.paper, () => {
   fetchWorkload();
+  loadAppropriateCategories();
 }, { deep: true });
 </script>
 

@@ -60,23 +60,40 @@
           </button>
         </div>
       </div>
-    </div>
-
-    <!-- 添加成员模态框 -->
+    </div>    <!-- 添加成员模态框 -->
     <Modal v-if="showAddMemberForm" @close="showAddMemberForm = false">
       <div class="add-member-form">
         <h3>添加团队成员</h3>
         <form @submit.prevent="addMember">
           <div class="form-group">
-            <label for="username">用户名</label>
+            <label for="user-search">搜索用户</label>
             <input
-              id="username"
-              v-model="newMemberUsername"
+              id="user-search"
+              v-model="userSearchQuery"
               type="text"
-              required
-              placeholder="请输入用户名"
+              placeholder="输入用户名或邮箱进行搜索"
               class="form-control"
+              @input="searchUsers"
             />
+            <div v-if="searchResults.length > 0" class="search-results">
+              <div
+                v-for="user in searchResults"
+                :key="user.id"
+                class="search-result-item"
+                @click="selectUser(user)"
+              >
+                <div class="user-avatar">
+                  {{ user.full_name.charAt(0).toUpperCase() }}
+                </div>
+                <div class="user-info">
+                  <div class="user-name">{{ user.full_name }}</div>
+                  <div class="user-email">{{ user.email }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-if="selectedUser" class="selected-user">
+            <strong>选中用户:</strong> {{ selectedUser.full_name }} ({{ selectedUser.email }})
           </div>
           <div v-if="addMemberError" class="error-message">
             {{ addMemberError }}
@@ -84,14 +101,14 @@
           <div class="form-actions">
             <button
               type="button"
-              @click="showAddMemberForm = false"
+              @click="closeAddMemberForm"
               class="btn btn-secondary"
             >
               取消
             </button>
             <button
               type="submit"
-              :disabled="addingMember"
+              :disabled="addingMember || !selectedUser"
               class="btn btn-primary"
             >
               {{ addingMember ? '添加中...' : '添加' }}
@@ -114,7 +131,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { getTeamMembers, addTeamMember, removeTeamMember, updateMemberRole as updateMemberRoleAPI } from '../services/api.js';
+import { getTeamMembers, addTeamMember, removeTeamMember, updateMemberRole as updateMemberRoleAPI, getUsers } from '../services/api.js';
 import { useAuth } from '../composables/useAuth.js';
 import { useToast } from '../composables/useToast.js';
 import LoadingSpinner from './LoadingSpinner.vue';
@@ -136,7 +153,9 @@ const { showToast } = useToast();
 const loading = ref(false);
 const members = ref([]);
 const showAddMemberForm = ref(false);
-const newMemberUsername = ref('');
+const userSearchQuery = ref('');
+const searchResults = ref([]);
+const selectedUser = ref(null);
 const addingMember = ref(false);
 const addMemberError = ref('');
 const removingMember = ref(null);
@@ -158,9 +177,44 @@ const loadMembers = async () => {
   }
 };
 
+const searchUsers = async () => {
+  if (!userSearchQuery.value.trim()) {
+    searchResults.value = [];
+    return;
+  }
+
+  try {
+    const users = await getUsers(0, 50); // Get up to 50 users
+    // Filter users by name or email and exclude current members
+    const memberIds = members.value.map(m => m.id);
+    searchResults.value = users.filter(user =>
+      !memberIds.includes(user.id) &&
+      (user.full_name.toLowerCase().includes(userSearchQuery.value.toLowerCase()) ||
+       user.email.toLowerCase().includes(userSearchQuery.value.toLowerCase()) ||
+       user.username.toLowerCase().includes(userSearchQuery.value.toLowerCase()))
+    ).slice(0, 10); // Show max 10 results
+  } catch (error) {
+    console.error('Failed to search users:', error);
+  }
+};
+
+const selectUser = (user) => {
+  selectedUser.value = user;
+  searchResults.value = [];
+  userSearchQuery.value = user.full_name;
+};
+
+const closeAddMemberForm = () => {
+  showAddMemberForm.value = false;
+  userSearchQuery.value = '';
+  searchResults.value = [];
+  selectedUser.value = null;
+  addMemberError.value = '';
+};
+
 const addMember = async () => {
-  if (!newMemberUsername.value.trim()) {
-    addMemberError.value = '请输入用户名';
+  if (!selectedUser.value) {
+    addMemberError.value = '请选择一个用户';
     return;
   }
 
@@ -168,11 +222,10 @@ const addMember = async () => {
   addMemberError.value = '';
 
   try {
-    await addTeamMember(props.team.id, newMemberUsername.value.trim());
+    await addTeamMember(props.team.id, selectedUser.value.id);
     await loadMembers(); // 重新加载成员列表
     showToast('成员添加成功', 'success');
-    showAddMemberForm.value = false;
-    newMemberUsername.value = '';
+    closeAddMemberForm();
     emit('member-added');
   } catch (error) {
     console.error('Failed to add member:', error);
@@ -469,5 +522,71 @@ onMounted(() => {
 
 .btn-icon {
   font-size: 1rem;
+}
+
+.search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-lg);
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.search-result-item {
+  display: flex;
+  align-items: center;
+  padding: var(--space-md);
+  cursor: pointer;
+  transition: background-color var(--transition-normal);
+}
+
+.search-result-item:hover {
+  background: var(--color-background-soft);
+}
+
+.search-result-item .user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  margin-right: var(--space-md);
+  flex-shrink: 0;
+}
+
+.search-result-item .user-info {
+  flex: 1;
+}
+
+.user-name {
+  font-weight: 500;
+  color: var(--color-heading);
+}
+
+.user-email {
+  font-size: var(--text-sm);
+  color: var(--color-text-light);
+}
+
+.selected-user {
+  background: var(--success-50);
+  color: var(--success-700);
+  padding: var(--space-md);
+  border-radius: var(--border-radius);
+  margin-bottom: var(--space-md);
+}
+
+.form-group {
+  position: relative;
 }
 </style>

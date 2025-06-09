@@ -88,8 +88,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useCategories } from "../composables/useCategories";
+import { useTeam } from "../composables/useTeam";
 import { downloadItem, getDownloadFileName, triggerDownload } from "../services/downloadService";
 import { useToast } from "../composables/useToast";
 
@@ -104,13 +105,30 @@ defineEmits(["edit", "delete", "view"]);
 
 const { getCategoryName, loadCategories } = useCategories();
 const { showToast } = useToast();
+const { currentTeam } = useTeam();
 
 // 下载状态
 const downloading = ref(false);
 
+// 加载适当的分类数据
+const loadAppropriateCategories = async () => {
+  if (props.paper?.paper_type === 'literature') {
+    // 文献使用参考文献分类（团队特定）
+    await loadCategories('references', currentTeam.value?.id);
+  } else {
+    // 发表论文使用公共论文分类
+    await loadCategories('papers');
+  }
+};
+
 // Make sure categories are loaded
 onMounted(() => {
-  loadCategories();
+  loadAppropriateCategories();
+});
+
+// 监听paper变化，重新加载分类
+watch(() => props.paper?.paper_type, () => {
+  loadAppropriateCategories();
 });
 
 const authorsDisplay = computed(() => {

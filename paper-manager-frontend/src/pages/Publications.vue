@@ -6,7 +6,8 @@
         @add-new="showAddForm = true"
         @edit="handleEdit"
         @view="handleView"
-      />      <!-- 添加/编辑表单模态框 -->
+      />
+      <!-- 添加/编辑表单模态框 -->
       <Modal
         v-if="showAddForm || editingPaper"
         @close="closeForm"
@@ -54,17 +55,19 @@ const formProgress = ref(0);
 
 // 论文管理器配置
 const paperManagerConfig = {
-  title: '发表论文管理',
-  icon: '📄',
-  description: '管理您已发表的学术论文',
-  paperType: 'published',
-  type: 'papers',
-  requireTeam: false,
-  searchPlaceholder: '论文标题、作者、关键词',
-  addButtonText: '添加论文',
-  emptyIcon: '📄',
-  emptyTitle: '暂无发表论文',
-  emptyDescription: '开始添加您的第一篇发表论文吧'
+  title: "发表论文管理",
+  icon: "📄",
+  description: "管理您已发表的学术论文",
+  paperType: "published",
+  categoryType: "papers",
+  type: "papers",
+  requireTeam: true,
+  teamRequiredText: "发表论文",
+  searchPlaceholder: "论文标题、作者、关键词",
+  addButtonText: "添加论文",
+  emptyIcon: "📄",
+  emptyTitle: "暂无发表论文",
+  emptyDescription: "开始添加您的第一篇发表论文吧",
 };
 
 // 处理编辑
@@ -109,7 +112,8 @@ const handleProgressUpdate = (progress) => {
 
 // 生命周期
 onMounted(() => {
-  loadCategories();
+  // 加载发表论文分类（公共分类）
+  loadCategories("papers");
 });
 </script>
 

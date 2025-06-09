@@ -10,3 +10,6 @@ data
 
 # Virtual environments
 .venv
+
+# Environment variables
+.env
