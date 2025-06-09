@@ -31,7 +31,7 @@
       >
         <div class="team-info">
           <h3 class="team-name">{{ team.name }}</h3>
-          <p class="team-description">{{ team.description || '暂无描述' }}</p>
+          <p class="team-description">{{ team.description || "暂无描述" }}</p>
           <div class="team-meta">
             <span class="member-count">
               <span class="icon">👤</span>
@@ -70,7 +70,8 @@
       />
     </Modal>
 
-    <!-- 删除确认对话框 -->    <ConfirmDialog
+    <!-- 删除确认对话框 -->
+    <ConfirmDialog
       v-if="deletingTeam"
       title="删除团队"
       :message="`确定要删除团队 &quot;${deletingTeam.name}&quot; 吗？此操作不可撤销。`"
@@ -81,15 +82,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { getTeams, deleteTeam as deleteTeamApi } from '../services/api.js';
-import { useToast } from '../composables/useToast.js';
-import LoadingSpinner from './LoadingSpinner.vue';
-import Modal from './Modal.vue';
-import TeamForm from './TeamForm.vue';
-import ConfirmDialog from './ConfirmDialog.vue';
+import { ref, onMounted } from "vue";
+import {
+  getTeams,
+  deleteTeam as deleteTeamApi,
+} from "../../../services/api.js";
+import { useToast } from "../../../composables/useToast.js";
+import LoadingSpinner from "../../base/LoadingSpinner.vue";
+import Modal from "../../base/Modal.vue";
+import TeamForm from "../../forms/TeamForm.vue";
+import ConfirmDialog from "../../base/ConfirmDialog.vue";
 
-const emit = defineEmits(['team-selected']);
+const emit = defineEmits(["team-selected"]);
 
 const { showToast } = useToast();
 const loading = ref(false);
@@ -103,15 +107,15 @@ const loadTeams = async () => {
   try {
     teams.value = await getTeams();
   } catch (error) {
-    console.error('Failed to load teams:', error);
-    showToast('加载团队失败', 'error');
+    console.error("Failed to load teams:", error);
+    showToast("加载团队失败", "error");
   } finally {
     loading.value = false;
   }
 };
 
 const selectTeam = (team) => {
-  emit('team-selected', team);
+  emit("team-selected", team);
 };
 
 const editTeam = (team) => {
@@ -127,11 +131,11 @@ const confirmDelete = async () => {
 
   try {
     await deleteTeamApi(deletingTeam.value.id);
-    teams.value = teams.value.filter(t => t.id !== deletingTeam.value.id);
-    showToast('团队删除成功', 'success');
+    teams.value = teams.value.filter((t) => t.id !== deletingTeam.value.id);
+    showToast("团队删除成功", "success");
   } catch (error) {
-    console.error('Failed to delete team:', error);
-    showToast('删除团队失败', 'error');
+    console.error("Failed to delete team:", error);
+    showToast("删除团队失败", "error");
   } finally {
     deletingTeam.value = null;
   }
@@ -140,7 +144,7 @@ const confirmDelete = async () => {
 const handleTeamSaved = (savedTeam) => {
   if (editingTeam.value) {
     // 更新现有团队
-    const index = teams.value.findIndex(t => t.id === savedTeam.id);
+    const index = teams.value.findIndex((t) => t.id === savedTeam.id);
     if (index !== -1) {
       teams.value[index] = savedTeam;
     }
@@ -157,7 +161,7 @@ const closeForm = () => {
 };
 
 const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString('zh-CN');
+  return new Date(dateString).toLocaleDateString("zh-CN");
 };
 
 onMounted(() => {

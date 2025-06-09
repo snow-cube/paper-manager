@@ -1,9 +1,5 @@
 <template>
-  <StandardPageLayout
-    title="文献管理"
-    icon="📚"
-    :description="pageDescription"
-  >
+  <StandardPageLayout title="文献管理" icon="📚" :description="pageDescription">
     <!-- 无团队警告 -->
     <template #warning v-if="!currentTeam">
       <StandardWarning
@@ -58,12 +54,14 @@
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
 import { RouterLink } from "vue-router";
-import StandardPageLayout from "../components/StandardPageLayout.vue";
-import StandardWarning from "../components/StandardWarning.vue";
-import PaperManager from "../components/PaperManager.vue";
-import PaperForm from "../components/PaperForm.vue";
-import PaperDetail from "../components/PaperDetail.vue";
-import Modal from "../components/Modal.vue";
+import {
+  StandardPageLayout,
+  StandardWarning,
+  PaperManager,
+  PaperForm,
+  PaperDetail,
+  Modal,
+} from "@/components";
 import { useToast } from "../composables/useToast";
 import { useTeam } from "../composables/useTeam";
 import { useCategories } from "../composables/useCategories";

@@ -1,4 +1,5 @@
-<template>  <div class="paper-manager">
+<template>
+  <div class="paper-manager">
     <!-- 主内容区域 -->
     <div v-if="!config.requireTeam || currentTeam" class="content-layout">
       <!-- 左侧分类树 -->
@@ -19,13 +20,15 @@
       </div>
 
       <!-- 右侧内容 -->
-      <div class="main-content">        <!-- 内容头部 -->
+      <div class="main-content">
+        <!-- 内容头部 -->
         <div class="content-header">
           <div class="header-left">
             <div class="search-section">
               <div class="search-bar">
                 <div class="search-input-wrapper">
-                  <span class="search-icon">🔍</span>                  <input
+                  <span class="search-icon">🔍</span>
+                  <input
                     v-model="searchQuery"
                     type="text"
                     class="search-input"
@@ -40,14 +43,17 @@
                     ✕
                   </button>
                 </div>
-              </div>              <div v-if="searchQuery" class="search-stats">
+              </div>
+              <div v-if="searchQuery" class="search-stats">
                 找到 {{ totalItems }} 个结果
               </div>
             </div>
           </div>
           <div class="header-right">
             <div class="papers-count">
-              共 {{ papers.length }} 篇{{ config.paperType === 'literature' ? '文献' : '论文' }}
+              共 {{ papers.length }} 篇{{
+                config.paperType === "literature" ? "文献" : "论文"
+              }}
             </div>
             <button @click="$emit('add-new')" class="btn btn-primary add-btn">
               <span class="btn-icon">✨</span>
@@ -107,7 +113,8 @@
               @view="$emit('view', paper)"
             />
           </div>
-        </div>        <!-- 分页 -->
+        </div>
+        <!-- 分页 -->
         <div v-if="totalPages > 1" class="pagination">
           <button
             :class="['page-btn', 'nav-btn']"
@@ -147,7 +154,9 @@
               {{ page }}
             </button>
 
-            <span v-if="currentPage < totalPages - 3" class="page-ellipsis">...</span>
+            <span v-if="currentPage < totalPages - 3" class="page-ellipsis"
+              >...</span
+            >
             <button
               v-if="currentPage < totalPages - 2"
               :class="['page-btn']"
@@ -168,7 +177,8 @@
 
         <!-- 分页信息 -->
         <div v-if="totalPages > 0" class="pagination-info">
-          第 {{ currentPage }} 页，共 {{ totalPages }} 页，总计 {{ totalItems }} 条记录
+          第 {{ currentPage }} 页，共 {{ totalPages }} 页，总计
+          {{ totalItems }} 条记录
         </div>
       </div>
     </div>
@@ -178,10 +188,10 @@
 <script setup>
 import { computed, onMounted, watch } from "vue";
 import { RouterLink } from "vue-router";
-import CategoryTree from "./CategoryTree.vue";
-import PaperCard from "./PaperCard.vue";
-import { usePapers } from "../composables/usePapers";
-import { useTeam } from "../composables/useTeam";
+import { CategoryTree } from "../category";
+import { PaperCard } from ".";
+import { usePapers } from "../../../composables/usePapers";
+import { useTeam } from "../../../composables/useTeam";
 
 const props = defineProps({
   config: {

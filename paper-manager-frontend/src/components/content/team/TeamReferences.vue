@@ -46,7 +46,13 @@
     <div v-else-if="filteredReferences.length === 0" class="empty-state">
       <div class="empty-icon">📚</div>
       <h3>暂无参考文献</h3>
-      <p>{{ searchQuery || keywordFilter ? '没有找到匹配的文献' : '添加团队的第一篇参考文献' }}</p>
+      <p>
+        {{
+          searchQuery || keywordFilter
+            ? "没有找到匹配的文献"
+            : "添加团队的第一篇参考文献"
+        }}
+      </p>
       <button
         v-if="!searchQuery && !keywordFilter"
         @click="showAddForm = true"
@@ -98,7 +104,8 @@
             title="编辑"
           >
             ✏️
-          </button>          <button
+          </button>
+          <button
             @click="handleDeleteReference(reference)"
             class="btn-action"
             title="删除"
@@ -107,7 +114,8 @@
           </button>
         </div>
       </div>
-    </div>    <!-- 添加/编辑文献模态框 -->
+    </div>
+    <!-- 添加/编辑文献模态框 -->
     <Modal
       v-if="showAddForm || editingReference"
       @close="closeForm"
@@ -123,7 +131,8 @@
       />
     </Modal>
 
-    <!-- 删除确认对话框 -->    <ConfirmDialog
+    <!-- 删除确认对话框 -->
+    <ConfirmDialog
       v-if="deletingReference"
       title="删除参考文献"
       :message="`确定要删除文献 &quot;${deletingReference.title}&quot; 吗？此操作不可撤销。`"
@@ -134,24 +143,24 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from "vue";
 import {
   getReferences,
   deleteReference as deleteReferenceAPI,
   downloadReference as downloadReferenceAPI,
-  getReferenceCategories
-} from '../services/api.js';
-import { useToast } from '../composables/useToast.js';
-import LoadingSpinner from './LoadingSpinner.vue';
-import Modal from './Modal.vue';
-import ConfirmDialog from './ConfirmDialog.vue';
-import PaperForm from './PaperForm.vue';
+  getReferenceCategories,
+} from "../../../services/api.js";
+import { useToast } from "../../../composables/useToast.js";
+import LoadingSpinner from "../../base/LoadingSpinner.vue";
+import Modal from "../../base/Modal.vue";
+import ConfirmDialog from "../../base/ConfirmDialog.vue";
+import PaperForm from "../../forms/PaperForm.vue";
 
 const props = defineProps({
   team: {
     type: Object,
-    required: true
-  }
+    required: true,
+  },
 });
 
 const { showToast } = useToast();
@@ -162,9 +171,9 @@ const categories = ref([]);
 const showAddForm = ref(false);
 const editingReference = ref(null);
 const deletingReference = ref(null);
-const searchQuery = ref('');
-const selectedCategoryId = ref('');
-const keywordFilter = ref('');
+const searchQuery = ref("");
+const selectedCategoryId = ref("");
+const keywordFilter = ref("");
 const formProgress = ref(0);
 
 const filteredReferences = computed(() => {
@@ -172,20 +181,23 @@ const filteredReferences = computed(() => {
 
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
-    filtered = filtered.filter(ref =>
-      ref.title.toLowerCase().includes(query) ||
-      ref.authors.toLowerCase().includes(query)
+    filtered = filtered.filter(
+      (ref) =>
+        ref.title.toLowerCase().includes(query) ||
+        ref.authors.toLowerCase().includes(query)
     );
   }
 
   if (selectedCategoryId.value) {
-    filtered = filtered.filter(ref => ref.category_id === parseInt(selectedCategoryId.value));
+    filtered = filtered.filter(
+      (ref) => ref.category_id === parseInt(selectedCategoryId.value)
+    );
   }
 
   if (keywordFilter.value) {
     const keyword = keywordFilter.value.toLowerCase();
-    filtered = filtered.filter(ref =>
-      ref.keywords?.some(k => k.toLowerCase().includes(keyword))
+    filtered = filtered.filter((ref) =>
+      ref.keywords?.some((k) => k.toLowerCase().includes(keyword))
     );
   }
 
@@ -198,8 +210,8 @@ const loadReferences = async () => {
     // 获取当前团队的参考文献
     references.value = await getReferences(props.team.id);
   } catch (error) {
-    console.error('Failed to load references:', error);
-    showToast('加载参考文献失败', 'error');
+    console.error("Failed to load references:", error);
+    showToast("加载参考文献失败", "error");
   } finally {
     loading.value = false;
   }
@@ -209,7 +221,7 @@ const loadCategories = async () => {
   try {
     categories.value = await getReferenceCategories(props.team.id);
   } catch (error) {
-    console.error('Failed to load reference categories:', error);
+    console.error("Failed to load reference categories:", error);
   }
 };
 
@@ -226,11 +238,13 @@ const confirmDelete = async () => {
 
   try {
     await deleteReferenceAPI(deletingReference.value.id);
-    references.value = references.value.filter(r => r.id !== deletingReference.value.id);
-    showToast('参考文献删除成功', 'success');
+    references.value = references.value.filter(
+      (r) => r.id !== deletingReference.value.id
+    );
+    showToast("参考文献删除成功", "success");
   } catch (error) {
-    console.error('Failed to delete reference:', error);
-    showToast('删除参考文献失败', 'error');
+    console.error("Failed to delete reference:", error);
+    showToast("删除参考文献失败", "error");
   } finally {
     deletingReference.value = null;
   }
@@ -238,25 +252,26 @@ const confirmDelete = async () => {
 
 const downloadReference = async (reference) => {
   try {
-    showToast('准备下载文件...', 'info');
+    showToast("准备下载文件...", "info");
     const response = await downloadReferenceAPI(reference.id);
 
     // 创建下载链接
-    const contentType = response.headers['content-type'] || 'application/octet-stream';
+    const contentType =
+      response.headers["content-type"] || "application/octet-stream";
     const blob = new Blob([response.data], { type: contentType });
     const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
-    link.setAttribute('download', `${reference.title}.pdf`);
+    link.setAttribute("download", `${reference.title}.pdf`);
     document.body.appendChild(link);
     link.click();
     link.remove();
     window.URL.revokeObjectURL(url);
 
-    showToast('文件下载成功', 'success');
+    showToast("文件下载成功", "success");
   } catch (error) {
-    console.error('Failed to download reference:', error);
-    showToast('文件下载失败', 'error');
+    console.error("Failed to download reference:", error);
+    showToast("文件下载失败", "error");
   }
 };
 
@@ -265,7 +280,7 @@ const handleReferenceSaved = (savedReference) => {
 
   if (!savedReference) {
     console.error("savedReference is undefined");
-    showToast('保存文献时出现错误', 'error');
+    showToast("保存文献时出现错误", "error");
     return;
   }
 
@@ -274,7 +289,7 @@ const handleReferenceSaved = (savedReference) => {
 
   if (editingReference.value) {
     // 更新现有文献
-    const index = references.value.findIndex(r => r.id === savedReference.id);
+    const index = references.value.findIndex((r) => r.id === savedReference.id);
     if (index !== -1) {
       references.value[index] = savedReference;
     }
@@ -296,13 +311,17 @@ const handleProgressUpdate = (progress) => {
 };
 
 const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString('zh-CN');
+  return new Date(dateString).toLocaleDateString("zh-CN");
 };
 
 // 监听筛选条件变化，重新加载数据
-watch([selectedCategoryId, keywordFilter], () => {
-  loadReferences();
-}, { debounce: 300 });
+watch(
+  [selectedCategoryId, keywordFilter],
+  () => {
+    loadReferences();
+  },
+  { debounce: 300 }
+);
 
 onMounted(() => {
   loadReferences();

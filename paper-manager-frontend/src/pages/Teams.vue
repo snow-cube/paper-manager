@@ -53,25 +53,27 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import StandardPageLayout from '../components/StandardPageLayout.vue';
-import TeamList from '../components/TeamList.vue';
-import TeamInfo from '../components/TeamInfo.vue';
-import TeamMembers from '../components/TeamMembers.vue';
-import TeamReferences from '../components/TeamReferences.vue';
+import { ref } from "vue";
+import {
+  StandardPageLayout,
+  TeamList,
+  TeamInfo,
+  TeamMembers,
+  TeamReferences,
+} from "@/components";
 
 const selectedTeam = ref(null);
-const activeTab = ref('info');
+const activeTab = ref("info");
 
 const tabs = [
-  { key: 'info', label: '团队信息', icon: 'ℹ️' },
-  { key: 'members', label: '团队成员', icon: '👤' },
-  { key: 'references', label: '参考文献', icon: '📚' }
+  { key: "info", label: "团队信息", icon: "ℹ️" },
+  { key: "members", label: "团队成员", icon: "👤" },
+  { key: "references", label: "参考文献", icon: "📚" },
 ];
 
 const handleTeamSelected = (team) => {
   selectedTeam.value = team;
-  activeTab.value = 'info';
+  activeTab.value = "info";
 };
 
 const handleTeamUpdated = (updatedTeam) => {

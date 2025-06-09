@@ -6,10 +6,14 @@
   >
     <!-- 分类类型切换控制器 -->
     <template #controls>
-      <div class="category-tabs">        <button
+      <div class="category-tabs">
+        <button
           v-for="tab in categoryTabs"
           :key="tab.value"
-          @click="activeTab = tab.value; categoryTreeKey++"
+          @click="
+            activeTab = tab.value;
+            categoryTreeKey++;
+          "
           :class="['tab-btn', { active: activeTab === tab.value }]"
         >
           <span class="tab-icon">{{ tab.icon }}</span>
@@ -80,15 +84,17 @@
 <script setup>
 import { ref, watch, computed } from "vue";
 import { RouterLink } from "vue-router";
-import StandardPageLayout from "../components/StandardPageLayout.vue";
-import StandardWarning from "../components/StandardWarning.vue";
-import CategoryTree from "../components/CategoryTree.vue";
+import {
+  StandardPageLayout,
+  StandardWarning,
+  CategoryTree,
+} from "@/components";
 import { useTeam } from "../composables/useTeam";
 
 const { currentTeam } = useTeam();
 
 // 当前激活的标签页
-const activeTab = ref('papers');
+const activeTab = ref("papers");
 
 // 用于强制重新渲染CategoryTree的key
 const categoryTreeKey = ref(0);
@@ -96,23 +102,27 @@ const categoryTreeKey = ref(0);
 // 分类标签页配置
 const categoryTabs = computed(() => [
   {
-    value: 'papers',
-    label: '论文分类',
-    icon: '📄',
-    badge: '公共'
+    value: "papers",
+    label: "论文分类",
+    icon: "📄",
+    badge: "公共",
   },
   {
-    value: 'references',
-    label: '文献分类',
-    icon: '📚',
-    badge: currentTeam.value ? '团队' : '需要团队'
-  }
+    value: "references",
+    label: "文献分类",
+    icon: "📚",
+    badge: currentTeam.value ? "团队" : "需要团队",
+  },
 ]);
 
 // 监听团队变化，重新渲染组件
-watch(currentTeam, () => {
-  categoryTreeKey.value++;
-}, { deep: true });
+watch(
+  currentTeam,
+  () => {
+    categoryTreeKey.value++;
+  },
+  { deep: true }
+);
 
 // 监听标签页切换，重新渲染组件
 watch(activeTab, () => {

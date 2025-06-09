@@ -17,9 +17,7 @@
         <div class="error-message">
           <h3>❌ 加载失败</h3>
           <p>{{ error }}</p>
-          <button @click="fetchData" class="retry-btn">
-            🔄 重试
-          </button>
+          <button @click="fetchData" class="retry-btn">🔄 重试</button>
         </div>
       </div>
 
@@ -40,53 +38,57 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
-import Modal from './Modal.vue'
-import LoadingSpinner from './LoadingSpinner.vue'
-import CollaborationNetwork from './CollaborationNetwork.vue'
-import { getAuthorCollaborationNetwork } from '@/services/api'
+import { ref, watch } from "vue";
+import Modal from "../../base/Modal.vue";
+import LoadingSpinner from "../../base/LoadingSpinner.vue";
+import CollaborationNetwork from "./CollaborationNetwork.vue";
+import { getAuthorCollaborationNetwork } from "@/services/api";
 
 const props = defineProps({
   show: {
     type: Boolean,
-    default: false
+    default: false,
   },
   authorName: {
     type: String,
-    required: true
-  }
-})
+    required: true,
+  },
+});
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(["close"]);
 
-const isLoading = ref(false)
-const error = ref(null)
-const networkData = ref(null)
+const isLoading = ref(false);
+const error = ref(null);
+const networkData = ref(null);
 
 const fetchData = async () => {
-  if (!props.authorName) return
+  if (!props.authorName) return;
 
-  isLoading.value = true
-  error.value = null
-  networkData.value = null
+  isLoading.value = true;
+  error.value = null;
+  networkData.value = null;
 
   try {
-    const data = await getAuthorCollaborationNetwork(props.authorName)
-    networkData.value = data
+    const data = await getAuthorCollaborationNetwork(props.authorName);
+    networkData.value = data;
   } catch (err) {
-    console.error('Failed to fetch collaboration network:', err)
-    error.value = err.response?.data?.detail || '获取合作网络数据失败'
+    console.error("Failed to fetch collaboration network:", err);
+    error.value = err.response?.data?.detail || "获取合作网络数据失败";
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
-}
+};
 
 // 监听模态框显示状态和作者名称变化
-watch([() => props.show, () => props.authorName], ([newShow, newAuthorName]) => {
-  if (newShow && newAuthorName) {
-    fetchData()
-  }
-}, { immediate: true })
+watch(
+  [() => props.show, () => props.authorName],
+  ([newShow, newAuthorName]) => {
+    if (newShow && newAuthorName) {
+      fetchData();
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped>

@@ -3,12 +3,30 @@
     <div class="form-header">
       <div class="welcome-icon">
         <svg width="40" height="40" viewBox="0 0 48 48" fill="none">
-          <circle cx="24" cy="24" r="20" stroke="url(#loginGradient)" stroke-width="2" fill="none"/>
-          <path d="M24 8v32M8 24h32" stroke="url(#loginGradient)" stroke-width="2" stroke-linecap="round"/>
+          <circle
+            cx="24"
+            cy="24"
+            r="20"
+            stroke="url(#loginGradient)"
+            stroke-width="2"
+            fill="none"
+          />
+          <path
+            d="M24 8v32M8 24h32"
+            stroke="url(#loginGradient)"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
           <defs>
-            <linearGradient id="loginGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" style="stop-color:#667eea"/>
-              <stop offset="100%" style="stop-color:#764ba2"/>
+            <linearGradient
+              id="loginGradient"
+              x1="0%"
+              y1="0%"
+              x2="100%"
+              y2="100%"
+            >
+              <stop offset="0%" style="stop-color: #667eea" />
+              <stop offset="100%" style="stop-color: #764ba2" />
             </linearGradient>
           </defs>
         </svg>
@@ -31,7 +49,7 @@
             required
             placeholder="请输入您的用户名"
             class="form-control"
-            :class="{ 'error': error && !formData.username }"
+            :class="{ error: error && !formData.username }"
           />
           <div class="input-border"></div>
         </div>
@@ -50,7 +68,7 @@
             required
             placeholder="请输入您的密码"
             class="form-control"
-            :class="{ 'error': error && !formData.password }"
+            :class="{ error: error && !formData.password }"
           />
           <button
             type="button"
@@ -85,10 +103,10 @@
           type="submit"
           :disabled="loading"
           class="btn btn-primary"
-          :class="{ 'loading': loading }"
+          :class="{ loading: loading }"
         >
           <span v-if="loading" class="loading-spinner"></span>
-          <span class="btn-text">{{ loading ? '登录中...' : '登录' }}</span>
+          <span class="btn-text">{{ loading ? "登录中..." : "登录" }}</span>
           <span v-if="!loading" class="btn-arrow">→</span>
         </button>
       </div>
@@ -100,38 +118,43 @@
       </div>
       <p class="switch-form">
         还没有账号？
-        <a href="#" @click.prevent="$emit('switch-to-register')" class="switch-link">立即注册</a>
+        <a
+          href="#"
+          @click.prevent="$emit('switch-to-register')"
+          class="switch-link"
+          >立即注册</a
+        >
       </p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
-import { login, setAuthToken } from '../services/api.js';
-import { useToast } from '../composables/useToast.js';
+import { ref, reactive } from "vue";
+import { login, setAuthToken } from "../../services/api.js";
+import { useToast } from "../../composables/useToast.js";
 
-const emit = defineEmits(['login-success', 'switch-to-register']);
+const emit = defineEmits(["login-success", "switch-to-register"]);
 
 const { showToast } = useToast();
 const loading = ref(false);
-const error = ref('');
+const error = ref("");
 const showPassword = ref(false);
 const rememberMe = ref(false);
 
 const formData = reactive({
-  username: '',
-  password: ''
+  username: "",
+  password: "",
 });
 
 const handleLogin = async () => {
   if (!formData.username || !formData.password) {
-    error.value = '请填写用户名和密码';
+    error.value = "请填写用户名和密码";
     return;
   }
 
   loading.value = true;
-  error.value = '';
+  error.value = "";
 
   try {
     const response = await login(formData.username, formData.password);
@@ -139,18 +162,17 @@ const handleLogin = async () => {
     // 设置token
     setAuthToken(response.access_token);
 
-    showToast('登录成功！', 'success');
-    emit('login-success');
-
+    showToast("登录成功！", "success");
+    emit("login-success");
   } catch (err) {
-    console.error('Login error:', err);
+    console.error("Login error:", err);
 
     if (err.response?.status === 401) {
-      error.value = '用户名或密码错误';
+      error.value = "用户名或密码错误";
     } else if (err.response?.status === 403) {
-      error.value = '账号未激活，请联系管理员';
+      error.value = "账号未激活，请联系管理员";
     } else {
-      error.value = '登录失败，请稍后重试';
+      error.value = "登录失败，请稍后重试";
     }
   } finally {
     loading.value = false;
@@ -176,7 +198,8 @@ const handleLogin = async () => {
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px);
   }
   50% {
@@ -326,7 +349,7 @@ const handleLogin = async () => {
 }
 
 .checkbox-wrapper input:checked + .checkmark::after {
-  content: '✓';
+  content: "✓";
   position: absolute;
   top: 50%;
   left: 50%;
@@ -461,7 +484,7 @@ const handleLogin = async () => {
 }
 
 .divider::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 50%;
   left: 0;
@@ -497,7 +520,7 @@ const handleLogin = async () => {
 }
 
 .switch-link::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: -2px;
   left: 0;

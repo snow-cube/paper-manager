@@ -12,7 +12,9 @@
 
     <div class="detail-content">
       <div class="detail-section">
-        <h3 class="section-title">基本信息</h3>        <div class="info-grid">          <div class="info-item">
+        <h3 class="section-title">基本信息</h3>
+        <div class="info-grid">
+          <div class="info-item">
             <label>作者：</label>
             <div class="authors-section">
               <div class="authors-text">{{ authorsText }}</div>
@@ -61,7 +63,8 @@
         <div class="abstract-content">
           {{ paper.abstract }}
         </div>
-      </div>      <div v-if="paper.keywords" class="detail-section">
+      </div>
+      <div v-if="paper.keywords" class="detail-section">
         <h3 class="section-title">关键词</h3>
         <div class="keywords-container">
           <span
@@ -155,12 +158,18 @@
       <div v-if="workloads.length > 0" class="detail-section">
         <h3 class="section-title">工作量数据</h3>
         <div class="workload-container">
-          <div v-for="(workload, index) in workloads" :key="index" class="workload-item">
+          <div
+            v-for="(workload, index) in workloads"
+            :key="index"
+            class="workload-item"
+          >
             <div class="workload-header">
               <h4 class="workload-title">{{ workload.title }}</h4>
               <div class="workload-meta">
                 <span class="workload-type">{{ workload.type }}</span>
-                <span class="workload-date">{{ formatDate(workload.date) }}</span>
+                <span class="workload-date">{{
+                  formatDate(workload.date)
+                }}</span>
               </div>
             </div>
             <div class="workload-content">
@@ -190,7 +199,10 @@
           {{ workloadError }}
         </div>
       </div>
-      <div v-if="paper.paper_type === 'published' && workloads.length > 0" class="detail-section">
+      <div
+        v-if="paper.paper_type === 'published' && workloads.length > 0"
+        class="detail-section"
+      >
         <h3 class="section-title">作者贡献及工作量</h3>
         <div class="workload-table-container">
           <table class="workload-table">
@@ -211,20 +223,27 @@
           </table>
         </div>
       </div>
-      <div v-else-if="paper.paper_type === 'published' && isLoadingWorkload" class="detail-section">
+      <div
+        v-else-if="paper.paper_type === 'published' && isLoadingWorkload"
+        class="detail-section"
+      >
         <p>正在加载工作量数据...</p>
       </div>
-      <div v-else-if="paper.paper_type === 'published' && workloadError" class="detail-section">
+      <div
+        v-else-if="paper.paper_type === 'published' && workloadError"
+        class="detail-section"
+      >
         <p class="error-message">{{ workloadError }}</p>
       </div>
-    </div>    <div class="detail-actions">
+    </div>
+    <div class="detail-actions">
       <button
         v-if="paper.file_path"
         @click="downloadFile"
         class="btn btn-success"
         :disabled="downloading"
       >
-        {{ downloading ? '⏳ 下载中...' : '⬇️ 下载文件' }}
+        {{ downloading ? "⏳ 下载中..." : "⬇️ 下载文件" }}
       </button>
       <button @click="$emit('edit', paper)" class="btn btn-primary">
         ✏️ 编辑
@@ -236,11 +255,15 @@
 
 <script setup>
 import { computed, ref, onMounted, watch } from "vue";
-import { useCategories } from "../composables/useCategories";
-import { downloadPaper, downloadReference, getPaperWorkload } from "../services/api";
-import { useToast } from "../composables/useToast";
-import { useTeam } from "../composables/useTeam";
-import PdfViewer from "./PdfViewer.vue";
+import { useCategories } from "../../../composables/useCategories.js";
+import {
+  downloadPaper,
+  downloadReference,
+  getPaperWorkload,
+} from "../../../services/api.js";
+import { useToast } from "../../../composables/useToast.js";
+import { useTeam } from "../../../composables/useTeam.js";
+import { PdfViewer } from ".";
 
 const props = defineProps({
   paper: {
@@ -264,39 +287,44 @@ const workloadError = ref(null);
 
 // 计算作者文本
 const authorsText = computed(() => {
-  if (!props.paper.authors) return '';
-  if (typeof props.paper.authors === 'string') return props.paper.authors;
+  if (!props.paper.authors) return "";
+  if (typeof props.paper.authors === "string") return props.paper.authors;
   if (Array.isArray(props.paper.authors)) {
     return props.paper.authors
-      .map(author => typeof author === 'string' ? author : author.name)
-      .join(', ');
+      .map((author) => (typeof author === "string" ? author : author.name))
+      .join(", ");
   }
-  return '';
+  return "";
 });
 
 // 计算分类文本
 const categoriesText = computed(() => {
   if (!props.paper.categories) {
-    return props.paper.category_id ? getCategoryName(props.paper.category_id) : '';
+    return props.paper.category_id
+      ? getCategoryName(props.paper.category_id)
+      : "";
   }
   if (Array.isArray(props.paper.categories)) {
-    return props.paper.categories.map(cat => cat.name).join(', ');
+    return props.paper.categories.map((cat) => cat.name).join(", ");
   }
-  return '';
+  return "";
 });
 
 // 处理关键词列表
 const keywordList = computed(() => {
   if (!props.paper.keywords) return [];
 
-  if (typeof props.paper.keywords === 'string') {
-    return props.paper.keywords.split(",").map((k) => k.trim()).filter(k => k);
+  if (typeof props.paper.keywords === "string") {
+    return props.paper.keywords
+      .split(",")
+      .map((k) => k.trim())
+      .filter((k) => k);
   }
 
   if (Array.isArray(props.paper.keywords)) {
-    return props.paper.keywords.map(keyword =>
-      typeof keyword === 'string' ? keyword : keyword.name
-    ).filter(k => k);
+    return props.paper.keywords
+      .map((keyword) => (typeof keyword === "string" ? keyword : keyword.name))
+      .filter((k) => k);
   }
   return [];
 });
@@ -349,7 +377,8 @@ const previewFile = () => {
     return;
   }
 
-  try {    // 在实际环境中，这里可能需要通过API获取预览URL
+  try {
+    // 在实际环境中，这里可能需要通过API获取预览URL
     // 这里简单地使用file_path作为预览地址
     previewUrl.value = props.paper.file_path;
     showPreview.value = true;
@@ -364,7 +393,8 @@ const closePreview = () => {
   previewUrl.value = "";
 };
 
-const downloadFile = async () => {  if (!props.paper.file_path) {
+const downloadFile = async () => {
+  if (!props.paper.file_path) {
     showToast("没有可下载的文件", "warning");
     return;
   }
@@ -372,27 +402,30 @@ const downloadFile = async () => {  if (!props.paper.file_path) {
   downloading.value = true;
 
   try {
-    showToast("正在准备下载文件...", "info");    // 根据项目类型选择不同的下载API
+    showToast("正在准备下载文件...", "info"); // 根据项目类型选择不同的下载API
     let response;
-    if (props.paper._itemType === 'reference') {
+    if (props.paper._itemType === "reference") {
       // 参考文献：使用references API
       response = await downloadReference(props.paper.id);
     } else {
       // 论文：使用papers API
       response = await downloadPaper(props.paper.id);
-    }// 从Content-Disposition头部提取文件名，如果有的话
-    const contentDisposition = response.headers['content-disposition'];
+    } // 从Content-Disposition头部提取文件名，如果有的话
+    const contentDisposition = response.headers["content-disposition"];
     let fileName = getFileName(props.paper.file_path);
 
     if (contentDisposition) {
-      const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+      const filenameMatch = contentDisposition.match(
+        /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
+      );
       if (filenameMatch && filenameMatch[1]) {
-        fileName = filenameMatch[1].replace(/['"]/g, '');
+        fileName = filenameMatch[1].replace(/['"]/g, "");
       }
     }
 
     // 确定内容类型
-    const contentType = response.headers['content-type'] || 'application/octet-stream';
+    const contentType =
+      response.headers["content-type"] || "application/octet-stream";
 
     // 创建下载链接
     const blob = new Blob([response.data], { type: contentType });
@@ -415,7 +448,7 @@ const downloadFile = async () => {  if (!props.paper.file_path) {
 };
 
 const fetchWorkload = async () => {
-  if (props.paper.paper_type !== 'published' || !props.paper.id) {
+  if (props.paper.paper_type !== "published" || !props.paper.id) {
     return;
   }
 
@@ -433,17 +466,18 @@ const fetchWorkload = async () => {
       workloadError.value = "找不到该论文的工作量数据。";
     }
   } finally {
-    isLoadingWorkload.value = false;  }
+    isLoadingWorkload.value = false;
+  }
 };
 
 // 加载适当的分类数据
 const loadAppropriateCategories = async () => {
-  if (props.paper?.paper_type === 'literature') {
+  if (props.paper?.paper_type === "literature") {
     // 文献使用参考文献分类（团队特定）
-    await loadCategories('references', currentTeam.value?.id);
+    await loadCategories("references", currentTeam.value?.id);
   } else {
     // 发表论文使用公共论文分类
-    await loadCategories('papers');
+    await loadCategories("papers");
   }
 };
 
@@ -452,10 +486,14 @@ onMounted(() => {
   loadAppropriateCategories();
 });
 
-watch(() => props.paper, () => {
-  fetchWorkload();
-  loadAppropriateCategories();
-}, { deep: true });
+watch(
+  () => props.paper,
+  () => {
+    fetchWorkload();
+    loadAppropriateCategories();
+  },
+  { deep: true }
+);
 </script>
 
 <style scoped>

@@ -20,11 +20,7 @@
     </div>
 
     <div v-else class="members-list">
-      <div
-        v-for="member in members"
-        :key="member.id"
-        class="member-card"
-      >
+      <div v-for="member in members" :key="member.id" class="member-card">
         <div class="member-avatar">
           {{ member.full_name.charAt(0).toUpperCase() }}
         </div>
@@ -60,7 +56,8 @@
           </button>
         </div>
       </div>
-    </div>    <!-- 添加成员模态框 -->
+    </div>
+    <!-- 添加成员模态框 -->
     <Modal v-if="showAddMemberForm" @close="showAddMemberForm = false">
       <div class="add-member-form">
         <h3>添加团队成员</h3>
@@ -93,7 +90,9 @@
             </div>
           </div>
           <div v-if="selectedUser" class="selected-user">
-            <strong>选中用户:</strong> {{ selectedUser.full_name }} ({{ selectedUser.email }})
+            <strong>选中用户:</strong> {{ selectedUser.full_name }} ({{
+              selectedUser.email
+            }})
           </div>
           <div v-if="addMemberError" class="error-message">
             {{ addMemberError }}
@@ -111,7 +110,7 @@
               :disabled="addingMember || !selectedUser"
               class="btn btn-primary"
             >
-              {{ addingMember ? '添加中...' : '添加' }}
+              {{ addingMember ? "添加中..." : "添加" }}
             </button>
           </div>
         </form>
@@ -130,22 +129,28 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
-import { getTeamMembers, addTeamMember, removeTeamMember, updateMemberRole as updateMemberRoleAPI, getUsers } from '../services/api.js';
-import { useAuth } from '../composables/useAuth.js';
-import { useToast } from '../composables/useToast.js';
-import LoadingSpinner from './LoadingSpinner.vue';
-import Modal from './Modal.vue';
-import ConfirmDialog from './ConfirmDialog.vue';
+import { ref, onMounted, computed } from "vue";
+import {
+  getTeamMembers,
+  addTeamMember,
+  removeTeamMember,
+  updateMemberRole as updateMemberRoleAPI,
+  getUsers,
+} from "../../../services/api.js";
+import { useAuth } from "../../../composables/useAuth.js";
+import { useToast } from "../../../composables/useToast.js";
+import LoadingSpinner from "../../base/LoadingSpinner.vue";
+import Modal from "../../base/Modal.vue";
+import ConfirmDialog from "../../base/ConfirmDialog.vue";
 
 const props = defineProps({
   team: {
     type: Object,
-    required: true
-  }
+    required: true,
+  },
 });
 
-const emit = defineEmits(['member-added', 'member-removed']);
+const emit = defineEmits(["member-added", "member-removed"]);
 
 const { currentUser } = useAuth();
 const { showToast } = useToast();
@@ -153,16 +158,18 @@ const { showToast } = useToast();
 const loading = ref(false);
 const members = ref([]);
 const showAddMemberForm = ref(false);
-const userSearchQuery = ref('');
+const userSearchQuery = ref("");
 const searchResults = ref([]);
 const selectedUser = ref(null);
 const addingMember = ref(false);
-const addMemberError = ref('');
+const addMemberError = ref("");
 const removingMember = ref(null);
 
 const canManageMembers = computed(() => {
-  const currentMember = members.value.find(m => m.id === currentUser.value?.id);
-  return currentMember?.role === 'ADMIN' || currentMember?.is_creator;
+  const currentMember = members.value.find(
+    (m) => m.id === currentUser.value?.id
+  );
+  return currentMember?.role === "ADMIN" || currentMember?.is_creator;
 });
 
 const loadMembers = async () => {
@@ -170,8 +177,8 @@ const loadMembers = async () => {
   try {
     members.value = await getTeamMembers(props.team.id);
   } catch (error) {
-    console.error('Failed to load team members:', error);
-    showToast('加载团队成员失败', 'error');
+    console.error("Failed to load team members:", error);
+    showToast("加载团队成员失败", "error");
   } finally {
     loading.value = false;
   }
@@ -186,15 +193,24 @@ const searchUsers = async () => {
   try {
     const users = await getUsers(0, 50); // Get up to 50 users
     // Filter users by name or email and exclude current members
-    const memberIds = members.value.map(m => m.id);
-    searchResults.value = users.filter(user =>
-      !memberIds.includes(user.id) &&
-      (user.full_name.toLowerCase().includes(userSearchQuery.value.toLowerCase()) ||
-       user.email.toLowerCase().includes(userSearchQuery.value.toLowerCase()) ||
-       user.username.toLowerCase().includes(userSearchQuery.value.toLowerCase()))
-    ).slice(0, 10); // Show max 10 results
+    const memberIds = members.value.map((m) => m.id);
+    searchResults.value = users
+      .filter(
+        (user) =>
+          !memberIds.includes(user.id) &&
+          (user.full_name
+            .toLowerCase()
+            .includes(userSearchQuery.value.toLowerCase()) ||
+            user.email
+              .toLowerCase()
+              .includes(userSearchQuery.value.toLowerCase()) ||
+            user.username
+              .toLowerCase()
+              .includes(userSearchQuery.value.toLowerCase()))
+      )
+      .slice(0, 10); // Show max 10 results
   } catch (error) {
-    console.error('Failed to search users:', error);
+    console.error("Failed to search users:", error);
   }
 };
 
@@ -206,35 +222,35 @@ const selectUser = (user) => {
 
 const closeAddMemberForm = () => {
   showAddMemberForm.value = false;
-  userSearchQuery.value = '';
+  userSearchQuery.value = "";
   searchResults.value = [];
   selectedUser.value = null;
-  addMemberError.value = '';
+  addMemberError.value = "";
 };
 
 const addMember = async () => {
   if (!selectedUser.value) {
-    addMemberError.value = '请选择一个用户';
+    addMemberError.value = "请选择一个用户";
     return;
   }
 
   addingMember.value = true;
-  addMemberError.value = '';
+  addMemberError.value = "";
 
   try {
     await addTeamMember(props.team.id, selectedUser.value.id);
     await loadMembers(); // 重新加载成员列表
-    showToast('成员添加成功', 'success');
+    showToast("成员添加成功", "success");
     closeAddMemberForm();
-    emit('member-added');
+    emit("member-added");
   } catch (error) {
-    console.error('Failed to add member:', error);
+    console.error("Failed to add member:", error);
     if (error.response?.status === 404) {
-      addMemberError.value = '用户不存在';
+      addMemberError.value = "用户不存在";
     } else if (error.response?.status === 400) {
-      addMemberError.value = '用户已是团队成员';
+      addMemberError.value = "用户已是团队成员";
     } else {
-      addMemberError.value = '添加成员失败，请稍后重试';
+      addMemberError.value = "添加成员失败，请稍后重试";
     }
   } finally {
     addingMember.value = false;
@@ -250,12 +266,14 @@ const confirmRemoveMember = async () => {
 
   try {
     await removeTeamMember(props.team.id, removingMember.value.id);
-    members.value = members.value.filter(m => m.id !== removingMember.value.id);
-    showToast('成员移除成功', 'success');
-    emit('member-removed');
+    members.value = members.value.filter(
+      (m) => m.id !== removingMember.value.id
+    );
+    showToast("成员移除成功", "success");
+    emit("member-removed");
   } catch (error) {
-    console.error('Failed to remove member:', error);
-    showToast('移除成员失败', 'error');
+    console.error("Failed to remove member:", error);
+    showToast("移除成员失败", "error");
   } finally {
     removingMember.value = null;
   }
@@ -265,30 +283,30 @@ const updateMemberRole = async (member, newRole) => {
   try {
     await updateMemberRoleAPI(props.team.id, member.id, newRole);
     // 更新本地状态
-    const memberIndex = members.value.findIndex(m => m.id === member.id);
+    const memberIndex = members.value.findIndex((m) => m.id === member.id);
     if (memberIndex !== -1) {
       members.value[memberIndex].role = newRole;
     }
-    showToast('角色更新成功', 'success');
+    showToast("角色更新成功", "success");
   } catch (error) {
-    console.error('Failed to update member role:', error);
-    showToast('角色更新失败', 'error');
+    console.error("Failed to update member role:", error);
+    showToast("角色更新失败", "error");
   }
 };
 
 const getRoleLabel = (role) => {
   switch (role) {
-    case 'ADMIN':
-      return '管理员';
-    case 'MEMBER':
-      return '普通成员';
+    case "ADMIN":
+      return "管理员";
+    case "MEMBER":
+      return "普通成员";
     default:
       return role;
   }
 };
 
 const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString('zh-CN');
+  return new Date(dateString).toLocaleDateString("zh-CN");
 };
 
 onMounted(() => {

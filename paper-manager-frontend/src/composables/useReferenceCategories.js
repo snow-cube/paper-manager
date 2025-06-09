@@ -1,5 +1,5 @@
-import { ref, onMounted } from 'vue';
-import { getReferenceCategories } from '../services/api';
+import { ref, onMounted } from "vue";
+import { getReferenceCategories } from "../services/api.js";
 
 const referenceCategories = ref([]);
 const loading = ref(false);
@@ -8,7 +8,7 @@ const loaded = ref(false);
 export function useReferenceCategories() {
   const loadReferenceCategories = async (teamId) => {
     if (!teamId) {
-      console.warn('Reference categories require teamId');
+      console.warn("Reference categories require teamId");
       return [];
     }
 
@@ -19,7 +19,7 @@ export function useReferenceCategories() {
       referenceCategories.value = await getReferenceCategories(teamId);
       loaded.value = true;
     } catch (error) {
-      console.error('Failed to load reference categories:', error);
+      console.error("Failed to load reference categories:", error);
     } finally {
       loading.value = false;
     }
@@ -27,22 +27,26 @@ export function useReferenceCategories() {
   };
 
   const getReferenceCategoryName = (categoryId) => {
-    if (!categoryId) return '未分类';
+    if (!categoryId) return "未分类";
 
     // 确保分类已加载
     if (!loaded.value && !loading.value) {
       loadReferenceCategories(); // 异步加载分类
-      return '加载中...'; // 返回临时提示
+      return "加载中..."; // 返回临时提示
     }
 
-    const category = referenceCategories.value.find(cat => cat.id === Number(categoryId));
-    return category ? category.name : '未知分类';
+    const category = referenceCategories.value.find(
+      (cat) => cat.id === Number(categoryId)
+    );
+    return category ? category.name : "未知分类";
   };
 
   const getReferenceCategoryPath = (categoryId) => {
     if (!categoryId) return [];
 
-    const category = referenceCategories.value.find(cat => cat.id === Number(categoryId));
+    const category = referenceCategories.value.find(
+      (cat) => cat.id === Number(categoryId)
+    );
     return category ? [category] : [];
   };
 
@@ -71,6 +75,6 @@ export function useReferenceCategories() {
     getReferenceCategoryName,
     getReferenceCategoryPath,
     getAllReferenceCategories,
-    resetReferenceCategories
+    resetReferenceCategories,
   };
 }

@@ -22,7 +22,7 @@
 
 <script setup>
 import { ref, onErrorCaptured } from "vue";
-import { useToast } from "../composables/useToast";
+import { useToast } from "../../composables/useToast";
 
 const props = defineProps({
   fallbackMessage: {

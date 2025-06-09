@@ -29,7 +29,9 @@
         <div v-if="searchHistory.length > 0" class="search-history">
           <div class="history-header">
             <span>搜索历史</span>
-            <button @click="clearHistory" class="clear-history-btn">清空</button>
+            <button @click="clearHistory" class="clear-history-btn">
+              清空
+            </button>
           </div>
           <div class="history-tags">
             <button
@@ -55,11 +57,7 @@
 
       <!-- 错误状态 -->
       <div v-else-if="error" class="error-state">
-        <StandardWarning
-          icon="❌"
-          title="搜索失败"
-          :message="error"
-        />
+        <StandardWarning icon="❌" title="搜索失败" :message="error" />
       </div>
 
       <!-- 无结果 -->
@@ -79,7 +77,9 @@
           <div class="summary-stats">
             <div class="stat-item">
               <span class="stat-label">合作学者</span>
-              <span class="stat-value">{{ networkData.total_collaborators }}</span>
+              <span class="stat-value">{{
+                networkData.total_collaborators
+              }}</span>
             </div>
             <div class="stat-item">
               <span class="stat-label">合作论文</span>
@@ -87,7 +87,9 @@
             </div>
             <div class="stat-item">
               <span class="stat-label">平均合作度</span>
-              <span class="stat-value">{{ averageCollaboration.toFixed(1) }}</span>
+              <span class="stat-value">{{
+                averageCollaboration.toFixed(1)
+              }}</span>
             </div>
           </div>
         </div>
@@ -140,113 +142,126 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import StandardPageLayout from '@/components/StandardPageLayout.vue'
-import StandardWarning from '@/components/StandardWarning.vue'
-import CollaborationNetwork from '@/components/CollaborationNetwork.vue'
-import LoadingSpinner from '@/components/LoadingSpinner.vue'
-import { getAuthorCollaborationNetwork } from '@/services/api'
-import { useToast } from '@/composables/useToast'
+import { ref, computed, onMounted } from "vue";
+import {
+  StandardPageLayout,
+  StandardWarning,
+  CollaborationNetwork,
+  LoadingSpinner,
+} from "@/components";
+import { getAuthorCollaborationNetwork } from "@/services/api";
+import { useToast } from "@/composables/useToast";
 
-const { showToast } = useToast()
+const { showToast } = useToast();
 
 // 响应式数据
-const searchQuery = ref('')
-const isLoading = ref(false)
-const error = ref(null)
-const networkData = ref(null)
-const hasSearched = ref(false)
-const searchHistory = ref([])
+const searchQuery = ref("");
+const isLoading = ref(false);
+const error = ref(null);
+const networkData = ref(null);
+const hasSearched = ref(false);
+const searchHistory = ref([]);
 
 // 计算属性
 const totalPapers = computed(() => {
-  if (!networkData.value) return 0
-  return networkData.value.collaborators.reduce((sum, collab) => sum + collab.papers.length, 0)
-})
+  if (!networkData.value) return 0;
+  return networkData.value.collaborators.reduce(
+    (sum, collab) => sum + collab.papers.length,
+    0
+  );
+});
 
 const averageCollaboration = computed(() => {
-  if (!networkData.value || networkData.value.total_collaborators === 0) return 0
-  return totalPapers.value / networkData.value.total_collaborators
-})
+  if (!networkData.value || networkData.value.total_collaborators === 0)
+    return 0;
+  return totalPapers.value / networkData.value.total_collaborators;
+});
 
 const sortedCollaborators = computed(() => {
-  if (!networkData.value) return []
-  return [...networkData.value.collaborators].sort((a, b) => b.collaboration_count - a.collaboration_count)
-})
+  if (!networkData.value) return [];
+  return [...networkData.value.collaborators].sort(
+    (a, b) => b.collaboration_count - a.collaboration_count
+  );
+});
 
 // 搜索网络
 const searchNetwork = async () => {
   if (!searchQuery.value.trim()) {
-    showToast('请输入学者姓名', 'warning')
-    return
+    showToast("请输入学者姓名", "warning");
+    return;
   }
 
-  isLoading.value = true
-  error.value = null
-  networkData.value = null
-  hasSearched.value = true
+  isLoading.value = true;
+  error.value = null;
+  networkData.value = null;
+  hasSearched.value = true;
 
   try {
-    const result = await getAuthorCollaborationNetwork(searchQuery.value.trim())
-    networkData.value = result
-    addToHistory(searchQuery.value.trim())
-    showToast('搜索完成', 'success')
+    const result = await getAuthorCollaborationNetwork(
+      searchQuery.value.trim()
+    );
+    networkData.value = result;
+    addToHistory(searchQuery.value.trim());
+    showToast("搜索完成", "success");
   } catch (err) {
-    error.value = err.message || '搜索失败，请稍后重试'
-    showToast('搜索失败', 'error')
+    error.value = err.message || "搜索失败，请稍后重试";
+    showToast("搜索失败", "error");
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
-}
+};
 
 // 搜索合作者网络
 const searchCollaboratorNetwork = (collaboratorName) => {
-  searchQuery.value = collaboratorName
-  searchNetwork()
-}
+  searchQuery.value = collaboratorName;
+  searchNetwork();
+};
 
 // 快速搜索
 const quickSearch = (authorName) => {
-  searchQuery.value = authorName
-  searchNetwork()
-}
+  searchQuery.value = authorName;
+  searchNetwork();
+};
 
 // 添加到搜索历史
 const addToHistory = (authorName) => {
   if (!searchHistory.value.includes(authorName)) {
-    searchHistory.value.unshift(authorName)
-    searchHistory.value = searchHistory.value.slice(0, 10) // 只保留最近10次搜索
-    saveHistory()
+    searchHistory.value.unshift(authorName);
+    searchHistory.value = searchHistory.value.slice(0, 10); // 只保留最近10次搜索
+    saveHistory();
   }
-}
+};
 
 // 清空搜索历史
 const clearHistory = () => {
-  searchHistory.value = []
-  localStorage.removeItem('collaboration_search_history')
-  showToast('搜索历史已清空', 'info')
-}
+  searchHistory.value = [];
+  localStorage.removeItem("collaboration_search_history");
+  showToast("搜索历史已清空", "info");
+};
 
 // 保存搜索历史到本地存储
 const saveHistory = () => {
-  localStorage.setItem('collaboration_search_history', JSON.stringify(searchHistory.value))
-}
+  localStorage.setItem(
+    "collaboration_search_history",
+    JSON.stringify(searchHistory.value)
+  );
+};
 
 // 加载搜索历史
 const loadHistory = () => {
-  const saved = localStorage.getItem('collaboration_search_history')
+  const saved = localStorage.getItem("collaboration_search_history");
   if (saved) {
     try {
-      searchHistory.value = JSON.parse(saved)
+      searchHistory.value = JSON.parse(saved);
     } catch {
-      searchHistory.value = []
+      searchHistory.value = [];
     }
   }
-}
+};
 
 onMounted(() => {
-  loadHistory()
-})
+  loadHistory();
+});
 </script>
 
 <style scoped>

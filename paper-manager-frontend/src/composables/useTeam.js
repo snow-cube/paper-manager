@@ -1,6 +1,6 @@
-import { ref, computed } from 'vue';
-import { useToast } from './useToast';
-import { getTeams } from '../services/api'; // Add this import
+import { ref, computed } from "vue";
+import { useToast } from "./useToast.js";
+import { getTeams } from "../services/api.js"; // Add this import
 
 // 全局当前团队状态
 const currentTeam = ref(null);
@@ -16,9 +16,11 @@ const initializeTeams = async () => {
     userTeams.value = teams;
 
     // 设置默认团队（第一个团队或从localStorage恢复）
-    const savedTeamId = localStorage.getItem('currentTeamId');
+    const savedTeamId = localStorage.getItem("currentTeamId");
     if (savedTeamId) {
-      const savedTeam = userTeams.value.find(team => team.id === parseInt(savedTeamId));
+      const savedTeam = userTeams.value.find(
+        (team) => team.id === parseInt(savedTeamId)
+      );
       if (savedTeam) {
         currentTeam.value = savedTeam;
         return;
@@ -28,12 +30,12 @@ const initializeTeams = async () => {
     // 如果没有保存的团队或找不到，使用第一个团队
     if (userTeams.value.length > 0) {
       currentTeam.value = userTeams.value[0];
-      localStorage.setItem('currentTeamId', currentTeam.value.id.toString());
+      localStorage.setItem("currentTeamId", currentTeam.value.id.toString());
     }
   } catch (error) {
-    console.error('Failed to initialize teams:', error);
+    console.error("Failed to initialize teams:", error);
     const { showToast } = useToast();
-    showToast('加载团队信息失败', 'error');
+    showToast("加载团队信息失败", "error");
   } finally {
     isLoading.value = false;
   }
@@ -43,7 +45,7 @@ const initializeTeams = async () => {
 const switchTeam = (team) => {
   if (team && team.id !== currentTeam.value?.id) {
     currentTeam.value = team;
-    localStorage.setItem('currentTeamId', team.id.toString());
+    localStorage.setItem("currentTeamId", team.id.toString());
     useToast().success(`已切换到团队：${team.name}`);
   }
 };
@@ -52,7 +54,7 @@ const switchTeam = (team) => {
 const clearTeamState = () => {
   currentTeam.value = null;
   userTeams.value = [];
-  localStorage.removeItem('currentTeamId');
+  localStorage.removeItem("currentTeamId");
 };
 
 // 添加新团队到列表
@@ -66,7 +68,7 @@ const addTeamToList = (team) => {
 
 // 从列表中移除团队
 const removeTeamFromList = (teamId) => {
-  const index = userTeams.value.findIndex(team => team.id === teamId);
+  const index = userTeams.value.findIndex((team) => team.id === teamId);
   if (index > -1) {
     userTeams.value.splice(index, 1);
     // 如果删除的是当前团队，切换到第一个可用团队
@@ -75,7 +77,7 @@ const removeTeamFromList = (teamId) => {
         switchTeam(userTeams.value[0]);
       } else {
         currentTeam.value = null;
-        localStorage.removeItem('currentTeamId');
+        localStorage.removeItem("currentTeamId");
       }
     }
   }
@@ -91,6 +93,6 @@ export function useTeam() {
     switchTeam,
     clearTeamState,
     addTeamToList,
-    removeTeamFromList
+    removeTeamFromList,
   };
 }

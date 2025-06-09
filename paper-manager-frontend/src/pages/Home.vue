@@ -20,7 +20,8 @@
           高效管理您的学术研究资料，让知识更有序，助力科研创新
         </p>
         <div style="height: 40px"></div>
-        <!-- 添加空间距 -->        <div class="hero-actions">
+        <!-- 添加空间距 -->
+        <div class="hero-actions">
           <template v-if="isAuthenticated">
             <RouterLink to="/literature" class="btn btn-primary btn-lg">
               <span class="btn-icon">📚</span>
@@ -36,14 +37,18 @@
               <span class="btn-icon">🔑</span>
               登录系统
             </RouterLink>
-            <RouterLink to="/login?mode=register" class="btn btn-secondary btn-lg">
+            <RouterLink
+              to="/login?mode=register"
+              class="btn btn-secondary btn-lg"
+            >
               <span class="btn-icon">📝</span>
               注册账号
             </RouterLink>
           </template>
         </div>
       </div>
-    </div>    <div class="features" v-if="isAuthenticated">
+    </div>
+    <div class="features" v-if="isAuthenticated">
       <div class="feature-card">
         <div class="feature-icon">📚</div>
         <h3>文献管理</h3>
@@ -63,7 +68,8 @@
         <h3>团队管理</h3>
         <p>创建和管理研究团队，协作共享学术资源</p>
         <RouterLink to="/teams" class="btn">团队管理</RouterLink>
-      </div>      <div class="feature-card">
+      </div>
+      <div class="feature-card">
         <div class="feature-icon">🏷️</div>
         <h3>分类管理</h3>
         <p>创建自定义分类体系，让研究资料管理更加条理清晰</p>
@@ -76,7 +82,8 @@
         <p>探索学者间的合作关系，发现潜在的研究伙伴和学术网络</p>
         <RouterLink to="/collaboration" class="btn">探索网络</RouterLink>
       </div>
-    </div>    <div class="stats" v-if="isAuthenticated">
+    </div>
+    <div class="stats" v-if="isAuthenticated">
       <div class="stat-item">
         <div class="stat-number">{{ stats.papers }}</div>
         <div class="stat-label">论文总数</div>
@@ -477,7 +484,8 @@ watch(isAuthenticated, (newValue) => {
 .stat-item {
   text-align: center;
   position: relative;
-  z-index: 1;  background: rgba(255, 255, 255, 0.5);
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.5);
   padding: var(--space-2xl);
   border-radius: var(--border-radius);
   backdrop-filter: blur(5px);

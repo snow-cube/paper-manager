@@ -24,7 +24,7 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
-import { getUsers } from "../services/api";
+import { getUsers } from "../../services/api";
 
 const users = ref([]);
 const loading = ref(true);

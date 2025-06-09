@@ -1,13 +1,18 @@
 <template>
-  <div class="category-tree tree-container">    <div class="tree-header">
+  <div class="category-tree tree-container">
+    <div class="tree-header">
       <h3 class="tree-title">
         <span class="tree-icon">🗂️</span>
-        {{ props.categoryType === 'references' ? '参考文献分类' : '论文分类' }}
+        {{ props.categoryType === "references" ? "参考文献分类" : "论文分类" }}
       </h3>
       <button
         class="btn btn-sm btn-outline-purple"
         @click="showAddDialog()"
-        :title="props.categoryType === 'references' ? '添加根参考文献分类' : '添加根论文分类'"
+        :title="
+          props.categoryType === 'references'
+            ? '添加根参考文献分类'
+            : '添加根论文分类'
+        "
       >
         <span class="btn-icon">➕</span>
       </button>
@@ -30,7 +35,8 @@
       </div>
 
       <!-- 分类内容 -->
-      <template v-else>        <!-- 全部条目选项 -->
+      <template v-else>
+        <!-- 全部条目选项 -->
         <div
           class="tree-node tree-node-all"
           :class="{ 'tree-node-active': props.selectedCategoryId === null }"
@@ -39,7 +45,7 @@
           <div class="tree-node-content">
             <span class="tree-node-icon">
               {{
-                props.categoryType === 'references'
+                props.categoryType === "references"
                   ? "🔗"
                   : props.paperType === "published"
                   ? "🎓"
@@ -50,7 +56,7 @@
             </span>
             <span class="tree-node-label">
               {{
-                props.categoryType === 'references'
+                props.categoryType === "references"
                   ? "全部参考文献"
                   : props.paperType === "published"
                   ? "全部发表论文"
@@ -61,7 +67,8 @@
             </span>
             <span class="tree-node-count">{{ totalPapers }}</span>
           </div>
-        </div><!-- 分类列表 -->
+        </div>
+        <!-- 分类列表 -->
         <div class="tree-list">
           <CategoryNode
             v-for="category in categoryTree"
@@ -85,14 +92,23 @@
         class="dialog-overlay"
         @click="closeCategoryDialog"
       >
-        <div class="dialog" @click.stop>          <div class="dialog-header">
-            <h4>{{
-              isEditing
-                ? `编辑${props.categoryType === 'references' ? '参考文献' : '论文'}分类`
-                : parentCategoryId
-                  ? `添加${props.categoryType === 'references' ? '参考文献' : '论文'}子分类`
-                  : `添加${props.categoryType === 'references' ? '参考文献' : '论文'}分类`
-            }}</h4>
+        <div class="dialog" @click.stop>
+          <div class="dialog-header">
+            <h4>
+              {{
+                isEditing
+                  ? `编辑${
+                      props.categoryType === "references" ? "参考文献" : "论文"
+                    }分类`
+                  : parentCategoryId
+                  ? `添加${
+                      props.categoryType === "references" ? "参考文献" : "论文"
+                    }子分类`
+                  : `添加${
+                      props.categoryType === "references" ? "参考文献" : "论文"
+                    }分类`
+              }}
+            </h4>
             <button class="dialog-close" @click="closeCategoryDialog">×</button>
           </div>
           <div class="dialog-body">
@@ -118,7 +134,8 @@
           <div class="dialog-footer">
             <button class="btn btn-secondary" @click="closeCategoryDialog">
               取消
-            </button>            <button
+            </button>
+            <button
               class="btn btn-primary"
               @click="saveCategory"
               :disabled="!canSubmitForm"
@@ -157,12 +174,11 @@ import {
   deleteReferenceCategory as deleteReferenceCategoryAPI,
   getPapers,
   getReferences,
-} from "../services/api";
-import { useToast } from "../composables/useToast";
-import { useConfirmDialog } from "../composables/useConfirmDialog";
-import LoadingSpinner from "./LoadingSpinner.vue";
-import ConfirmDialog from "./ConfirmDialog.vue";
-import CategoryNode from "./CategoryNode.vue";
+} from "../../../services/api";
+import { useToast } from "../../../composables/useToast";
+import { useConfirmDialog } from "../../../composables/useConfirmDialog";
+import { LoadingSpinner, ConfirmDialog } from "../../base";
+import { CategoryNode } from ".";
 
 const props = defineProps({
   selectedCategoryId: {
@@ -175,7 +191,7 @@ const props = defineProps({
   },
   categoryType: {
     type: String,
-    default: 'papers', // 'papers' 或 'references'
+    default: "papers", // 'papers' 或 'references'
   },
   teamId: {
     type: [Number, String],
@@ -213,7 +229,11 @@ const categoryForm = ref({
 
 // 计算属性：检查表单是否可提交
 const canSubmitForm = computed(() => {
-  return categoryForm.value && categoryForm.value.name && categoryForm.value.name.trim().length > 0;
+  return (
+    categoryForm.value &&
+    categoryForm.value.name &&
+    categoryForm.value.name.trim().length > 0
+  );
 });
 
 // 选择分类
@@ -227,12 +247,12 @@ const buildCategoryTree = (categories) => {
   const rootCategories = [];
 
   // 创建所有分类的映射
-  categories.forEach(category => {
+  categories.forEach((category) => {
     categoryMap.set(category.id, { ...category, children: [] });
   });
 
   // 构建树形结构
-  categories.forEach(category => {
+  categories.forEach((category) => {
     const categoryNode = categoryMap.get(category.id);
     if (category.parent_id) {
       const parent = categoryMap.get(category.parent_id);
@@ -258,7 +278,7 @@ const loadCategories = async () => {
 
   try {
     let categories;
-    if (props.categoryType === 'references') {
+    if (props.categoryType === "references") {
       // 参考文献分类需要传递团队ID
       if (!props.teamId) {
         categoryTree.value = [];
@@ -287,10 +307,10 @@ const loadCategories = async () => {
 // 递归计算分类树中每个节点的数量
 const calculatePaperCounts = (categories, items) => {
   categories.forEach((category) => {
-    const categoryItems = items.filter(item => {
+    const categoryItems = items.filter((item) => {
       // 支持多分类和单分类
       if (Array.isArray(item.categories)) {
-        return item.categories.some(cat => cat.id === category.id);
+        return item.categories.some((cat) => cat.id === category.id);
       }
       return item.category_id === category.id;
     });
@@ -308,7 +328,7 @@ const loadPaperCounts = async () => {
   try {
     let data, filteredData;
 
-    if (props.categoryType === 'references') {
+    if (props.categoryType === "references") {
       // 对于参考文献分类，需要团队ID
       if (!props.teamId) {
         totalPapers.value = 0;
@@ -321,7 +341,7 @@ const loadPaperCounts = async () => {
       data = await getPapers();
       // 根据paper_type筛选论文
       filteredData = props.paperType
-        ? data.filter(paper => paper.paper_type === props.paperType)
+        ? data.filter((paper) => paper.paper_type === props.paperType)
         : data;
     }
 
@@ -364,7 +384,7 @@ const showAddDialog = () => {
 // 显示添加子分类对话框
 const showAddChildDialog = (parentCategory) => {
   if (!parentCategory || !parentCategory.id) {
-    console.error('Invalid parent category:', parentCategory);
+    console.error("Invalid parent category:", parentCategory);
     showToast("无效的父分类", "error");
     return;
   }
@@ -393,7 +413,7 @@ const handleAddChild = (categoryId) => {
   if (parentCategory) {
     showAddChildDialog(parentCategory);
   } else {
-    console.error('Parent category not found:', categoryId);
+    console.error("Parent category not found:", categoryId);
     showToast("无法找到父分类，请刷新页面重试", "error");
   }
 };
@@ -421,7 +441,11 @@ const closeCategoryDialog = () => {
 
 // 保存分类
 const saveCategory = async () => {
-  if (!categoryForm.value || !categoryForm.value.name || !categoryForm.value.name.trim()) {
+  if (
+    !categoryForm.value ||
+    !categoryForm.value.name ||
+    !categoryForm.value.name.trim()
+  ) {
     showToast("请输入分类名称", "error");
     return;
   }
@@ -434,8 +458,11 @@ const saveCategory = async () => {
         return;
       }
 
-      if (props.categoryType === 'references') {
-        await updateReferenceCategory(editingCategoryId.value, categoryForm.value);
+      if (props.categoryType === "references") {
+        await updateReferenceCategory(
+          editingCategoryId.value,
+          categoryForm.value
+        );
       } else {
         await updateCategory(editingCategoryId.value, categoryForm.value);
       }
@@ -446,7 +473,7 @@ const saveCategory = async () => {
         parent_id: parentCategoryId.value,
       };
 
-      if (props.categoryType === 'references') {
+      if (props.categoryType === "references") {
         // 参考文献分类需要传递 teamId
         if (!props.teamId) {
           showToast("团队ID缺失，无法创建参考文献分类", "error");
@@ -495,7 +522,7 @@ const deleteCategory = async (category) => {
     setLoading(true);
 
     // 根据分类类型使用不同的删除API
-    if (props.categoryType === 'references') {
+    if (props.categoryType === "references") {
       await deleteReferenceCategoryAPI(category.id);
     } else {
       await deleteCategoryAPI(category.id);
@@ -737,7 +764,8 @@ defineExpose({
   color: var(--color-danger);
 }
 
-.error-icon {  font-size: 2rem;
+.error-icon {
+  font-size: 2rem;
   margin-bottom: 0.5rem;
 }
 </style>

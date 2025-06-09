@@ -33,9 +33,9 @@
 </template>
 
 <script setup>
-import { useToast } from '../composables/useToast'
+import { useToast } from "../../composables/useToast.js";
 
-const { toasts, removeToast } = useToast()
+const { toasts, removeToast } = useToast();
 </script>
 
 <style scoped>
@@ -64,7 +64,8 @@ const { toasts, removeToast } = useToast()
 
 .toast:hover {
   transform: translateY(-2px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 .toast-success {

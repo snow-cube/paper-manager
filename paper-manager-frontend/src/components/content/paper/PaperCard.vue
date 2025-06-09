@@ -1,10 +1,13 @@
 <template>
-  <div class="paper-card" @click="$emit('view', paper)">    <!-- 卡片头部 -->
+  <div class="paper-card" @click="$emit('view', paper)">
+    <!-- 卡片头部 -->
     <div class="paper-header">
       <div class="badge-section">
         <div :class="['paper-type-badge', paper.paper_type]">
-          <span class="badge-icon">{{ paper.paper_type === 'published' ? '🎓' : '📚' }}</span>
-          {{ paper.paper_type === 'published' ? '发表论文' : '参考文献' }}
+          <span class="badge-icon">{{
+            paper.paper_type === "published" ? "🎓" : "📚"
+          }}</span>
+          {{ paper.paper_type === "published" ? "发表论文" : "参考文献" }}
         </div>
         <div v-if="paper.team_name || teamName" class="team-badge">
           <span class="team-icon">👥</span>
@@ -27,7 +30,7 @@
           title="下载文件"
           :disabled="downloading"
         >
-          <span class="action-icon">{{ downloading ? '⏳' : '⬇️' }}</span>
+          <span class="action-icon">{{ downloading ? "⏳" : "⬇️" }}</span>
         </button>
         <button
           @click="$emit('edit', paper)"
@@ -91,7 +94,9 @@
         </div>
         <p class="abstract-content">
           {{ truncatedAbstract }}
-          <span v-if="paper.abstract.length > 150" class="read-more">... 查看更多</span>
+          <span v-if="paper.abstract.length > 150" class="read-more"
+            >... 查看更多</span
+          >
         </p>
       </div>
 
@@ -134,10 +139,14 @@
 
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
-import { useCategories } from "../composables/useCategories";
-import { useTeam } from "../composables/useTeam";
-import { downloadItem, getDownloadFileName, triggerDownload } from "../services/downloadService";
-import { useToast } from "../composables/useToast";
+import { useCategories } from "../../../composables/useCategories";
+import { useTeam } from "../../../composables/useTeam";
+import {
+  downloadItem,
+  getDownloadFileName,
+  triggerDownload,
+} from "../../../services/downloadService";
+import { useToast } from "../../../composables/useToast";
 
 const props = defineProps({
   paper: {
@@ -170,12 +179,12 @@ const teamName = computed(() => {
 
 // 加载适当的分类数据
 const loadAppropriateCategories = async () => {
-  if (props.paper?.paper_type === 'literature') {
+  if (props.paper?.paper_type === "literature") {
     // 文献使用参考文献分类（团队特定）
-    await loadCategories('references', currentTeam.value?.id);
+    await loadCategories("references", currentTeam.value?.id);
   } else {
     // 发表论文使用公共论文分类
-    await loadCategories('papers');
+    await loadCategories("papers");
   }
 };
 
@@ -185,16 +194,19 @@ onMounted(() => {
 });
 
 // 监听paper变化，重新加载分类
-watch(() => props.paper?.paper_type, () => {
-  loadAppropriateCategories();
-});
+watch(
+  () => props.paper?.paper_type,
+  () => {
+    loadAppropriateCategories();
+  }
+);
 
 const authorsDisplay = computed(() => {
   if (!props.paper.authors) return "未知作者";
   if (Array.isArray(props.paper.authors)) {
-    return props.paper.authors.map(author =>
-      typeof author === 'object' ? author.name : author
-    ).join(', ');
+    return props.paper.authors
+      .map((author) => (typeof author === "object" ? author.name : author))
+      .join(", ");
   }
   return props.paper.authors;
 });
@@ -211,14 +223,19 @@ const categoriesDisplay = computed(() => {
   if (props.paper.categories && Array.isArray(props.paper.categories)) {
     if (props.paper.categories.length === 0) return "未分类";
 
-    return props.paper.categories.map(category => {
-      if (typeof category === 'object' && category.name) {
-        return category.name;
-      } else if (typeof category === 'number' || typeof category === 'string') {
-        return getCategoryName(category);
-      }
-      return "未知分类";
-    }).join(', ');
+    return props.paper.categories
+      .map((category) => {
+        if (typeof category === "object" && category.name) {
+          return category.name;
+        } else if (
+          typeof category === "number" ||
+          typeof category === "string"
+        ) {
+          return getCategoryName(category);
+        }
+        return "未知分类";
+      })
+      .join(", ");
   }
 
   return "未分类";
@@ -235,9 +252,9 @@ const keywordList = computed(() => {
   if (!props.paper.keywords) return [];
 
   if (Array.isArray(props.paper.keywords)) {
-    return props.paper.keywords.map(keyword =>
-      typeof keyword === 'object' ? keyword.name : keyword
-    ).slice(0, 5);
+    return props.paper.keywords
+      .map((keyword) => (typeof keyword === "object" ? keyword.name : keyword))
+      .slice(0, 5);
   }
 
   // 兼容字符串格式的关键词
@@ -275,7 +292,8 @@ const handleDownload = async () => {
     const fileName = getDownloadFileName(props.paper, response);
 
     // 确定内容类型
-    const contentType = response.headers['content-type'] || 'application/octet-stream';
+    const contentType =
+      response.headers["content-type"] || "application/octet-stream";
 
     // 触发下载
     triggerDownload(response.data, fileName, contentType);
@@ -296,7 +314,8 @@ const handleDownload = async () => {
   border: 2px solid var(--primary-200);
   border-radius: var(--border-radius-xl);
   overflow: hidden;
-  transition: all var(--transition-bounce);  position: relative;
+  transition: all var(--transition-bounce);
+  position: relative;
   box-shadow: var(--shadow-lg);
   cursor: pointer;
   backdrop-filter: blur(10px);
@@ -312,13 +331,18 @@ const handleDownload = async () => {
 }
 
 .paper-card::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, var(--primary-500), var(--secondary-500), var(--success-500));
+  background: linear-gradient(
+    90deg,
+    var(--primary-500),
+    var(--secondary-500),
+    var(--success-500)
+  );
 }
 
 /* 头部区域 */
@@ -355,12 +379,12 @@ const handleDownload = async () => {
 }
 
 .paper-type-badge.literature {
-  background: linear-gradient(135deg, #8B5CF6, #A855F7);
+  background: linear-gradient(135deg, #8b5cf6, #a855f7);
   color: var(--white);
 }
 
 .paper-type-badge.published {
-  background: linear-gradient(135deg, #059669, #10B981);
+  background: linear-gradient(135deg, #059669, #10b981);
   color: var(--white);
 }
 
@@ -376,7 +400,7 @@ const handleDownload = async () => {
   border-radius: var(--border-radius-lg);
   font-size: var(--text-xs);
   font-weight: 600;
-  background: linear-gradient(135deg, #F59E0B, #F97316);
+  background: linear-gradient(135deg, #f59e0b, #f97316);
   color: var(--white);
   box-shadow: var(--shadow-sm);
   max-width: 150px;
@@ -621,7 +645,11 @@ const handleDownload = async () => {
 }
 
 .keyword-tag {
-  background: linear-gradient(135deg, var(--secondary-100), var(--secondary-200));
+  background: linear-gradient(
+    135deg,
+    var(--secondary-100),
+    var(--secondary-200)
+  );
   color: var(--secondary-700);
   padding: var(--space-xs) var(--space-sm);
   border-radius: var(--border-radius);
@@ -634,7 +662,11 @@ const handleDownload = async () => {
 
 .keyword-tag:hover {
   transform: translateY(-1px);
-  background: linear-gradient(135deg, var(--secondary-200), var(--secondary-300));
+  background: linear-gradient(
+    135deg,
+    var(--secondary-200),
+    var(--secondary-300)
+  );
   box-shadow: var(--shadow-sm);
 }
 

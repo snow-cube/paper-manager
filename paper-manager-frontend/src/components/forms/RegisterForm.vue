@@ -3,13 +3,37 @@
     <div class="form-header">
       <div class="welcome-icon">
         <svg width="40" height="40" viewBox="0 0 48 48" fill="none">
-          <circle cx="24" cy="24" r="20" stroke="url(#registerGradient)" stroke-width="2" fill="none"/>
-          <path d="M24 16v16M16 24h16" stroke="url(#registerGradient)" stroke-width="2" stroke-linecap="round"/>
-          <circle cx="24" cy="24" r="6" fill="url(#registerGradient)" opacity="0.2"/>
+          <circle
+            cx="24"
+            cy="24"
+            r="20"
+            stroke="url(#registerGradient)"
+            stroke-width="2"
+            fill="none"
+          />
+          <path
+            d="M24 16v16M16 24h16"
+            stroke="url(#registerGradient)"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+          <circle
+            cx="24"
+            cy="24"
+            r="6"
+            fill="url(#registerGradient)"
+            opacity="0.2"
+          />
           <defs>
-            <linearGradient id="registerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" style="stop-color:#f093fb"/>
-              <stop offset="100%" style="stop-color:#f5576c"/>
+            <linearGradient
+              id="registerGradient"
+              x1="0%"
+              y1="0%"
+              x2="100%"
+              y2="100%"
+            >
+              <stop offset="0%" style="stop-color: #f093fb" />
+              <stop offset="100%" style="stop-color: #f5576c" />
             </linearGradient>
           </defs>
         </svg>
@@ -33,7 +57,7 @@
               required
               placeholder="请输入用户名"
               class="form-control"
-              :class="{ 'error': error && !formData.username }"
+              :class="{ error: error && !formData.username }"
             />
             <div class="input-border"></div>
           </div>
@@ -52,7 +76,7 @@
               required
               placeholder="请输入邮箱地址"
               class="form-control"
-              :class="{ 'error': error && !formData.email }"
+              :class="{ error: error && !formData.email }"
             />
             <div class="input-border"></div>
           </div>
@@ -72,7 +96,7 @@
             required
             placeholder="请输入您的真实姓名"
             class="form-control"
-            :class="{ 'error': error && !formData.full_name }"
+            :class="{ error: error && !formData.full_name }"
           />
           <div class="input-border"></div>
         </div>
@@ -92,7 +116,7 @@
               required
               placeholder="请输入密码"
               class="form-control"
-              :class="{ 'error': error && !formData.password }"
+              :class="{ error: error && !formData.password }"
             />
             <button
               type="button"
@@ -106,9 +130,15 @@
           </div>
           <div class="password-strength">
             <div class="strength-bar">
-              <div class="strength-fill" :class="passwordStrength.class" :style="{ width: passwordStrength.width }"></div>
+              <div
+                class="strength-fill"
+                :class="passwordStrength.class"
+                :style="{ width: passwordStrength.width }"
+              ></div>
             </div>
-            <span class="strength-text" :class="passwordStrength.class">{{ passwordStrength.text }}</span>
+            <span class="strength-text" :class="passwordStrength.class">{{
+              passwordStrength.text
+            }}</span>
           </div>
         </div>
 
@@ -125,7 +155,11 @@
               required
               placeholder="请再次输入密码"
               class="form-control"
-              :class="{ 'error': error && !confirmPassword, 'success': confirmPassword && formData.password === confirmPassword }"
+              :class="{
+                error: error && !confirmPassword,
+                success:
+                  confirmPassword && formData.password === confirmPassword,
+              }"
             />
             <button
               type="button"
@@ -145,7 +179,8 @@
           <input type="checkbox" v-model="agreeTerms" required />
           <span class="checkmark"></span>
           <span class="checkbox-label">
-            我同意 <a href="#" class="terms-link">服务条款</a> 和 <a href="#" class="terms-link">隐私政策</a>
+            我同意 <a href="#" class="terms-link">服务条款</a> 和
+            <a href="#" class="terms-link">隐私政策</a>
           </span>
         </label>
       </div>
@@ -162,10 +197,10 @@
           type="submit"
           :disabled="loading || !agreeTerms"
           class="btn btn-primary"
-          :class="{ 'loading': loading }"
+          :class="{ loading: loading }"
         >
           <span v-if="loading" class="loading-spinner"></span>
-          <span class="btn-text">{{ loading ? '注册中...' : '创建账户' }}</span>
+          <span class="btn-text">{{ loading ? "注册中..." : "创建账户" }}</span>
           <span v-if="!loading" class="btn-arrow">→</span>
         </button>
       </div>
@@ -177,38 +212,43 @@
       </div>
       <p class="switch-form">
         已有账号？
-        <a href="#" @click.prevent="$emit('switch-to-login')" class="switch-link">立即登录</a>
+        <a
+          href="#"
+          @click.prevent="$emit('switch-to-login')"
+          class="switch-link"
+          >立即登录</a
+        >
       </p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue';
-import { register } from '../services/api.js';
-import { useToast } from '../composables/useToast.js';
+import { ref, reactive, computed } from "vue";
+import { register } from "../../services/api.js";
+import { useToast } from "../../composables/useToast.js";
 
-const emit = defineEmits(['register-success', 'switch-to-login']);
+const emit = defineEmits(["register-success", "switch-to-login"]);
 
 const { showToast } = useToast();
 const loading = ref(false);
-const error = ref('');
-const confirmPassword = ref('');
+const error = ref("");
+const confirmPassword = ref("");
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
 const agreeTerms = ref(false);
 
 const formData = reactive({
-  username: '',
-  email: '',
-  full_name: '',
-  password: ''
+  username: "",
+  email: "",
+  full_name: "",
+  password: "",
 });
 
 // 密码强度计算
 const passwordStrength = computed(() => {
   const password = formData.password;
-  if (!password) return { width: '0%', class: '', text: '' };
+  if (!password) return { width: "0%", class: "", text: "" };
 
   let score = 0;
   if (password.length >= 6) score++;
@@ -218,24 +258,29 @@ const passwordStrength = computed(() => {
   if (/[0-9]/.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;
 
-  if (score <= 2) return { width: '33%', class: 'weak', text: '弱' };
-  if (score <= 4) return { width: '66%', class: 'medium', text: '中' };
-  return { width: '100%', class: 'strong', text: '强' };
+  if (score <= 2) return { width: "33%", class: "weak", text: "弱" };
+  if (score <= 4) return { width: "66%", class: "medium", text: "中" };
+  return { width: "100%", class: "strong", text: "强" };
 });
 
 const validateForm = () => {
-  if (!formData.username || !formData.email || !formData.full_name || !formData.password) {
-    error.value = '请填写所有必填字段';
+  if (
+    !formData.username ||
+    !formData.email ||
+    !formData.full_name ||
+    !formData.password
+  ) {
+    error.value = "请填写所有必填字段";
     return false;
   }
 
   if (formData.password !== confirmPassword.value) {
-    error.value = '两次输入的密码不一致';
+    error.value = "两次输入的密码不一致";
     return false;
   }
 
   if (formData.password.length < 6) {
-    error.value = '密码长度不能少于6位';
+    error.value = "密码长度不能少于6位";
     return false;
   }
 
@@ -248,22 +293,21 @@ const handleRegister = async () => {
   }
 
   loading.value = true;
-  error.value = '';
+  error.value = "";
 
   try {
     await register(formData);
 
-    showToast('注册成功！请登录', 'success');
-    emit('register-success');
-
+    showToast("注册成功！请登录", "success");
+    emit("register-success");
   } catch (err) {
-    console.error('Register error:', err);
+    console.error("Register error:", err);
 
     if (err.response?.status === 409) {
-      const message = err.response.data?.detail || '用户名或邮箱已存在';
+      const message = err.response.data?.detail || "用户名或邮箱已存在";
       error.value = message;
     } else {
-      error.value = '注册失败，请稍后重试';
+      error.value = "注册失败，请稍后重试";
     }
   } finally {
     loading.value = false;
@@ -289,7 +333,8 @@ const handleRegister = async () => {
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px);
   }
   50% {
@@ -504,7 +549,7 @@ const handleRegister = async () => {
 }
 
 .checkbox-wrapper input:checked + .checkmark::after {
-  content: '✓';
+  content: "✓";
   position: absolute;
   top: 50%;
   left: 50%;
@@ -638,7 +683,7 @@ const handleRegister = async () => {
 }
 
 .divider::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 50%;
   left: 0;
@@ -674,7 +719,7 @@ const handleRegister = async () => {
 }
 
 .switch-link::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: -2px;
   left: 0;

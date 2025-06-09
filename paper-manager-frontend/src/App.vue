@@ -247,9 +247,7 @@
 <script setup>
 import { RouterLink, RouterView } from "vue-router";
 import { ref, onMounted, onUnmounted } from "vue";
-import ToastContainer from "./components/ToastContainer.vue";
-import ErrorBoundary from "./components/ErrorBoundary.vue";
-import TeamSelector from "./components/TeamSelector.vue";
+import { ToastContainer, ErrorBoundary, TeamSelector } from "@/components";
 import { useAuth } from "./composables/useAuth";
 import { useTeam } from "./composables/useTeam";
 

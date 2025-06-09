@@ -1,7 +1,7 @@
 <template>
   <div class="team-form">
     <div class="form-header">
-      <h3>{{ team ? '编辑团队' : '创建团队' }}</h3>
+      <h3>{{ team ? "编辑团队" : "创建团队" }}</h3>
     </div>
 
     <form @submit.prevent="handleSubmit">
@@ -40,13 +40,9 @@
         >
           取消
         </button>
-        <button
-          type="submit"
-          :disabled="loading"
-          class="btn btn-primary"
-        >
+        <button type="submit" :disabled="loading" class="btn btn-primary">
           <span v-if="loading" class="loading-spinner"></span>
-          {{ loading ? '保存中...' : '保存' }}
+          {{ loading ? "保存中..." : "保存" }}
         </button>
       </div>
     </form>
@@ -54,44 +50,48 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue';
-import { createTeam, updateTeam } from '../services/api.js';
-import { useToast } from '../composables/useToast.js';
-import { useAuth } from '../composables/useAuth.js';
+import { ref, reactive, watch } from "vue";
+import { createTeam, updateTeam } from "../../services/api.js";
+import { useToast } from "../../composables/useToast.js";
+import { useAuth } from "../../composables/useAuth.js";
 
 const props = defineProps({
   team: {
     type: Object,
-    default: null
-  }
+    default: null,
+  },
 });
 
-const emit = defineEmits(['saved', 'cancel']);
+const emit = defineEmits(["saved", "cancel"]);
 
 const { showToast } = useToast();
 const { currentUser } = useAuth();
 const loading = ref(false);
-const error = ref('');
+const error = ref("");
 
 const formData = reactive({
-  name: '',
-  description: ''
+  name: "",
+  description: "",
 });
 
 // 监听 props 变化，初始化表单数据
-watch(() => props.team, (newTeam) => {
-  if (newTeam) {
-    formData.name = newTeam.name || '';
-    formData.description = newTeam.description || '';
-  } else {
-    formData.name = '';
-    formData.description = '';
-  }
-}, { immediate: true });
+watch(
+  () => props.team,
+  (newTeam) => {
+    if (newTeam) {
+      formData.name = newTeam.name || "";
+      formData.description = newTeam.description || "";
+    } else {
+      formData.name = "";
+      formData.description = "";
+    }
+  },
+  { immediate: true }
+);
 
 const validateForm = () => {
   if (!formData.name.trim()) {
-    error.value = '请输入团队名称';
+    error.value = "请输入团队名称";
     return false;
   }
   return true;
@@ -103,34 +103,34 @@ const handleSubmit = async () => {
   }
 
   loading.value = true;
-  error.value = '';
+  error.value = "";
 
   try {
     let result;
     if (props.team) {
       // 编辑团队
       result = await updateTeam(props.team.id, formData);
-      showToast('团队信息更新成功！', 'success');
+      showToast("团队信息更新成功！", "success");
     } else {
       // 创建团队 - 添加creator_id字段
       const teamCreateData = {
         ...formData,
-        creator_id: currentUser.value?.id
+        creator_id: currentUser.value?.id,
       };
 
       if (!teamCreateData.creator_id) {
-        error.value = '用户信息无效，请重新登录';
+        error.value = "用户信息无效，请重新登录";
         return;
       }
 
       result = await createTeam(teamCreateData);
-      showToast('团队创建成功！', 'success');
+      showToast("团队创建成功！", "success");
     }
 
-    emit('saved', result);
+    emit("saved", result);
   } catch (err) {
-    console.error('Team operation error:', err);
-    error.value = err.response?.data?.detail || '操作失败，请稍后重试';
+    console.error("Team operation error:", err);
+    error.value = err.response?.data?.detail || "操作失败，请稍后重试";
   } finally {
     loading.value = false;
   }

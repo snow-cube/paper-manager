@@ -50,12 +50,14 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import StandardPageLayout from "../components/StandardPageLayout.vue";
-import PaperManager from "../components/PaperManager.vue";
-import PaperForm from "../components/PaperForm.vue";
-import PaperDetail from "../components/PaperDetail.vue";
-import Modal from "../components/Modal.vue";
-import ModeSwitch from "../components/forms/ModeSwitch.vue";
+import {
+  StandardPageLayout,
+  PaperManager,
+  PaperForm,
+  PaperDetail,
+  Modal,
+  ModeSwitch,
+} from "@/components";
 import { useToast } from "../composables/useToast";
 import { useCategories } from "../composables/useCategories";
 import { useTeam } from "../composables/useTeam";

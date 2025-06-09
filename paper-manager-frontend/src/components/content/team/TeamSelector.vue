@@ -1,14 +1,14 @@
 <template>
   <div class="team-selector">
-    <div class="current-team" @click="toggleDropdown" :class="{ 'open': isOpen }">
+    <div class="current-team" @click="toggleDropdown" :class="{ open: isOpen }">
       <div class="team-info">
         <span class="team-icon">👥</span>
         <div class="team-details">
-          <span class="team-name">{{ currentTeam?.name || '选择团队' }}</span>
+          <span class="team-name">{{ currentTeam?.name || "选择团队" }}</span>
           <span v-if="currentTeam" class="team-label">当前团队</span>
         </div>
       </div>
-      <span class="dropdown-arrow" :class="{ 'rotated': isOpen }">▼</span>
+      <span class="dropdown-arrow" :class="{ rotated: isOpen }">▼</span>
     </div>
 
     <transition name="dropdown">
@@ -18,7 +18,7 @@
           v-for="team in userTeams"
           :key="team.id"
           @click="selectTeam(team)"
-          :class="['dropdown-item', { 'active': team.id === currentTeam?.id }]"
+          :class="['dropdown-item', { active: team.id === currentTeam?.id }]"
         >
           <span class="team-icon">👥</span>
           <div class="team-info">
@@ -29,7 +29,11 @@
         </div>
 
         <div class="dropdown-divider"></div>
-        <RouterLink to="/teams" @click="closeDropdown" class="dropdown-item action-item">
+        <RouterLink
+          to="/teams"
+          @click="closeDropdown"
+          class="dropdown-item action-item"
+        >
           <span class="action-icon">⚙️</span>
           <span>管理团队</span>
         </RouterLink>
@@ -39,8 +43,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
-import { useTeam } from '../composables/useTeam';
+import { ref, onMounted, onUnmounted } from "vue";
+import { useTeam } from "../../../composables/useTeam.js";
 
 const { currentTeam, userTeams, switchTeam } = useTeam();
 const isOpen = ref(false);
@@ -60,17 +64,17 @@ const selectTeam = (team) => {
 
 // 点击外部关闭下拉菜单
 const handleClickOutside = (event) => {
-  if (!event.target.closest('.team-selector')) {
+  if (!event.target.closest(".team-selector")) {
     closeDropdown();
   }
 };
 
 onMounted(() => {
-  document.addEventListener('click', handleClickOutside);
+  document.addEventListener("click", handleClickOutside);
 });
 
 onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside);
+  document.removeEventListener("click", handleClickOutside);
 });
 </script>
 

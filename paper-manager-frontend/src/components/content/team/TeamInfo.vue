@@ -9,7 +9,7 @@
         </div>
         <div class="info-item">
           <label>团队描述</label>
-          <p>{{ team.description || '暂无描述' }}</p>
+          <p>{{ team.description || "暂无描述" }}</p>
         </div>
         <div class="info-item">
           <label>创建时间</label>
@@ -25,8 +25,10 @@
         </div>
         <div class="info-item">
           <label>状态</label>
-          <span :class="['status-badge', team.is_active ? 'active' : 'inactive']">
-            {{ team.is_active ? '活跃' : '非活跃' }}
+          <span
+            :class="['status-badge', team.is_active ? 'active' : 'inactive']"
+          >
+            {{ team.is_active ? "活跃" : "非活跃" }}
           </span>
         </div>
       </div>
@@ -51,34 +53,34 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import Modal from './Modal.vue';
-import TeamForm from './TeamForm.vue';
+import { ref } from "vue";
+import Modal from "../../base/Modal.vue";
+import TeamForm from "../../forms/TeamForm.vue";
 
 const props = defineProps({
   team: {
     type: Object,
-    required: true
-  }
+    required: true,
+  },
 });
 
-const emit = defineEmits(['updated']);
+const emit = defineEmits(["updated"]);
 
 const showEditForm = ref(false);
 
 const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+  return new Date(dateString).toLocaleDateString("zh-CN", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 };
 
 const handleTeamUpdated = (updatedTeam) => {
   showEditForm.value = false;
-  emit('updated', updatedTeam);
+  emit("updated", updatedTeam);
 };
 </script>
 
