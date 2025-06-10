@@ -327,6 +327,7 @@ def read_papers(
     category_id: Optional[int] = None,
     author_name: Optional[str] = None,
     keyword: Optional[str] = None,
+    journal_id: Optional[int] = None,
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
     team_id: Optional[int] = None,
@@ -373,6 +374,8 @@ def read_papers(
             .join(Keyword)
             .where(Keyword.name == keyword)
         )
+    if journal_id:
+        query = query.where(Paper.journal_id == journal_id)
     if start_date:
         query = query.where(Paper.publication_date >= start_date)
     if end_date:

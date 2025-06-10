@@ -10,6 +10,7 @@ export function usePaperFormInitialization(props) {  const form = ref({
     journal: "",
     journal_id: null,
     publication_date: "",
+    publication_year: null,
     category_ids: [],
   });
 
@@ -27,9 +28,7 @@ export function usePaperFormInitialization(props) {  const form = ref({
       // 编辑模式：填充现有数据
       form.value.title = props.paper.title || "";
       form.value.abstract = props.paper.abstract || "";
-      form.value.doi = props.paper.doi || "";
-
-      // 处理期刊信息 - 优先使用journal_id，兼容journal字段
+      form.value.doi = props.paper.doi || "";      // 处理期刊信息 - 优先使用journal_id，兼容journal字段
       if (props.paper.journal_id) {
         form.value.journal_id = props.paper.journal_id;
         form.value.journal = props.paper.journal_name || props.paper.journal || "";
@@ -40,6 +39,11 @@ export function usePaperFormInitialization(props) {  const form = ref({
       } else {
         form.value.journal = "";
         form.value.journal_id = null;
+      }
+
+      // 处理发表年份
+      if (props.paper.publication_year) {
+        form.value.publication_year = props.paper.publication_year;
       }
 
       // 处理发表日期
@@ -101,11 +105,11 @@ export function usePaperFormInitialization(props) {  const form = ref({
       author_names: "",
       keyword_names: "",
       abstract: "",
-      paper_type: props.paperType || "",
-      doi: "",
+      paper_type: props.paperType || "",      doi: "",
       journal: "",
       journal_id: null,
       publication_date: "",
+      publication_year: null,
       category_ids: [],
     };
     file.value = null;

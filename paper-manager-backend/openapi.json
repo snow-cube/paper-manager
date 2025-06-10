@@ -410,6 +410,22 @@
             }
           },
           {
+            "name": "journal_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Journal Id"
+            }
+          },
+          {
             "name": "start_date",
             "in": "query",
             "required": false,
@@ -1800,6 +1816,54 @@
                 }
               ],
               "title": "Keyword"
+            }
+          },
+          {
+            "name": "journal_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Journal Id"
+            }
+          },
+          {
+            "name": "publication_year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Publication Year"
+            }
+          },
+          {
+            "name": "title",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Title"
             }
           }
         ],
@@ -3773,6 +3837,28 @@
             ],
             "title": "File Path"
           },
+          "journal_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Journal Id"
+          },
+          "publication_year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publication Year"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -3858,6 +3944,28 @@
             ],
             "title": "File Path"
           },
+          "journal_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Journal Id"
+          },
+          "publication_year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publication Year"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -3915,6 +4023,17 @@
                 "type": "null"
               }
             ]
+          },
+          "journal_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Journal Name"
           }
         },
         "type": "object",
@@ -3971,6 +4090,28 @@
               }
             ],
             "title": "File Path"
+          },
+          "journal_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Journal Id"
+          },
+          "publication_year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publication Year"
           },
           "category_id": {
             "anyOf": [

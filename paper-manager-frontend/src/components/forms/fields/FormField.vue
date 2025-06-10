@@ -504,6 +504,12 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.form-label {
+  min-height: 1.5em;
+  display: inline-block;
+  line-height: 1.5;
+}
+
 .required-indicator {
   color: var(--error-600);
 }

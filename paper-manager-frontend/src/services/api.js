@@ -278,7 +278,7 @@ export const updateMemberRole = async (teamId, userId, role) =>
 // 获取参考文献列表
 export const getReferences = async (teamId, params = {}) => {
   // 确保分页参数有默认值
-  const { skip = 0, limit = 20, category_id, keyword, ...otherParams } = params;
+  const { skip = 0, limit = 20, category_id, keyword, journal_id, publication_year, ...otherParams } = params;
 
   const queryParams = {
     team_id: teamId,
@@ -287,9 +287,11 @@ export const getReferences = async (teamId, params = {}) => {
     ...otherParams,
   };
 
-  // 只添加非空的可选参数
+  // 只添加非空的可选参数（基于 OpenAPI 规范）
   if (category_id) queryParams.category_id = category_id;
   if (keyword) queryParams.keyword = keyword;
+  if (journal_id) queryParams.journal_id = journal_id;
+  if (publication_year) queryParams.publication_year = publication_year;
 
   return (await api.get("/references/", { params: queryParams })).data;
 };

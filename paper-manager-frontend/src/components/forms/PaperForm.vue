@@ -84,7 +84,7 @@
               id="keyword_names"
               v-model="form.keyword_names"
               type="text"
-              :label="`关键词${form.paper_type === 'published' ? ' *' : ''}`"
+              label="关键词"
               placeholder="用逗号分隔多个关键词"
               :required="form.paper_type === 'published'"
               :error="getFieldError('keyword_names')"
@@ -107,9 +107,7 @@
                 {{ cat.name }}
               </option>
             </FormField>
-          </div>
-
-          <FormField
+          </div>          <FormField
             id="doi"
             v-model="form.doi"
             label="DOI"
@@ -118,6 +116,50 @@
             @blur="markTouched('doi')"
             @input="validateFieldRealtime('doi', $event)"
           />
+
+          <!-- 期刊和发表信息 -->
+          <div class="form-row">
+            <JournalSearchField
+              id="journal_id"
+              v-model="form.journal_id"
+              label="期刊"
+              placeholder="搜索期刊名称..."
+              :required="form.paper_type === 'published'"
+              :error="getFieldError('journal_id')"
+              @blur="markTouched('journal_id')"
+              @change="handleJournalChange"
+            />
+
+            <!-- 发表论文使用发表日期 -->
+            <FormField
+              v-if="form.paper_type === 'published'"
+              id="publication_date"
+              v-model="form.publication_date"
+              type="date"
+              label="发表日期"
+              :error="getFieldError('publication_date')"
+              @blur="markTouched('publication_date')"
+              @change="
+                validateFieldRealtime('publication_date', $event.target.value)
+              "
+            />
+
+            <!-- 参考文献使用发表年份 -->
+            <FormField
+              v-else
+              id="publication_year"
+              v-model="form.publication_year"
+              type="number"
+              label="发表年份"
+              placeholder="请输入发表年份"
+              :min="1900"
+              :max="new Date().getFullYear()"
+              :error="getFieldError('publication_year')"
+              @blur="markTouched('publication_year')"
+              @input="validateFieldRealtime('publication_year', $event)"
+            />
+          </div>
+
           <small class="form-hint" v-if="form.paper_type === 'published'"
             >按住Ctrl键可选择多个分类</small
           >
@@ -166,51 +208,7 @@
                 :error="getFieldError('author_contributions')"
               />
             </div>
-          </transition>
-        </div>
-
-        <!-- 发表论文专有字段 -->
-        <div v-if="form.paper_type === 'published'" class="form-section">
-          <div class="section-header">
-            <h3 class="section-title">
-              <span class="section-icon">🎓</span>
-              发表论文信息
-            </h3>
-          </div>          <div class="form-row">
-            <JournalSearchField
-              id="journal_id"
-              v-model="form.journal_id"
-              label="期刊"
-              placeholder="搜索期刊名称..."
-              required
-              :error="getFieldError('journal_id')"
-              @blur="markTouched('journal_id')"
-              @change="handleJournalChange"
-            />
-            <FormField
-              id="publication_date"
-              v-model="form.publication_date"
-              type="date"
-              label="发表日期"
-              :error="getFieldError('publication_date')"
-              @blur="markTouched('publication_date')"
-              @change="
-                validateFieldRealtime('publication_date', $event.target.value)
-              "
-            />
-          </div>
-        </div>
-
-        <!-- 文献专有字段 -->
-        <div v-if="form.paper_type === 'literature'" class="form-section">
-          <div class="section-header">
-            <h3 class="section-title">
-              <span class="section-icon">📚</span>
-              参考文献信息
-            </h3>
-          </div>
-          <!-- 可以在这里添加其他文献专有字段 -->
-        </div>
+          </transition>        </div>
 
         <!-- 摘要和文件上传 -->
         <div class="form-section">
@@ -292,6 +290,7 @@ import { usePaperFormInitialization } from "../../composables/usePaperFormInitia
 import { usePaperFormValidation } from "../../composables/usePaperFormValidation";
 import { usePaperFormData } from "../../composables/usePaperFormData";
 import { useCategories } from "../../composables/useCategories";
+import { useJournals } from "../../composables/useJournals";
 import { useTeam } from "../../composables/useTeam";
 
 const props = defineProps({
@@ -318,6 +317,7 @@ const modeOptions = [
 
 // 使用组合式函数
 const { categories, loadCategories } = useCategories();
+const { journals, fetchJournals } = useJournals();
 const { currentTeam } = useTeam();
 const { form, file, authorContributions, isEdit, initializeForm, resetForm } =
   usePaperFormInitialization(props);
@@ -455,8 +455,12 @@ watch(
 // 初始化表单
 initializeForm();
 
-// 初始加载分类
+// 初始加载分类和期刊
 onMounted(async () => {
+  // 加载期刊数据
+  await fetchJournals();
+
+  // 加载分类数据
   if (form.value.paper_type) {
     await loadAppropriateCategories();
   }
@@ -830,7 +834,7 @@ onMounted(async () => {
 .paper-form :deep(.required-indicator) {
   color: var(--error-500);
   font-weight: 700;
-  font-size: var(--text-sm);
+  font-size: inherit;
 }
 
 .paper-form :deep(.form-group) {

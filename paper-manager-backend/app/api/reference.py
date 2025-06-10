@@ -15,6 +15,7 @@ from app.models.reference import (
 from app.models.keyword import Keyword
 from app.models.user import User
 from app.models.team import TeamUser, TeamRole
+from app.models.journal import Journal
 from app.api.user import get_current_user
 from app.api.team import check_team_member
 from app.models.team import Team
@@ -69,9 +70,7 @@ def create_reference(
 ):
     """创建参考文献"""
     # 检查用户是否为团队成员
-    check_team_member(reference.team_id, current_user, session)
-
-    # 如果指定了分类，检查分类是否存在且属于同一团队
+    check_team_member(reference.team_id, current_user, session)    # 如果指定了分类，检查分类是否存在且属于同一团队
     if reference.category_id:
         category = session.get(ReferenceCategory, reference.category_id)
         if not category:
@@ -83,6 +82,15 @@ def create_reference(
             raise HTTPException(
                 status_code=400,
                 detail="Category must belong to the same team"
+            )
+
+    # 如果指定了期刊，检查期刊是否存在
+    if reference.journal_id:
+        journal = session.get(Journal, reference.journal_id)
+        if not journal:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Journal {reference.journal_id} not found"
             )
 
     # 检查DOI是否已存在
@@ -133,6 +141,9 @@ def read_references(
     team_id: Optional[int] = None,
     category_id: Optional[int] = None,
     keyword: Optional[str] = None,
+    journal_id: Optional[int] = None,
+    publication_year: Optional[int] = None,
+    title: Optional[str] = None,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user)
 ):
@@ -153,6 +164,8 @@ def read_references(
         query = query.where(ReferencePaper.team_id.in_(team_ids))
 
     # 应用其他过滤条件
+    if title:
+        query = query.where(ReferencePaper.title.contains(title))
     if category_id:
         query = query.where(ReferencePaper.category_id == category_id)
     if keyword:
@@ -162,6 +175,10 @@ def read_references(
             .join(Keyword)
             .where(Keyword.name == keyword)
         )
+    if journal_id:
+        query = query.where(ReferencePaper.journal_id == journal_id)
+    if publication_year:
+        query = query.where(ReferencePaper.publication_year == publication_year)
 
     # 计算总数量（在应用 offset/limit 之前）
     total_count = len(session.exec(query).all())
@@ -230,9 +247,7 @@ def update_reference(
         raise HTTPException(
             status_code=403,
             detail="Only the creator or team administrators can modify this reference"
-        )
-
-    # 如果要更新分类，检查分类是否存在且属于同一团队
+        )    # 如果要更新分类，检查分类是否存在且属于同一团队
     if reference_update.category_id is not None:
         if reference_update.category_id != 0:  # 0 表示无分类
             category = session.get(ReferenceCategory, reference_update.category_id)
@@ -245,6 +260,16 @@ def update_reference(
                 raise HTTPException(
                     status_code=400,
                     detail="Category must belong to the same team"
+                )
+
+    # 如果要更新期刊，检查期刊是否存在
+    if reference_update.journal_id is not None:
+        if reference_update.journal_id != 0:  # 0 表示无期刊
+            journal = session.get(Journal, reference_update.journal_id)
+            if not journal:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Journal {reference_update.journal_id} not found"
                 )
 
     # 更新基本信息
@@ -339,12 +364,22 @@ def get_reference_read(reference: ReferencePaper, session: Session) -> Reference
         if category:
             category_info = ReferenceCategoryRead.from_orm(category)
 
+    # 获取期刊信息
+    journal_name = None
+    if reference.journal_id:
+        journal = session.get(Journal, reference.journal_id)
+        if journal:
+            journal_name = journal.name
+
     return ReferenceRead(
         id=reference.id,
         title=reference.title,
         authors=reference.authors,
         doi=reference.doi,
         file_path=reference.file_path,
+        journal_id=reference.journal_id,
+        journal_name=journal_name,
+        publication_year=reference.publication_year,
         created_at=reference.created_at,
         updated_at=reference.updated_at,
         team_id=reference.team_id,

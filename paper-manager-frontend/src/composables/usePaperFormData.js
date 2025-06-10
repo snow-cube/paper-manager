@@ -69,13 +69,14 @@ export function usePaperFormData(form, file, authorContributions) {
       team_id: currentTeam?.value?.id,
     };
   };
-
   // 准备参考文献数据
   const prepareReferenceData = (form, currentTeam, currentUser) => {
     return {
       title: form.title,
       authors: processAuthors(form.author_names, "literature"),
       doi: form.doi || null,
+      journal_id: form.journal_id || null,
+      publication_year: form.publication_year || null,
       team_id: currentTeam?.id,
       category_id: processCategories(form.category_ids, "literature"),
       keyword_names: processKeywords(form.keyword_names),
