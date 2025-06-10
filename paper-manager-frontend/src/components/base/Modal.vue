@@ -94,7 +94,7 @@ onUnmounted(() => {
   background: transparent;
   border-radius: var(--border-radius-lg);
   position: relative;
-  width: 900px;
+  width: 1200px;
   max-width: 90vw;
   max-height: 90vh;
   overflow: auto;

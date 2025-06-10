@@ -62,7 +62,7 @@ defineProps({
 }
 
 .header-content {
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
   text-align: center;
   margin-bottom: var(--space-md);
@@ -102,7 +102,7 @@ defineProps({
 }
 
 .page-controls {
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
   display: flex;
   justify-content: center;
@@ -114,13 +114,13 @@ defineProps({
 }
 
 .page-warning {
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto var(--space-lg) auto;
   padding: 0 var(--space-lg);
 }
 
 .page-content {
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 0 var(--space-lg) var(--space-xl) var(--space-lg);
 }

@@ -879,7 +879,7 @@ onUnmounted(() => {
 }
 
 /* 响应式设计 */
-@media (max-width: 1400px) {
+@media (max-width: 1800px) {
   .container {
     padding: 0 1.25rem;
   }
@@ -901,7 +901,7 @@ onUnmounted(() => {
   }
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1600px) {
   .container {
     padding: 0 1rem;
   }

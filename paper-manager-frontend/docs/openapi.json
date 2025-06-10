@@ -466,11 +466,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/PaperRead"
-                  },
-                  "title": "Response Read Papers Api Papers  Get"
+                  "$ref": "#/components/schemas/PaginatedPaperResponse"
                 }
               }
             }
@@ -1813,11 +1809,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ReferenceRead"
-                  },
-                  "title": "Response Read References Api References  Get"
+                  "$ref": "#/components/schemas/PaginatedReferenceResponse"
                 }
               }
             }
@@ -2651,6 +2643,80 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "PaginatedPaperResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PaperRead"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          },
+          "pages": {
+            "type": "integer",
+            "title": "Pages"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "size",
+          "pages"
+        ],
+        "title": "PaginatedPaperResponse",
+        "description": "分页论文响应模型"
+      },
+      "PaginatedReferenceResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReferenceRead"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          },
+          "pages": {
+            "type": "integer",
+            "title": "Pages"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "size",
+          "pages"
+        ],
+        "title": "PaginatedReferenceResponse",
+        "description": "分页参考文献响应模型"
+      },
       "PaperCreate": {
         "properties": {
           "title": {
@@ -2874,6 +2940,17 @@
           "team_id": {
             "type": "integer",
             "title": "Team Id"
+          },
+          "team_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Name"
           },
           "created_by_id": {
             "type": "integer",

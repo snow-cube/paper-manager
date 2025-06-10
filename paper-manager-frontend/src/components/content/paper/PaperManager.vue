@@ -17,36 +17,28 @@
           :selectedCategoryId="selectedCategoryId"
           @select="handleCategorySelect"
         />
-      </div>
-
-      <!-- 右侧内容 -->
+      </div>      <!-- 右侧内容 -->
       <div class="main-content">
+        <!-- 搜索和筛选区域 -->
+        <div class="search-filter-section">
+          <PaperSearchFilter
+            :paper-type="config.paperType"
+            :require-team="config.requireTeam || false"
+            :categories="categories"
+            :teams="teams"
+            :search-stats="searchStats"
+            @search="handleSearch"
+            @clear="clearSearch"
+            ref="searchFilterRef"
+          />
+        </div>
+
         <!-- 内容头部 -->
         <div class="content-header">
           <div class="header-left">
-            <div class="search-section">
-              <div class="search-bar">
-                <div class="search-input-wrapper">
-                  <span class="search-icon">🔍</span>
-                  <input
-                    v-model="searchQuery"
-                    type="text"
-                    class="search-input"
-                    :placeholder="`搜索${config.searchPlaceholder}...`"
-                  />
-                  <button
-                    v-if="searchQuery"
-                    @click="clearSearch"
-                    class="clear-search-btn"
-                    title="清空搜索"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-              <div v-if="searchQuery" class="search-stats">
-                找到 {{ totalItems }} 个结果
-              </div>
+            <!-- 保留原有的分类信息显示 -->
+            <div v-if="selectedCategory" class="selected-category">
+              当前分类：{{ selectedCategory.name }}
             </div>
           </div>
           <div class="header-right">
@@ -78,21 +70,19 @@
             <button @click="loadPapers" class="btn btn-primary">
               重新加载
             </button>
-          </div>
-
-          <!-- 空状态 -->
+          </div>          <!-- 空状态 -->
           <div v-else-if="filteredPapers.length === 0" class="empty-state">
             <div class="empty-icon">{{ config.emptyIcon }}</div>
-            <h3>{{ searchQuery ? "未找到匹配的结果" : config.emptyTitle }}</h3>
+            <h3>{{ searchParams.keyword || Object.keys(searchParams).some(key => searchParams[key]) ? "未找到匹配的结果" : config.emptyTitle }}</h3>
             <p>
               {{
-                searchQuery
+                searchParams.keyword || Object.keys(searchParams).some(key => searchParams[key])
                   ? "试试调整搜索关键词或选择其他分类"
                   : config.emptyDescription
               }}
             </p>
             <button
-              v-if="!searchQuery"
+              v-if="!searchParams.keyword && !Object.keys(searchParams).some(key => searchParams[key])"
               @click="$emit('add-new')"
               class="btn btn-outline-purple"
             >
@@ -186,12 +176,13 @@
 </template>
 
 <script setup>
-import { computed, onMounted, watch } from "vue";
+import { computed, onMounted, watch, ref } from "vue";
 import { RouterLink } from "vue-router";
 import { CategoryTree } from "../category";
-import { PaperCard } from ".";
-import { usePapers } from "../../../composables/usePapers";
+import { PaperCard, PaperSearchFilter } from ".";
+import { usePapersAdvanced } from "../../../composables/usePapersAdvanced";
 import { useTeam } from "../../../composables/useTeam";
+import { useCategories } from "../../../composables/useCategories";
 
 const props = defineProps({
   config: {
@@ -206,30 +197,56 @@ const props = defineProps({
 
 const emit = defineEmits(["add-new", "edit", "view"]);
 
-const { currentTeam } = useTeam();
+const { currentTeam, teams } = useTeam();
 
-// 使用通用的论文管理逻辑
+// Get categories for the search filter
+const { categories, loadCategories } = useCategories();
+
+// Load categories when component mounts or when relevant props change
+const categoryType = computed(() =>
+  props.config.categoryType ||
+  (props.config.paperType === 'literature' ? 'references' : 'papers')
+);
+
+const teamId = computed(() => props.config.requireTeam ? currentTeam.value?.id : null);
+
+// Load categories when needed
+watch([categoryType, teamId], () => {
+  loadCategories(categoryType.value, teamId.value);
+}, { immediate: true });
+
+// 使用高级的论文管理逻辑
 const {
   papers,
   loading,
   error,
-  searchQuery,
+  searchParams,
   selectedCategoryId,
   currentPage,
   totalItems,
   totalPages,
   filteredPapers,
+  searchStats,
   loadPapers,
   handleDelete,
   handleCategorySelect,
   handleSearch,
   clearSearch,
   changePage,
-} = usePapers({
+} = usePapersAdvanced({
   type: props.config.type || "papers",
   requireTeam: computed(() => props.config.requireTeam || false),
   loadData: props.config.loadData,
   deleteData: props.config.deleteData,
+});
+
+// Reference to the search filter component
+const searchFilterRef = ref(null);
+
+// Get selected category for display
+const selectedCategory = computed(() => {
+  if (!selectedCategoryId.value || !categories.value) return null;
+  return categories.value.find(cat => cat.id === selectedCategoryId.value);
 });
 
 // 动态描述
@@ -277,7 +294,7 @@ defineExpose({
 
 .content-layout {
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: 380px 1fr;
   gap: var(--space-md);
   align-items: start;
 }
@@ -324,6 +341,30 @@ defineExpose({
   overflow: hidden;
   border: 1px solid var(--primary-100);
   backdrop-filter: blur(10px);
+}
+
+.search-filter-section {
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--primary-100);
+  background: linear-gradient(135deg, var(--white), var(--primary-25));
+}
+
+.selected-category {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: var(--primary-100);
+  color: var(--primary-700);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--border-radius-lg);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  border: 1px solid var(--primary-200);
+}
+
+.selected-category::before {
+  content: "📁";
+  font-size: 1.1em;
 }
 
 .content-header {
