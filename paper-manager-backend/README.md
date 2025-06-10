@@ -233,7 +233,7 @@ paper-manager-backend/
 | title | String | 标题 | Not Null, Index |
 | abstract | String | 摘要 | Nullable |
 | publication_date | DateTime | 发表日期 | Nullable |
-| journal | String | 期刊名称 | Nullable |
+| journal_id | Integer | 期刊ID | Foreign Key -> Journal.id, Nullable |
 | doi | String | DOI | Unique, Nullable |
 | file_path | String | 文件路径 | Nullable |
 | created_at | DateTime | 创建时间 | Default Now |
@@ -326,6 +326,25 @@ paper-manager-backend/
 | reference_id | Integer | 参考文献ID | Primary Key, Foreign Key -> ReferencePaper.id |
 | keyword_id | Integer | 关键词ID | Primary Key, Foreign Key -> Keyword.id |
 
+### Journal 期刊表
+
+| 字段名 | 类型 | 说明 | 约束 |
+|--------|------|------|------|
+| id | Integer | 期刊ID | Primary Key |
+| name | String | 期刊名称 | Not Null, Unique, Index |
+| grade | String | 期刊等级 | Default "OTHER" |
+| description | String | 期刊描述 | Nullable |
+| created_at | DateTime | 创建时间 | Default Now |
+| updated_at | DateTime | 更新时间 | Default Now |
+
+**期刊等级说明：**
+- `SCI_Q1`: SCI一区期刊（工作量基础分：10.0）
+- `SCI_Q2`: SCI二区期刊（工作量基础分：8.0）
+- `SCI_Q3`: SCI三区期刊（工作量基础分：6.0）
+- `SCI_Q4`: SCI四区期刊（工作量基础分：4.0）
+- `EI`: EI期刊（工作量基础分：3.0）
+- `OTHER`: 其他期刊（工作量基础分：1.0）
+
 ### 数据库关系说明
 
 #### 用户与团队关系
@@ -345,10 +364,17 @@ paper-manager-backend/
 - 论文分类支持层次结构（父子关系）
 - 参考文献分类按团队隔离，支持层次结构
 
-#### 关键词关系
+#### 期刊与论文关系
 
-- 论文和参考文献都可以有多个关键词（多对多）
-- 关键词全局唯一，可被多个资源共享
+- 论文可以关联到期刊（多对一）
+- 期刊具有等级属性，用于计算论文工作量
+- 支持期刊的增删改查和搜索功能
+
+#### 工作量计算机制
+
+- 基于期刊等级和作者贡献率的工作量计算系统
+- 支持单篇论文工作量计算和作者总工作量统计
+- 自动考虑通讯作者标识和作者顺序
 
 ### API响应字段说明
 
@@ -357,13 +383,26 @@ paper-manager-backend/
 除了数据库中直接存储的字段外，某些API响应还包含通过数据库关联查询计算得出的字段：
 
 **论文API响应中的计算字段：**
+
 - `team_name`: 通过 `team_id` 关联查询 `Team` 表获得的团队名称
+- `journal_name`: 通过 `journal_id` 关联查询 `Journal` 表获得的期刊名称
 - `keywords`: 通过 `PaperKeyword` 关联表获得的关键词名称列表
 - `authors`: 通过 `PaperAuthor` 关联表获得的作者姓名列表
 - `categories`: 通过 `PaperCategory` 关联表获得的分类信息列表
 
 **团队API响应中的计算字段：**
+
 - `member_count`: 通过 `TeamUser` 关联表统计的团队成员数量
+
+**参考文献API响应中的计算字段：**
+
+- `keywords`: 通过 `ReferenceKeyword` 关联表获得的关键词名称列表
+- `category`: 通过 `category_id` 关联查询 `ReferenceCategory` 表获得的分类信息
+
+**期刊与工作量计算：**
+
+- 论文工作量根据期刊等级和作者贡献率计算：`工作量 = 期刊基础分 × 作者贡献率`
+- 支持按作者名称统计总工作量，包含所有参与论文的详细信息
 
 **设计优势：**
 - 减少前端API调用次数，提升用户体验
@@ -779,7 +818,7 @@ client_secret: string (可选)
     "title": "string",
     "abstract": "string",
     "publication_date": "datetime",
-    "journal": "string",
+    "journal_id": "integer",
     "doi": "string",
     "author_names": ["string"],
     "category_ids": ["integer"],
@@ -801,7 +840,7 @@ client_secret: string (可选)
 
 - `abstract`: string - 论文摘要
 - `publication_date`: datetime - 发表日期
-- `journal`: string - 期刊名称
+- `journal_id`: integer - 期刊ID
 - `doi`: string - DOI标识符
 - `category_ids`: array[integer] - 分类ID列表
 - `author_contribution_ratios`: array[number] - 作者贡献率列表
@@ -815,14 +854,21 @@ client_secret: string (可选)
     "title": "string",
     "abstract": "string",
     "publication_date": "datetime",
-    "journal": "string",
+    "journal_id": "integer",
+    "journal_name": "string",
     "doi": "string",
     "file_path": "string",
     "created_at": "datetime",
     "updated_at": "datetime",
     "keywords": ["string"],
     "authors": ["string"],
-    "categories": [{}],
+    "categories": [
+        {
+            "id": "integer",
+            "name": "string",
+            "description": "string"
+        }
+    ],
     "team_id": "integer",
     "team_name": "string",
     "created_by_id": "integer"
@@ -848,25 +894,38 @@ client_secret: string (可选)
 响应体：
 
 ```json
-[
-    {
-        "id": "integer",
-        "title": "string",
-        "abstract": "string",
-        "publication_date": "datetime",
-        "journal": "string",
-        "doi": "string",
-        "file_path": "string",
-        "created_at": "datetime",
-        "updated_at": "datetime",
-        "keywords": ["string"],
-        "authors": ["string"],
-        "categories": [{}],
-        "team_id": "integer",
-        "team_name": "string",
-        "created_by_id": "integer"
-    }
-]
+{
+    "items": [
+        {
+            "id": "integer",
+            "title": "string",
+            "abstract": "string",
+            "publication_date": "datetime",
+            "journal_id": "integer",
+            "journal_name": "string",
+            "doi": "string",
+            "file_path": "string",
+            "created_at": "datetime",
+            "updated_at": "datetime",
+            "keywords": ["string"],
+            "authors": ["string"],
+            "categories": [
+                {
+                    "id": "integer",
+                    "name": "string",
+                    "description": "string"
+                }
+            ],
+            "team_id": "integer",
+            "team_name": "string",
+            "created_by_id": "integer"
+        }
+    ],
+    "total": "integer",
+    "page": "integer",
+    "size": "integer",
+    "pages": "integer"
+}
 ```
 
 ##### GET `/api/papers/{paper_id}`
@@ -885,14 +944,21 @@ client_secret: string (可选)
     "title": "string",
     "abstract": "string",
     "publication_date": "datetime",
-    "journal": "string",
+    "journal_id": "integer",
+    "journal_name": "string",
     "doi": "string",
     "file_path": "string",
     "created_at": "datetime",
     "updated_at": "datetime",
     "keywords": ["string"],
     "authors": ["string"],
-    "categories": [{}],
+    "categories": [
+        {
+            "id": "integer",
+            "name": "string",
+            "description": "string"
+        }
+    ],
     "team_id": "integer",
     "team_name": "string",
     "created_by_id": "integer"
@@ -914,7 +980,7 @@ client_secret: string (可选)
     "title": "string",
     "abstract": "string",
     "publication_date": "datetime",
-    "journal": "string",
+    "journal_id": "integer",
     "doi": "string",
     "category_ids": ["integer"],
     "keyword_names": ["string"],
@@ -931,14 +997,21 @@ client_secret: string (可选)
     "title": "string",
     "abstract": "string",
     "publication_date": "datetime",
-    "journal": "string",
+    "journal_id": "integer",
+    "journal_name": "string",
     "doi": "string",
     "file_path": "string",
     "created_at": "datetime",
     "updated_at": "datetime",
     "keywords": ["string"],
     "authors": ["string"],
-    "categories": [{}],
+    "categories": [
+        {
+            "id": "integer",
+            "name": "string",
+            "description": "string"
+        }
+    ],
     "team_id": "integer",
     "team_name": "string",
     "created_by_id": "integer"
@@ -1015,12 +1088,12 @@ client_secret: string (可选)
 ```json
 {
     "paper_id": "integer",
-    "total_workload": "number",
-    "authors": [
+    "journal_grade": "string",
+    "workloads": [
         {
-            "name": "string",
-            "workload": "number",
-            "contribution_ratio": "number"
+            "author_id": "integer",
+            "contribution_ratio": "number",
+            "workload": "number"
         }
     ]
 }
@@ -1038,14 +1111,21 @@ client_secret: string (可选)
 
 ```json
 {
+    "author_id": "integer",
     "author_name": "string",
     "total_workload": "number",
-    "papers": [
+    "paper_workloads": [
         {
             "paper_id": "integer",
-            "title": "string",
+            "paper_title": "string",
+            "contribution_ratio": "number",
+            "is_corresponding": "boolean",
+            "author_order": "integer",
             "workload": "number",
-            "contribution_ratio": "number"
+            "publication_date": "datetime",
+            "journal_id": "integer",
+            "journal_name": "string",
+            "journal_grade": "string"
         }
     ]
 }
@@ -1072,6 +1152,209 @@ client_secret: string (可选)
         }
     ]
 }
+```
+
+### 期刊相关 API
+
+#### 期刊管理
+
+##### POST `/api/journals/`
+
+创建期刊（仅管理员）
+
+请求体：
+
+```json
+{
+    "name": "string",
+    "grade": "string",
+    "description": "string"
+}
+```
+
+**必填字段：**
+
+- `name`: string - 期刊名称
+
+**可选字段：**
+
+- `grade`: string - 期刊等级（默认: "OTHER"，可选值: "SCI_Q1", "SCI_Q2", "SCI_Q3", "SCI_Q4", "EI", "OTHER"）
+- `description`: string - 期刊描述
+
+响应体：
+
+```json
+{
+    "id": "integer",
+    "name": "string",
+    "grade": "string",
+    "description": "string",
+    "created_at": "datetime",
+    "updated_at": "datetime"
+}
+```
+
+##### GET `/api/journals/`
+
+获取期刊列表
+
+查询参数：
+
+- skip: integer (默认: 0)
+- limit: integer (默认: 100)
+- name: string (可选)
+- grade: string (可选)
+
+响应体：
+
+```json
+{
+    "items": [
+        {
+            "id": "integer",
+            "name": "string",
+            "grade": "string",
+            "description": "string",
+            "created_at": "datetime",
+            "updated_at": "datetime"
+        }
+    ],
+    "total": "integer",
+    "page": "integer",
+    "size": "integer",
+    "pages": "integer"
+}
+```
+
+##### GET `/api/journals/search`
+
+搜索期刊
+
+查询参数：
+
+- q: string (必填) - 搜索关键词
+- limit: integer (默认: 10)
+
+响应体：
+
+```json
+[
+    {
+        "id": "integer",
+        "name": "string",
+        "grade": "string",
+        "description": "string"
+    }
+]
+```
+
+##### GET `/api/journals/{journal_id}`
+
+获取期刊详情
+
+路径参数：
+
+- journal_id: integer
+
+响应体：
+
+```json
+{
+    "id": "integer",
+    "name": "string",
+    "grade": "string",
+    "description": "string",
+    "created_at": "datetime",
+    "updated_at": "datetime"
+}
+```
+
+##### PATCH `/api/journals/{journal_id}`
+
+更新期刊（仅管理员）
+
+路径参数：
+
+- journal_id: integer
+
+请求体：
+
+```json
+{
+    "name": "string",
+    "grade": "string",
+    "description": "string"
+}
+```
+
+响应体：
+
+```json
+{
+    "id": "integer",
+    "name": "string",
+    "grade": "string",
+    "description": "string",
+    "created_at": "datetime",
+    "updated_at": "datetime"
+}
+```
+
+##### DELETE `/api/journals/{journal_id}`
+
+删除期刊（仅管理员）
+
+路径参数：
+
+- journal_id: integer
+
+响应体：
+
+```json
+{
+    "message": "string"
+}
+```
+
+##### GET `/api/journals/grades/list`
+
+获取所有期刊等级
+
+响应体：
+
+```json
+[
+    {
+        "value": "SCI_Q1",
+        "label": "SCI一区",
+        "base_workload": 10.0
+    },
+    {
+        "value": "SCI_Q2",
+        "label": "SCI二区",
+        "base_workload": 8.0
+    },
+    {
+        "value": "SCI_Q3",
+        "label": "SCI三区",
+        "base_workload": 6.0
+    },
+    {
+        "value": "SCI_Q4",
+        "label": "SCI四区",
+        "base_workload": 4.0
+    },
+    {
+        "value": "EI",
+        "label": "EI期刊",
+        "base_workload": 3.0
+    },
+    {
+        "value": "OTHER",
+        "label": "其他期刊",
+        "base_workload": 1.0
+    }
+]
 ```
 
 ### 分类相关 API
@@ -1245,7 +1528,13 @@ client_secret: string (可选)
     "category_id": "integer",
     "id": "integer",
     "keywords": ["string"],
-    "category": {}
+    "category": {
+        "id": "integer",
+        "name": "string",
+        "description": "string",
+        "parent_id": "integer",
+        "team_id": "integer"
+    }
 }
 ```
 
@@ -1264,22 +1553,34 @@ client_secret: string (可选)
 响应体：
 
 ```json
-[
-    {
-        "title": "string",
-        "authors": "string",
-        "doi": "string",
-        "file_path": "string",
-        "created_at": "datetime",
-        "updated_at": "datetime",
-        "team_id": "integer",
-        "created_by_id": "integer",
-        "category_id": "integer",
-        "id": "integer",
-        "keywords": ["string"],
-        "category": {}
-    }
-]
+{
+    "items": [
+        {
+            "title": "string",
+            "authors": "string",
+            "doi": "string",
+            "file_path": "string",
+            "created_at": "datetime",
+            "updated_at": "datetime",
+            "team_id": "integer",
+            "created_by_id": "integer",
+            "category_id": "integer",
+            "id": "integer",
+            "keywords": ["string"],
+            "category": {
+                "id": "integer",
+                "name": "string",
+                "description": "string",
+                "parent_id": "integer",
+                "team_id": "integer"
+            }
+        }
+    ],
+    "total": "integer",
+    "page": "integer",
+    "size": "integer",
+    "pages": "integer"
+}
 ```
 
 ##### GET `/api/references/{reference_id}`
@@ -1305,7 +1606,13 @@ client_secret: string (可选)
     "category_id": "integer",
     "id": "integer",
     "keywords": ["string"],
-    "category": {}
+    "category": {
+        "id": "integer",
+        "name": "string",
+        "description": "string",
+        "parent_id": "integer",
+        "team_id": "integer"
+    }
 }
 ```
 
@@ -1345,7 +1652,13 @@ client_secret: string (可选)
     "category_id": "integer",
     "id": "integer",
     "keywords": ["string"],
-    "category": {}
+    "category": {
+        "id": "integer",
+        "name": "string",
+        "description": "string",
+        "parent_id": "integer",
+        "team_id": "integer"
+    }
 }
 ```
 
