@@ -7,6 +7,7 @@ import Categories from "../pages/Categories.vue";
 import Teams from "../pages/Teams.vue";
 import Auth from "../pages/Auth.vue";
 import CollaborationSearch from "../pages/CollaborationSearch.vue";
+import Journals from "../pages/Journals.vue";
 
 const routes = [
   {
@@ -49,6 +50,12 @@ const routes = [
     path: "/collaboration",
     name: "CollaborationSearch",
     component: CollaborationSearch,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/journals",
+    name: "Journals",
+    component: Journals,
     meta: { requiresAuth: true },
   },
   // 重定向旧的论文路由到文献管理

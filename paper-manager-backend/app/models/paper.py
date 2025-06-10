@@ -55,7 +55,7 @@ class PaperBase(SQLModel):
     title: str = Field(index=True)
     abstract: Optional[str] = None
     publication_date: Optional[datetime] = None
-    journal: Optional[str] = None
+    journal_id: Optional[int] = Field(default=None, foreign_key="journal.id")
     doi: Optional[str] = Field(default=None, unique=True)
     file_path: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -96,6 +96,7 @@ class Paper(PaperBase, table=True):
 
     team: "Team" = Relationship(back_populates="papers")
     created_by: "User" = Relationship(back_populates="papers")
+    journal: Optional["Journal"] = Relationship()
 
 
 class PaperCreate(SQLModel):
@@ -103,7 +104,7 @@ class PaperCreate(SQLModel):
     title: str
     abstract: Optional[str] = None
     publication_date: Optional[datetime] = None
-    journal: Optional[str] = None
+    journal_id: Optional[int] = None
     doi: Optional[str] = None
     author_names: List[str]
     category_ids: Optional[List[int]] = None
@@ -119,7 +120,8 @@ class PaperRead(SQLModel):
     title: str
     abstract: Optional[str] = None
     publication_date: Optional[datetime] = None
-    journal: Optional[str] = None
+    journal_id: Optional[int] = None
+    journal_name: Optional[str] = None
     doi: Optional[str] = None
     file_path: Optional[str] = None
     created_at: datetime
@@ -137,7 +139,7 @@ class PaperUpdate(SQLModel):
     title: Optional[str] = None
     abstract: Optional[str] = None
     publication_date: Optional[datetime] = None
-    journal: Optional[str] = None
+    journal_id: Optional[int] = None
     doi: Optional[str] = None
     category_ids: Optional[List[int]] = None
     keyword_names: Optional[List[str]] = None

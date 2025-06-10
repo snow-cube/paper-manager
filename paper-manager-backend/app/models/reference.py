@@ -6,6 +6,7 @@ if TYPE_CHECKING:
     from .keyword import Keyword
     from .team import Team
     from .user import User
+    from .journal import Journal
 
 
 class ReferenceCategory(SQLModel, table=True):
@@ -76,6 +77,8 @@ class ReferencePaperBase(SQLModel):
     authors: str
     doi: Optional[str] = Field(default=None, unique=True)
     file_path: Optional[str] = None
+    journal_id: Optional[int] = Field(default=None, foreign_key="journal.id")
+    publication_year: Optional[int] = Field(default=None, index=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     team_id: Optional[int] = Field(default=None, foreign_key="team.id")
@@ -90,6 +93,7 @@ class ReferencePaper(ReferencePaperBase, table=True):
     team: Optional["Team"] = Relationship(back_populates="references")
     creator: "User" = Relationship(back_populates="created_references")
     category: Optional[ReferenceCategory] = Relationship(back_populates="references")
+    journal: Optional["Journal"] = Relationship()
     keywords: List["Keyword"] = Relationship(
         back_populates="references",
         link_model=ReferenceKeyword
@@ -107,6 +111,7 @@ class ReferenceRead(ReferencePaperBase):
     id: int
     keywords: List[str] = []  # 返回关键字名称列表
     category: Optional[ReferenceCategoryRead] = None  # 使用 ReferenceCategoryRead 模型
+    journal_name: Optional[str] = None  # 期刊名称
 
 
 class ReferenceUpdate(SQLModel):
@@ -114,6 +119,8 @@ class ReferenceUpdate(SQLModel):
     authors: Optional[str] = None
     doi: Optional[str] = None
     file_path: Optional[str] = None
+    journal_id: Optional[int] = None
+    publication_year: Optional[int] = None
     category_id: Optional[int] = None
     keyword_names: Optional[List[str]] = None
 

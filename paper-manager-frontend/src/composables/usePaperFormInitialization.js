@@ -1,7 +1,6 @@
 import { ref, watch, computed } from "vue";
 
-export function usePaperFormInitialization(props) {
-  const form = ref({
+export function usePaperFormInitialization(props) {  const form = ref({
     title: "",
     author_names: "",
     keyword_names: "",
@@ -9,7 +8,9 @@ export function usePaperFormInitialization(props) {
     paper_type: props.paperType || "",
     doi: "",
     journal: "",
+    journal_id: null,
     publication_date: "",
+    publication_year: null,
     category_ids: [],
   });
 
@@ -21,15 +22,29 @@ export function usePaperFormInitialization(props) {
 
   // 计算是否为编辑模式
   const isEdit = computed(() => !!props.paper);
-
   // 初始化表单数据
   const initializeForm = () => {
     if (props.paper) {
       // 编辑模式：填充现有数据
       form.value.title = props.paper.title || "";
       form.value.abstract = props.paper.abstract || "";
-      form.value.doi = props.paper.doi || "";
-      form.value.journal = props.paper.journal || "";
+      form.value.doi = props.paper.doi || "";      // 处理期刊信息 - 优先使用journal_id，兼容journal字段
+      if (props.paper.journal_id) {
+        form.value.journal_id = props.paper.journal_id;
+        form.value.journal = props.paper.journal_name || props.paper.journal || "";
+      } else if (props.paper.journal) {
+        // 向后兼容：如果只有期刊名称，保留它
+        form.value.journal = props.paper.journal;
+        form.value.journal_id = null;
+      } else {
+        form.value.journal = "";
+        form.value.journal_id = null;
+      }
+
+      // 处理发表年份
+      if (props.paper.publication_year) {
+        form.value.publication_year = props.paper.publication_year;
+      }
 
       // 处理发表日期
       if (props.paper.publication_date) {
@@ -90,10 +105,11 @@ export function usePaperFormInitialization(props) {
       author_names: "",
       keyword_names: "",
       abstract: "",
-      paper_type: props.paperType || "",
-      doi: "",
+      paper_type: props.paperType || "",      doi: "",
       journal: "",
+      journal_id: null,
       publication_date: "",
+      publication_year: null,
       category_ids: [],
     };
     file.value = null;

@@ -10,6 +10,8 @@
   transition: border-color var(--transition-normal),
     box-shadow var(--transition-normal);
   background: var(--white);
+  height: var(--form-input-height); /* 使用标准高度 */
+  box-sizing: border-box; /* 确保padding包含在高度内 */
 }
 
 .form-control-base:focus {
@@ -41,6 +43,8 @@
   transition: border-color var(--transition-normal),
     box-shadow var(--transition-normal);
   background: var(--white);
+  height: var(--form-input-height); /* 使用标准高度 */
+  box-sizing: border-box; /* 确保padding包含在高度内 */
 }
 
 .form-input:focus {
@@ -61,6 +65,8 @@
   background: var(--white);
   min-height: 80px;
   resize: vertical;
+  height: auto; /* 文本域不使用统一高度，使用自己的高度 */
+  box-sizing: border-box; /* 确保padding包含在高度内 */
 }
 
 .form-textarea:focus {
@@ -80,6 +86,8 @@
     box-shadow var(--transition-normal);
   background: var(--white);
   cursor: pointer;
+  height: var(--form-input-height); /* 使用标准高度 */
+  box-sizing: border-box; /* 确保padding包含在高度内 */
 }
 
 .form-select:focus {

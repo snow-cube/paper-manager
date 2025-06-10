@@ -19,6 +19,7 @@ from app.api.user import get_current_user
 from app.api.team import check_team_member
 from app.services.utils import calculate_workload
 from app.core.config_dev import PAPERS_DIR
+from app.models.journal import Journal
 
 router = APIRouter()
 
@@ -150,12 +151,21 @@ def create_paper(
                 detail="A paper with this DOI already exists"
             )
 
+    # 验证期刊是否存在
+    if paper.journal_id:
+        journal = session.get(Journal, paper.journal_id)
+        if not journal:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Journal {paper.journal_id} not found"
+            )
+
     # 创建论文
     db_paper = Paper(
         title=paper.title,
         abstract=paper.abstract,
         publication_date=paper.publication_date,
-        journal=paper.journal,
+        journal_id=paper.journal_id,
         doi=paper.doi,
         created_by_id=current_user.id,
         team_id=paper.team_id
@@ -246,12 +256,20 @@ def create_paper(
         if team:
             team_name = team.name
 
+    # 获取期刊名称
+    journal_name = None
+    if paper.journal_id:
+        journal = session.get(Journal, paper.journal_id)
+        if journal:
+            journal_name = journal.name
+
     return PaperRead(
         id=db_paper.id,
         title=db_paper.title,
         abstract=db_paper.abstract,
         publication_date=db_paper.publication_date,
-        journal=db_paper.journal,
+        journal_id=paper.journal_id,
+        journal_name=journal_name,
         doi=db_paper.doi,
         file_path=db_paper.file_path,
         created_at=db_paper.created_at,
@@ -309,6 +327,7 @@ def read_papers(
     category_id: Optional[int] = None,
     author_name: Optional[str] = None,
     keyword: Optional[str] = None,
+    journal_id: Optional[int] = None,
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
     team_id: Optional[int] = None,
@@ -355,6 +374,8 @@ def read_papers(
             .join(Keyword)
             .where(Keyword.name == keyword)
         )
+    if journal_id:
+        query = query.where(Paper.journal_id == journal_id)
     if start_date:
         query = query.where(Paper.publication_date >= start_date)
     if end_date:
@@ -400,6 +421,13 @@ def read_papers(
             ).all()
         ]
 
+        # 获取期刊名称
+        journal_name = None
+        if paper.journal_id:
+            journal = session.get(Journal, paper.journal_id)
+            if journal:
+                journal_name = journal.name
+
         # 获取团队名称
         team_name = None
         if paper.team_id:
@@ -414,7 +442,8 @@ def read_papers(
                 title=paper.title,
                 abstract=paper.abstract,
                 publication_date=paper.publication_date,
-                journal=paper.journal,
+                journal_id=paper.journal_id,
+                journal_name=journal_name,
                 doi=paper.doi,
                 file_path=paper.file_path,
                 created_at=paper.created_at,
@@ -482,6 +511,13 @@ def read_paper(
         ).all()
     ]
 
+    # 获取期刊名称
+    journal_name = None
+    if paper.journal_id:
+        journal = session.get(Journal, paper.journal_id)
+        if journal:
+            journal_name = journal.name
+
     # 获取团队名称
     team_name = None
     if paper.team_id:
@@ -494,7 +530,8 @@ def read_paper(
         title=paper.title,
         abstract=paper.abstract,
         publication_date=paper.publication_date,
-        journal=paper.journal,
+        journal_id=paper.journal_id,
+        journal_name=journal_name,
         doi=paper.doi,
         file_path=paper.file_path,
         created_at=paper.created_at,
@@ -536,6 +573,16 @@ def update_paper(
 
         # 检查用户是否为新团队成员
         check_team_member(paper_update.team_id, current_user, session)
+
+    # 验证期刊是否存在
+    if paper_update.journal_id is not None:
+        if paper_update.journal_id != 0:  # 0 表示清空期刊
+            journal = session.get(Journal, paper_update.journal_id)
+            if not journal:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Journal {paper_update.journal_id} not found"
+                )
 
     # 更新基本信息
     paper_data = paper_update.dict(exclude_unset=True)
@@ -636,6 +683,13 @@ def calculate_paper_workload(
     if not paper:
         raise HTTPException(status_code=404, detail="Paper not found")
 
+    # 获取期刊等级
+    journal_grade = "OTHER"
+    if paper.journal_id:
+        journal = session.get(Journal, paper.journal_id)
+        if journal:
+            journal_grade = journal.grade
+
     author_links = session.exec(
         select(PaperAuthor).where(PaperAuthor.paper_id == paper_id)
     ).all()
@@ -644,7 +698,7 @@ def calculate_paper_workload(
     for author_link in author_links:
         workload = calculate_workload(
             contribution_ratio=author_link.contribution_ratio,
-            paper_type="SCI_Q1"  # This should be determined based on journal ranking
+            journal_grade=journal_grade
         )
         workloads.append({
             "author_id": author_link.author_id,
@@ -652,7 +706,7 @@ def calculate_paper_workload(
             "workload": workload
         })
 
-    return {"paper_id": paper_id, "workloads": workloads}
+    return {"paper_id": paper_id, "journal_grade": journal_grade, "workloads": workloads}
 
 @router.get("/authors/workload/by-name")
 def calculate_author_workload_by_name(
@@ -678,13 +732,18 @@ def calculate_author_workload_by_name(
     for paper_link in author_papers:
         paper = session.get(Paper, paper_link.paper_id)
         if paper:
-            # 这里可以根据期刊等级来确定论文类型
-            # 目前简单地将所有论文视为SCI_Q1
-            paper_type = "SCI_Q1"  # 这里可以添加逻辑来确定论文类型
+            # 获取期刊等级
+            journal_grade = "OTHER"
+            journal_name = None
+            if paper.journal_id:
+                journal = session.get(Journal, paper.journal_id)
+                if journal:
+                    journal_grade = journal.grade
+                    journal_name = journal.name
 
             workload = calculate_workload(
                 contribution_ratio=paper_link.contribution_ratio,
-                paper_type=paper_type
+                journal_grade=journal_grade
             )
 
             paper_workloads.append({
@@ -695,7 +754,9 @@ def calculate_author_workload_by_name(
                 "author_order": paper_link.author_order,
                 "workload": workload,
                 "publication_date": paper.publication_date,
-                "journal": paper.journal
+                "journal_id": paper.journal_id,
+                "journal_name": journal_name,
+                "journal_grade": journal_grade
             })
 
     # 按发表日期排序

@@ -54,7 +54,7 @@ export function usePaperFormData(form, file, authorContributions) {
       title: form.title,
       abstract: form.abstract || null,
       publication_date: form.publication_date || null,
-      journal: form.journal || null,
+      journal_id: form.journal_id || null, // 使用期刊ID而不是期刊名称
       doi: form.doi || null,
       author_names: processAuthors(form.author_names, "published"),
       category_ids: processCategories(form.category_ids, "published"),
@@ -69,13 +69,14 @@ export function usePaperFormData(form, file, authorContributions) {
       team_id: currentTeam?.value?.id,
     };
   };
-
   // 准备参考文献数据
   const prepareReferenceData = (form, currentTeam, currentUser) => {
     return {
       title: form.title,
       authors: processAuthors(form.author_names, "literature"),
       doi: form.doi || null,
+      journal_id: form.journal_id || null,
+      publication_year: form.publication_year || null,
       team_id: currentTeam?.id,
       category_id: processCategories(form.category_ids, "literature"),
       keyword_names: processKeywords(form.keyword_names),
@@ -109,7 +110,7 @@ export function usePaperFormData(form, file, authorContributions) {
   // 更新参考文献
   const updateReferenceData = async (referenceId, referenceData) => {
     return await updateReference(referenceId, referenceData);
-  };  // 主要的提交处理函数
+  }; // 主要的提交处理函数
   const handleSubmit = async (props, isEdit) => {
     if (!form?.value) {
       showToast("表单数据不可用", "error");
@@ -133,11 +134,21 @@ export function usePaperFormData(form, file, authorContributions) {
         const paperData = preparePaperData(
           form.value,
           authorContributions?.value || []
-        );
-
-        if (isEdit && props.paper?.id) {
+        );        if (isEdit && props.paper?.id) {
           result = await updatePaperData(props.paper.id, paperData);
-          showToast("论文更新成功", "success");
+
+          // 如果有新文件需要上传，单独处理文件上传
+          if (file?.value) {
+            try {
+              await uploadPaperFile(props.paper.id, file.value);
+              showToast("论文更新成功，文件上传成功", "success");
+            } catch (uploadError) {
+              console.error("文件上传失败:", uploadError);
+              showToast("论文更新成功，但文件上传失败", "warning");
+            }
+          } else {
+            showToast("论文更新成功", "success");
+          }
         } else {
           result = await createPaperWithFile(paperData, file?.value);
           showToast("论文添加成功", "success");
@@ -148,11 +159,21 @@ export function usePaperFormData(form, file, authorContributions) {
           form.value,
           currentTeam?.value,
           currentUser?.value
-        );
-
-        if (isEdit && props.paper?.id) {
+        );        if (isEdit && props.paper?.id) {
           result = await updateReferenceData(props.paper.id, referenceData);
-          showToast("文献更新成功", "success");
+
+          // 如果有新文件需要上传，单独处理文件上传
+          if (file?.value) {
+            try {
+              await uploadReference(props.paper.id, file.value);
+              showToast("文献更新成功，文件上传成功", "success");
+            } catch (uploadError) {
+              console.error("文件上传失败:", uploadError);
+              showToast("文献更新成功，但文件上传失败", "warning");
+            }
+          } else {
+            showToast("文献更新成功", "success");
+          }
         } else {
           result = await createReferenceWithFile(referenceData, file?.value);
           showToast("文献添加成功", "success");

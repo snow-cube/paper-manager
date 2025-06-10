@@ -18,14 +18,14 @@
           @select="handleCategorySelect"
         />
       </div>      <!-- 右侧内容 -->
-      <div class="main-content">
-        <!-- 搜索和筛选区域 -->
+      <div class="main-content">        <!-- 搜索和筛选区域 -->
         <div class="search-filter-section">
           <PaperSearchFilter
             :paper-type="config.paperType"
             :require-team="config.requireTeam || false"
             :categories="categories"
             :teams="teams"
+            :journals="journals"
             :search-stats="searchStats"
             @search="handleSearch"
             @clear="clearSearch"
@@ -183,6 +183,7 @@ import { PaperCard, PaperSearchFilter } from ".";
 import { usePapersAdvanced } from "../../../composables/usePapersAdvanced";
 import { useTeam } from "../../../composables/useTeam";
 import { useCategories } from "../../../composables/useCategories";
+import { useJournals } from "../../../composables/useJournals";
 
 const props = defineProps({
   config: {
@@ -202,6 +203,26 @@ const { currentTeam, teams } = useTeam();
 // Get categories for the search filter
 const { categories, loadCategories } = useCategories();
 
+// Get journals for the search filter (needed for literature search)
+const { journals, fetchJournals } = useJournals();
+
+// Function to load journals based on team requirements
+const loadJournalsForSearch = async () => {
+  try {
+    if (props.config.requireTeam && currentTeam.value?.id) {
+      // For team-based searches, we might want to filter journals by team
+      // However, based on the API, journals don't seem to be team-specific
+      // So we load all journals regardless
+      await fetchJournals();
+    } else if (!props.config.requireTeam) {
+      // Load all journals for non-team searches
+      await fetchJournals();
+    }
+  } catch (error) {
+    console.error('Failed to load journals:', error);
+  }
+};
+
 // Load categories when component mounts or when relevant props change
 const categoryType = computed(() =>
   props.config.categoryType ||
@@ -213,6 +234,11 @@ const teamId = computed(() => props.config.requireTeam ? currentTeam.value?.id :
 // Load categories when needed
 watch([categoryType, teamId], () => {
   loadCategories(categoryType.value, teamId.value);
+}, { immediate: true });
+
+// Load journals when needed (especially for literature search)
+watch([teamId], () => {
+  loadJournalsForSearch();
 }, { immediate: true });
 
 // 使用高级的论文管理逻辑
@@ -276,6 +302,9 @@ const getVisiblePages = () => {
 // 生命周期
 onMounted(() => {
   loadPapers();
+
+  // Load journals for search functionality
+  loadJournalsForSearch();
 });
 
 // 暴露给父组件的方法

@@ -164,12 +164,14 @@ const handleSubmit = async () => {
 
 .form-control {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.5rem;
   border: 2px solid var(--color-border);
   border-radius: var(--border-radius);
   font-size: var(--text-base);
   transition: border-color var(--transition-normal);
   font-family: inherit;
+  height: var(--form-input-height);
+  box-sizing: border-box;
 }
 
 .form-control:focus {
@@ -181,6 +183,7 @@ const handleSubmit = async () => {
 textarea.form-control {
   resize: vertical;
   min-height: 100px;
+  height: auto;
 }
 
 .error-message {
