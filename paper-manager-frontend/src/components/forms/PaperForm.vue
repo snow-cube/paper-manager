@@ -42,9 +42,7 @@
             </li>
           </ul>
         </div>
-      </div>
-
-      <!-- 表单内容区域 -->
+      </div>      <!-- 表单内容区域 -->
       <div class="form-content">
         <!-- 论文类型选择 -->
         <div class="form-section">
@@ -178,17 +176,16 @@
               <span class="section-icon">🎓</span>
               发表论文信息
             </h3>
-          </div>
-          <div class="form-row">
-            <FormField
-              id="journal"
-              v-model="form.journal"
-              label="期刊名称"
-              placeholder="请输入期刊名称"
+          </div>          <div class="form-row">
+            <JournalSearchField
+              id="journal_id"
+              v-model="form.journal_id"
+              label="期刊"
+              placeholder="搜索期刊名称..."
               required
-              :error="getFieldError('journal')"
-              @blur="markTouched('journal')"
-              @input="validateFieldRealtime('journal', $event)"
+              :error="getFieldError('journal_id')"
+              @blur="markTouched('journal_id')"
+              @change="handleJournalChange"
             />
             <FormField
               id="publication_date"
@@ -289,6 +286,7 @@ import {
   FileUpload,
   AuthorContributions,
   ModeSwitch,
+  JournalSearchField,
 } from "./fields";
 import { usePaperFormInitialization } from "../../composables/usePaperFormInitialization";
 import { usePaperFormValidation } from "../../composables/usePaperFormValidation";
@@ -368,11 +366,10 @@ const touched = computed(() => {
 });
 const formCompleteness = computed(() => {
   if (!form.value) return 0;
-
   // 基本必填字段（不包括 paper_type，因为它是通过 switch 选择的）
   const requiredFields = ["title", "author_names"];
   if (form.value.paper_type === "published") {
-    requiredFields.push("keyword_names", "journal");
+    requiredFields.push("keyword_names", "journal_id");
   }
 
   const completedFields = requiredFields.filter((field) => {
@@ -412,6 +409,26 @@ const handleSubmit = async () => {
 const handleReset = () => {
   resetForm();
   resetValidation();
+};
+
+// 处理期刊选择
+const handleJournalChange = (journal) => {
+  console.log("Handling journal change:", journal); // 调试信息
+
+  if (journal) {
+    // 同时更新期刊ID和期刊名称字段
+    form.value.journal_id = journal.id;
+    form.value.journal = journal.name;
+    console.log("Updated form journal fields:", {
+      journal_id: form.value.journal_id,
+      journal: form.value.journal
+    }); // 调试信息
+    validateFieldRealtime("journal_id", journal.id);
+  } else {
+    form.value.journal_id = null;
+    form.value.journal = null;
+    console.log("Cleared journal fields"); // 调试信息
+  }
 };
 
 // 根据论文类型加载合适的分类
@@ -562,9 +579,10 @@ onMounted(async () => {
   padding: var(--space-md);
   border: 1px solid var(--color-border-light);
   position: relative;
-  overflow: hidden;
+  overflow: visible; /* 改为 visible 以允许下拉框显示 */
 }
 
+/* 为了保持装饰性渐变的效果，使用伪元素 */
 .form-section::before {
   content: "";
   position: absolute;
@@ -574,6 +592,7 @@ onMounted(async () => {
   height: 2px;
   background: linear-gradient(90deg, var(--primary-400), var(--secondary-400));
   opacity: 0.6;
+  border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
 }
 
 .section-header {
@@ -825,7 +844,7 @@ onMounted(async () => {
 .paper-form :deep(.form-textarea),
 .paper-form :deep(.form-select) {
   width: 100%;
-  padding: var(--space-sm) var(--space-md);
+  padding: 0.5rem; /* 使用与基础表单一致的padding */
   border: 2px solid var(--gray-200);
   border-radius: var(--border-radius-lg);
   font-size: var(--text-sm);
@@ -836,6 +855,8 @@ onMounted(async () => {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
   position: relative;
+  height: var(--form-input-height); /* 确保使用统一高度 */
+  box-sizing: border-box; /* 确保padding包含在高度内 */
 }
 
 .paper-form :deep(.form-input):hover,
@@ -877,6 +898,7 @@ onMounted(async () => {
   min-height: 60px;
   font-family: inherit;
   line-height: 1.6;
+  height: auto; /* 覆盖统一高度设置，让文本域使用自己的高度 */
 }
 
 /* 选择框美化 */
@@ -1399,7 +1421,7 @@ onMounted(async () => {
   .paper-form :deep(.form-input),
   .paper-form :deep(.form-textarea),
   .paper-form :deep(.form-select) {
-    padding: var(--space-md);
+    padding: 0.5rem; /* 保持与桌面版一致的padding */
     font-size: var(--text-base);
   }
 

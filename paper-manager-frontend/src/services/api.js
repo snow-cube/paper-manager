@@ -30,6 +30,9 @@ api.interceptors.response.use(
   }
 );
 
+// Export the api instance as default
+export default api;
+
 // 设置token的辅助函数
 export const setAuthToken = (newToken) => {
   token = newToken;
@@ -90,7 +93,7 @@ export const getPapers = async (params = {}) => {
   const queryParams = {
     skip,
     limit,
-    ...otherParams
+    ...otherParams,
   };
 
   // 只添加非空的可选参数
@@ -256,7 +259,7 @@ export const deleteTeam = async (teamId) =>
   (await api.delete(`/teams/${teamId}`)).data;
 
 // 添加团队成员 (通过用户ID)
-export const addTeamMember = async (teamId, userId, role = 'MEMBER') =>
+export const addTeamMember = async (teamId, userId, role = "MEMBER") =>
   (await api.post(`/teams/${teamId}/members/${userId}?role=${role}`)).data;
 
 // 获取团队成员列表
@@ -275,19 +278,13 @@ export const updateMemberRole = async (teamId, userId, role) =>
 // 获取参考文献列表
 export const getReferences = async (teamId, params = {}) => {
   // 确保分页参数有默认值
-  const {
-    skip = 0,
-    limit = 20,
-    category_id,
-    keyword,
-    ...otherParams
-  } = params;
+  const { skip = 0, limit = 20, category_id, keyword, ...otherParams } = params;
 
   const queryParams = {
     team_id: teamId,
     skip,
     limit,
-    ...otherParams
+    ...otherParams,
   };
 
   // 只添加非空的可选参数
@@ -319,3 +316,48 @@ export const uploadReference = async (referenceId, file) => {
   formData.append("file", file);
   return (await api.post(`/references/${referenceId}/upload`, formData)).data;
 };
+
+// ==================== 期刊管理 APIs ====================
+// 获取期刊列表
+export const getJournals = async (params = {}) => {
+  // 确保分页参数有默认值
+  const { skip = 0, limit = 20, name, grade, ...otherParams } = params;
+
+  const queryParams = {
+    skip,
+    limit,
+    ...otherParams,
+  };
+
+  // 只添加非空的可选参数
+  if (name) queryParams.name = name;
+  if (grade) queryParams.grade = grade;
+
+  return (await api.get("/journals/", { params: queryParams })).data;
+};
+
+// 创建期刊
+export const createJournal = async (journalData) =>
+  (await api.post("/journals/", journalData)).data;
+
+// 获取单个期刊
+export const getJournal = async (journalId) =>
+  (await api.get(`/journals/${journalId}`)).data;
+
+// 更新期刊
+export const updateJournal = async (journalId, journalData) =>
+  (await api.patch(`/journals/${journalId}`, journalData)).data;
+
+// 删除期刊
+export const deleteJournal = async (journalId) =>
+  (await api.delete(`/journals/${journalId}`)).data;
+
+// 搜索期刊
+export const searchJournals = async (query, limit = 10) => {
+  const params = { q: query, limit };
+  return (await api.get("/journals/search", { params })).data;
+};
+
+// 获取期刊等级列表
+export const getJournalGrades = async () =>
+  (await api.get("/journals/grades/list")).data;

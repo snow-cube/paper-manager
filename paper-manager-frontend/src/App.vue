@@ -43,6 +43,10 @@
                     <span class="nav-icon">🔗</span>
                     <span class="nav-text">合作网络</span>
                   </RouterLink>
+                  <RouterLink to="/journals" class="nav-link">
+                    <span class="nav-icon">📖</span>
+                    <span class="nav-text">期刊管理</span>
+                  </RouterLink>
                 </template>
               </nav>
             </div>

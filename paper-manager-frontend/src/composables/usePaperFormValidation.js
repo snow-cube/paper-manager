@@ -56,18 +56,20 @@ export function usePaperFormValidation(form) {
         return true;
       },
       message: "发表论文必须填写关键词",
-    },
-    abstract: {
+    },    abstract: {
       maxLength: 2000,
       maxLengthMessage: "摘要不能超过2000个字符",
     },
-    journal: {
+    journal_id: {
       requiredIf: (formData) => formData.paper_type === "published",
-      minLength: 2,
-      maxLength: 200,
-      minLengthMessage: "期刊名称至少需要2个字符",
-      maxLengthMessage: "期刊名称不能超过200个字符",
-      message: "发表论文必须填写期刊信息",
+      custom: (value, formData) => {
+        if (formData.paper_type === "published") {
+          if (!value) return "请选择期刊";
+          if (typeof value !== "number" || value <= 0) return "期刊选择无效";
+        }
+        return true;
+      },
+      message: "发表论文必须选择期刊",
     },
     doi: {
       custom: (value) => {
@@ -115,7 +117,8 @@ export function usePaperFormValidation(form) {
           if (!isAllowed) {
             return "只支持 PDF、DOC、DOCX 格式的文件";
           }
-        }        return true;
+        }
+        return true;
       },
     },
   };
@@ -266,11 +269,9 @@ export function usePaperFormValidation(form) {
       !formData.author_names?.trim()
     ) {
       return false;
-    }
-
-    // 发表论文的额外检查
+    } // 发表论文的额外检查
     if (formData.paper_type === "published") {
-      if (!formData.keyword_names?.trim() || !formData.journal?.trim()) {
+      if (!formData.keyword_names?.trim() || !formData.journal_id) {
         return false;
       }
     }
