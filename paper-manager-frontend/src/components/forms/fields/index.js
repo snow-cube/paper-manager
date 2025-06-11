@@ -5,6 +5,8 @@
  */
 
 export { default as AuthorContributions } from "./AuthorContributions.vue";
+export { default as CategorySelect } from "./CategorySelect.vue";
+export { default as CategorySelectNode } from "./CategorySelectNode.vue";
 export { default as FileUpload } from "./FileUpload.vue";
 export { default as FormField } from "./FormField.vue";
 export { default as JournalSearchField } from "./JournalSearchField.vue";

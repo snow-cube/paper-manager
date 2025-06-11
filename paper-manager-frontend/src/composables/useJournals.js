@@ -131,7 +131,36 @@ export function useJournals() {
       await fetchJournals();
     } catch (error) {
       console.error("删除期刊失败:", error);
-      showToast("删除期刊失败", "error");
+
+      let errorMessage = "删除期刊失败";
+
+      // 根据错误状态码和响应内容提供更具体的错误信息
+      if (error.response) {
+        const status = error.response.status;
+        const data = error.response.data;
+
+        if (status === 400) {
+          // 400 错误通常表示期刊已被使用，无法删除
+          if (data?.detail?.includes?.("referenced") || data?.detail?.includes?.("使用") ||
+              data?.message?.includes?.("referenced") || data?.message?.includes?.("使用")) {
+            errorMessage = "无法删除期刊：该期刊已被论文引用，请先移除相关论文的期刊关联";
+          } else if (data?.detail || data?.message) {
+            errorMessage = `删除期刊失败：${data.detail || data.message}`;
+          } else {
+            errorMessage = "删除期刊失败：该期刊可能已被使用，无法删除";
+          }
+        } else if (status === 403) {
+          errorMessage = "删除期刊失败：权限不足";
+        } else if (status === 404) {
+          errorMessage = "删除期刊失败：期刊不存在";
+        } else if (status >= 500) {
+          errorMessage = "删除期刊失败：服务器内部错误，请稍后重试";
+        }
+      } else if (error.message) {
+        errorMessage = `删除期刊失败：${error.message}`;
+      }
+
+      showToast(errorMessage, "error");
       throw error;
     } finally {
       loading.value = false;

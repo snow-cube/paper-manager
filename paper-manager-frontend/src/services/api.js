@@ -20,11 +20,15 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // 清除无效token
-      localStorage.removeItem("token");
-      token = null;
-      // 可以在这里添加重定向到登录页面的逻辑
-      window.location.href = "/login";
+      // 检查是否是登录请求失败，如果是则不重定向
+      const isLoginRequest = error.config?.url?.includes('/users/token');
+
+      if (!isLoginRequest) {
+        // 只有在非登录请求时才清除token并重定向
+        localStorage.removeItem("token");
+        token = null;
+        window.location.href = "/login";
+      }
     }
     return Promise.reject(error);
   }
@@ -188,14 +192,39 @@ export const getAuthorCollaborationNetwork = async (authorName) => {
 
 // ==================== 分类管理 APIs ====================
 // 获取分类列表
-export const getCategories = async (skip = 0, limit = 100) => {
-  const params = { skip, limit };
-  return (await api.get("/categories/", { params })).data;
+export const getCategories = async (params = {}) => {
+  const { skip = 0, limit = 100, include_stats = false, paper_type, ...otherParams } = params;
+
+  const queryParams = {
+    skip,
+    limit,
+    ...otherParams,
+  };
+
+  // 如果需要统计信息，添加相应参数
+  if (include_stats) {
+    queryParams.include_stats = true;
+    if (paper_type) {
+      queryParams.paper_type = paper_type;
+    }
+  }
+
+  return (await api.get("/categories/", { params: queryParams })).data;
 };
 
 // 获取分类树（兼容旧版本调用）
-export const getCategoryTree = async () => {
-  const categories = await getCategories();
+export const getCategoryTree = async (categoryType = "papers", teamId = null, paperType = null) => {
+  let categories;
+
+  if (categoryType === "references") {
+    if (!teamId) {
+      return { categories: [] };
+    }
+    categories = await getReferenceCategories(teamId, { include_stats: true });
+  } else {
+    categories = await getCategories({ include_stats: true, paper_type: paperType });
+  }
+
   return { categories }; // 包装为兼容格式
 };
 
@@ -217,9 +246,22 @@ export const deleteCategory = async (categoryId) =>
 
 // ==================== 参考文献分类管理 APIs ====================
 // 获取参考文献分类列表
-export const getReferenceCategories = async (teamId, skip = 0, limit = 100) => {
-  const params = { team_id: teamId, skip, limit };
-  return (await api.get("/reference-categories/", { params })).data;
+export const getReferenceCategories = async (teamId, params = {}) => {
+  const { skip = 0, limit = 100, include_stats = false, ...otherParams } = params;
+
+  const queryParams = {
+    team_id: teamId,
+    skip,
+    limit,
+    ...otherParams
+  };
+
+  // 如果需要统计信息，添加相应参数
+  if (include_stats) {
+    queryParams.include_stats = true;
+  }
+
+  return (await api.get("/reference-categories/", { params: queryParams })).data;
 };
 
 // 创建参考文献分类
@@ -278,7 +320,15 @@ export const updateMemberRole = async (teamId, userId, role) =>
 // 获取参考文献列表
 export const getReferences = async (teamId, params = {}) => {
   // 确保分页参数有默认值
-  const { skip = 0, limit = 20, category_id, keyword, journal_id, publication_year, ...otherParams } = params;
+  const {
+    skip = 0,
+    limit = 20,
+    category_id,
+    keyword,
+    journal_id,
+    publication_year,
+    ...otherParams
+  } = params;
 
   const queryParams = {
     team_id: teamId,

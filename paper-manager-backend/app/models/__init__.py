@@ -15,7 +15,7 @@ print(f"DEBUG: Imported .keyword. Registered tables: {list(SQLModel.metadata.tab
 # 关联模型
 from .paper import (
     Paper, PaperCreate, PaperRead, PaperUpdate,
-    PaperAuthor, PaperCategory, PaperKeyword
+    PaperAuthor, PaperKeyword  # Removed PaperCategory
 )
 print(f"DEBUG: Imported .paper. Registered tables: {list(SQLModel.metadata.tables.keys())}")
 
@@ -32,11 +32,11 @@ from .user import User, UserCreate, UserRead, UserUpdate
 print(f"DEBUG: Imported .user. Registered tables: {list(SQLModel.metadata.tables.keys())}")
 
 __all__ = [
-    "Author", # Add Author to __all__
+    "Author",
     "User", "UserCreate", "UserRead", "UserUpdate",
     "Category", "CategoryCreate", "CategoryRead", "CategoryUpdate",
     "Team", "TeamCreate", "TeamRead", "TeamUpdate", "TeamUser",
-    "Paper", "PaperCreate", "PaperRead", "PaperUpdate", "PaperAuthor", "PaperKeyword",
+    "Paper", "PaperCreate", "PaperRead", "PaperUpdate", "PaperAuthor", "PaperKeyword",  # Removed PaperCategory
     "ReferencePaper", "ReferenceCreate", "ReferenceRead", "ReferenceUpdate", "ReferenceKeyword",
     "ReferenceCategory", "ReferenceCategoryRead",
     "Keyword", "KeywordCreate", "KeywordRead", "KeywordUpdate"

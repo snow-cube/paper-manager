@@ -9,19 +9,6 @@ if TYPE_CHECKING:
     from .team import Team
     from .user import User
 
-class PaperCategory(SQLModel, table=True):
-    """论文-分类关联表"""
-    paper_id: Optional[int] = Field(
-        default=None, foreign_key="paper.id", primary_key=True
-    )
-    category_id: Optional[int] = Field(
-        default=None, foreign_key="category.id", primary_key=True
-    )
-
-    paper: "Paper" = Relationship(back_populates="category_links")
-    category: "Category" = Relationship(back_populates="paper_links")
-
-
 class PaperAuthor(SQLModel, table=True):
     """论文-作者关联表"""
     paper_id: Optional[int] = Field(
@@ -60,6 +47,7 @@ class PaperBase(SQLModel):
     file_path: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+    category_id: Optional[int] = Field(default=None, foreign_key="category.id")  # Direct foreign key
 
 
 class Paper(PaperBase, table=True):
@@ -69,14 +57,8 @@ class Paper(PaperBase, table=True):
     created_by_id: int = Field(foreign_key="user.id")
     team_id: int = Field(foreign_key="team.id")
 
-    # Relationships
-    categories: List["Category"] = Relationship(
-        back_populates="papers",
-        link_model=PaperCategory
-    )
-    category_links: List[PaperCategory] = Relationship(
-        back_populates="paper"
-    )
+    # Direct relationship to single category
+    category: Optional["Category"] = Relationship(back_populates="papers")
 
     authors: List["Author"] = Relationship(
         back_populates="papers",
@@ -107,7 +89,7 @@ class PaperCreate(SQLModel):
     journal_id: Optional[int] = None
     doi: Optional[str] = None
     author_names: List[str]
-    category_ids: Optional[List[int]] = None
+    category_id: Optional[int] = None  # Changed from category_ids to category_id
     keyword_names: List[str]
     author_contribution_ratios: Optional[List[float]] = None
     corresponding_author_name: Optional[str] = None
@@ -128,9 +110,10 @@ class PaperRead(SQLModel):
     updated_at: datetime
     keywords: List[str] = []
     authors: List[str] = []
-    categories: List[Dict[str, Any]] = []  # 包含分类信息的列表
+    category_id: Optional[int] = None  # Changed from categories to category_id
+    category_name: Optional[str] = None  # Single category name
     team_id: int
-    team_name: Optional[str] = None  # 添加团队名称字段
+    team_name: Optional[str] = None
     created_by_id: int
 
 
@@ -141,7 +124,7 @@ class PaperUpdate(SQLModel):
     publication_date: Optional[datetime] = None
     journal_id: Optional[int] = None
     doi: Optional[str] = None
-    category_ids: Optional[List[int]] = None
+    category_id: Optional[int] = None  # Changed from category_ids to category_id
     keyword_names: Optional[List[str]] = None
     file_path: Optional[str] = None
     team_id: Optional[int] = None

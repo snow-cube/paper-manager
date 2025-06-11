@@ -256,6 +256,7 @@
 <script setup>
 import { computed, ref, onMounted, watch } from "vue";
 import { useCategories } from "../../../composables/useCategories.js";
+import { useCategoryEvents } from "../../../composables/useCategoryEvents.js";
 import {
   downloadPaper,
   downloadReference,
@@ -277,6 +278,7 @@ defineEmits(["edit", "close"]);
 const { getCategoryName, loadCategories } = useCategories();
 const { showToast } = useToast();
 const { currentTeam } = useTeam();
+const { onCategoryUpdate } = useCategoryEvents();
 
 const showPreview = ref(false);
 const previewUrl = ref("");
@@ -484,6 +486,11 @@ const loadAppropriateCategories = async () => {
 onMounted(() => {
   fetchWorkload();
   loadAppropriateCategories();
+
+  // Listen for category updates
+  onCategoryUpdate(() => {
+    loadAppropriateCategories();
+  });
 });
 
 watch(

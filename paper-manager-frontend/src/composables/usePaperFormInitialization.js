@@ -11,7 +11,7 @@ export function usePaperFormInitialization(props) {  const form = ref({
     journal_id: null,
     publication_date: "",
     publication_year: null,
-    category_ids: [],
+    category_id: "", // 使用单个分类ID
   });
 
   const file = ref(null);
@@ -72,14 +72,13 @@ export function usePaperFormInitialization(props) {  const form = ref({
         } else if (typeof props.paper.keywords === "string") {
           form.value.keyword_names = props.paper.keywords;
         }
-      }
-
-      // 处理分类
+      }      // 处理分类 - 现在统一使用单个分类ID
       if (props.paper.categories && Array.isArray(props.paper.categories)) {
-        form.value.category_ids = props.paper.categories.map((c) => c.id || c);
+        // 如果有多个分类，取第一个
+        form.value.category_id = props.paper.categories[0]?.id || props.paper.categories[0];
       } else if (props.paper.category_id) {
-        form.value.category_ids = props.paper.category_id;
-      } // 初始化作者贡献比例和通讯作者（仅发表论文）
+        form.value.category_id = props.paper.category_id;
+      }// 初始化作者贡献比例和通讯作者（仅发表论文）
       if (
         props.paper.author_contribution_ratios &&
         Array.isArray(props.paper.author_contribution_ratios)
@@ -93,24 +92,26 @@ export function usePaperFormInitialization(props) {  const form = ref({
       if (props.paper.corresponding_author_name) {
         authorContributions.value.correspondingAuthor =
           props.paper.corresponding_author_name;
-      }
-    } else if (props.paperType) {
+      }    } else if (props.paperType) {
       // 新建模式：设置论文类型
       form.value.paper_type = props.paperType;
     }
-  }; // 重置表单
+  };
+
+  // 重置表单
   const resetForm = () => {
     form.value = {
       title: "",
       author_names: "",
       keyword_names: "",
       abstract: "",
-      paper_type: props.paperType || "",      doi: "",
+      paper_type: props.paperType || "",
+      doi: "",
       journal: "",
       journal_id: null,
       publication_date: "",
       publication_year: null,
-      category_ids: [],
+      category_id: "", // 使用单个分类ID
     };
     file.value = null;
     authorContributions.value = {

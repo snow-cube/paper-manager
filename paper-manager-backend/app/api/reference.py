@@ -62,6 +62,21 @@ def check_team_member(team_id: int, user: User, session: Session):
     return True
 
 
+def get_reference_category_and_subcategories(session: Session, category_id: int) -> List[int]:
+    """递归获取参考文献分类及其所有子分类的ID列表"""
+    from app.models.reference import ReferenceCategory
+
+    result = [category_id]
+    children = session.exec(
+        select(ReferenceCategory).where(ReferenceCategory.parent_id == category_id)
+    ).all()
+
+    for child in children:
+        result.extend(get_reference_category_and_subcategories(session, child.id))
+
+    return result
+
+
 @router.post("/", response_model=ReferenceRead)
 def create_reference(
     reference: ReferenceCreate,
@@ -167,7 +182,9 @@ def read_references(
     if title:
         query = query.where(ReferencePaper.title.contains(title))
     if category_id:
-        query = query.where(ReferencePaper.category_id == category_id)
+        # 获取指定分类及其所有子分类的ID列表
+        category_ids = get_reference_category_and_subcategories(session, category_id)
+        query = query.where(ReferencePaper.category_id.in_(category_ids))
     if keyword:
         query = (
             query

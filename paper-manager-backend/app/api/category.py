@@ -6,7 +6,6 @@ from app.core.database import get_session
 from app.models.category import Category, CategoryCreate, CategoryRead, CategoryUpdate
 from app.models.user import User
 from app.api.user import get_current_user
-from app.models.paper import PaperCategory
 from app.models.reference import ReferencePaper
 
 router = APIRouter()
@@ -51,10 +50,51 @@ def create_category(
 def read_categories(
     skip: int = 0,
     limit: int = 100,
+    include_stats: bool = False,
+    paper_type: str = None,
     session: Session = Depends(get_session)
 ):
+    """获取分类列表，可选择包含统计信息"""
     categories = session.exec(select(Category).offset(skip).limit(limit)).all()
-    return categories
+
+    result = []
+    for category in categories:
+        category_data = CategoryRead(
+            id=category.id,
+            name=category.name,
+            description=category.description,
+            parent_id=category.parent_id
+        )
+
+        # 如果需要统计信息，计算论文数量
+        if include_stats:
+            paper_count = get_category_paper_count_recursive(session, category.id, paper_type)
+            category_data.paper_count = paper_count
+
+        result.append(category_data)
+
+    return result
+
+
+def get_category_paper_count_recursive(session: Session, category_id: int, paper_type: str = None) -> int:
+    """递归获取分类及其所有子分类下的论文数量"""
+    # 获取当前分类的论文数量
+    from app.models.paper import Paper
+    query = select(Paper).where(Paper.category_id == category_id)
+
+    # 如果指定了论文类型，可以在这里添加过滤逻辑
+    # 目前所有论文都被视为 "literature" 类型
+    current_count = len(session.exec(query).all())
+
+    # 获取子分类的论文数量
+    children = session.exec(
+        select(Category).where(Category.parent_id == category_id)
+    ).all()
+
+    for child in children:
+        current_count += get_category_paper_count_recursive(session, child.id, paper_type)
+
+    return current_count
 
 
 @router.get("/{category_id}", response_model=CategoryRead)
@@ -134,9 +174,10 @@ def delete_category(
             detail="Cannot delete category with subcategories"
         )
 
-    # 检查是否有关联的论文
+    # 检查是否有关联的论文（直接关系）
+    from app.models.paper import Paper
     papers = session.exec(
-        select(PaperCategory).where(PaperCategory.category_id == category_id)
+        select(Paper).where(Paper.category_id == category_id)
     ).all()
     if papers:
         raise HTTPException(

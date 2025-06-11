@@ -183,6 +183,9 @@ import { PaperCard, PaperSearchFilter } from ".";
 import { usePapersAdvanced } from "../../../composables/usePapersAdvanced";
 import { useTeam } from "../../../composables/useTeam";
 import { useCategories } from "../../../composables/useCategories";
+import { useCategoryFiltering } from "../../../composables/useCategoryFiltering";
+import { useCategoryEvents } from "../../../composables/useCategoryEvents";
+import { usePaperEvents } from "../../../composables/usePaperEvents";
 import { useJournals } from "../../../composables/useJournals";
 
 const props = defineProps({
@@ -201,7 +204,29 @@ const emit = defineEmits(["add-new", "edit", "view"]);
 const { currentTeam, teams } = useTeam();
 
 // Get categories for the search filter
-const { categories, loadCategories } = useCategories();
+const { categories, loadCategories, refreshCategories } = useCategories();
+
+// 监听分类更新事件
+const { onCategoryUpdate } = useCategoryEvents();
+
+// 监听论文更新事件
+const { onPaperUpdate } = usePaperEvents();
+
+// Enhanced category filtering with server-side support
+const {
+  categoryTree: enhancedCategoryTree,
+  selectedCategory: enhancedSelectedCategory,
+  selectCategory: handleEnhancedCategorySelect,
+  getFilteredItems,
+  loading: categoryLoading
+} = useCategoryFiltering({
+  categoryType: computed(() =>
+    props.config.categoryType ||
+    (props.config.paperType === 'literature' ? 'references' : 'papers')
+  ),
+  paperType: computed(() => props.config.paperType),
+  teamId: computed(() => props.config.requireTeam ? currentTeam.value?.id : null)
+});
 
 // Get journals for the search filter (needed for literature search)
 const { journals, fetchJournals } = useJournals();
@@ -236,6 +261,16 @@ watch([categoryType, teamId], () => {
   loadCategories(categoryType.value, teamId.value);
 }, { immediate: true });
 
+// 监听分类更新事件，自动刷新分类数据
+onCategoryUpdate(async () => {
+  await refreshCategories(categoryType.value, teamId.value);
+});
+
+// 监听论文更新事件，自动刷新论文数据
+onPaperUpdate(async () => {
+  await loadPapers();
+});
+
 // Load journals when needed (especially for literature search)
 watch([teamId], () => {
   loadJournalsForSearch();
@@ -255,7 +290,7 @@ const {
   searchStats,
   loadPapers,
   handleDelete,
-  handleCategorySelect,
+  handleCategorySelect: handlePapersAdvancedCategorySelect,
   handleSearch,
   clearSearch,
   changePage,
@@ -269,8 +304,23 @@ const {
 // Reference to the search filter component
 const searchFilterRef = ref(null);
 
-// Get selected category for display
+// Handle category selection - integrate both old and new systems
+const handleCategorySelect = (categoryId) => {
+  // Update the enhanced category filtering
+  handleEnhancedCategorySelect(categoryId);
+
+  // Update the papers advanced filtering
+  handlePapersAdvancedCategorySelect(categoryId);
+};
+
+// Get selected category for display - use enhanced category info when available
 const selectedCategory = computed(() => {
+  // Prefer enhanced category info as it has better server-side support
+  if (enhancedSelectedCategory.value) {
+    return enhancedSelectedCategory.value;
+  }
+
+  // Fallback to original logic
   if (!selectedCategoryId.value || !categories.value) return null;
   return categories.value.find(cat => cat.id === selectedCategoryId.value);
 });

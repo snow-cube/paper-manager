@@ -2,8 +2,10 @@ import { ref, computed, watch } from 'vue'
 import { getPapers, deletePaper, getReferences, deleteReference } from '@/services/api'
 import { useToast } from '@/composables/useToast'
 import { useTeam } from '@/composables/useTeam'
+import { usePaperEvents } from '@/composables/usePaperEvents'
 
 const { showToast } = useToast()
+const { triggerPaperUpdate } = usePaperEvents()
 
 /**
  * 高级论文/文献管理组合式函数 - 支持高级搜索和筛选
@@ -183,6 +185,11 @@ export function usePapersAdvanced(options = {}) {
       } else {
         await deletePaper(paper.id)
       }
+
+      // 触发论文更新事件，通知其他组件刷新数据
+      const eventType = 'delete'
+      const paperTypeForEvent = type === 'literature' ? 'literature' : 'published'
+      triggerPaperUpdate(eventType, paperTypeForEvent, paper)
 
       // 删除后重新加载当前页
       await loadPapers()
