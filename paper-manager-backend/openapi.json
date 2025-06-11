@@ -982,6 +982,7 @@
           "categories"
         ],
         "summary": "Read Categories",
+        "description": "获取分类列表，可选择包含统计信息",
         "operationId": "read_categories_api_categories__get",
         "parameters": [
           {
@@ -1002,6 +1003,25 @@
               "type": "integer",
               "default": 100,
               "title": "Limit"
+            }
+          },
+          {
+            "name": "include_stats",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Include Stats"
+            }
+          },
+          {
+            "name": "paper_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Paper Type"
             }
           }
         ],
@@ -2255,7 +2275,7 @@
           "reference-categories"
         ],
         "summary": "Read Reference Categories",
-        "description": "获取团队的参考文献分类列表",
+        "description": "获取团队的参考文献分类列表，可选择包含统计信息",
         "operationId": "read_reference_categories_api_reference_categories__get",
         "security": [
           {
@@ -2290,6 +2310,16 @@
               "type": "integer",
               "default": 100,
               "title": "Limit"
+            }
+          },
+          {
+            "name": "include_stats",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Include Stats"
             }
           }
         ],
@@ -3015,6 +3045,17 @@
               }
             ],
             "title": "Parent Id"
+          },
+          "paper_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paper Count"
           }
         },
         "type": "object",
@@ -3761,6 +3802,17 @@
           "team_id": {
             "type": "integer",
             "title": "Team Id"
+          },
+          "reference_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Count"
           }
         },
         "type": "object",

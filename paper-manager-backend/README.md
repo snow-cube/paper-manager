@@ -2,60 +2,6 @@
 
 一个用于管理学术论文和参考文献的后端API系统，支持团队协作、论文管理、参考文献管理、分类管理等功能。
 
-## 🔄 更新日志
-
-### v2.1.0 - 2025年6月9日
-
-#### ✨ 新增功能：论文API响应增强
-
-**团队名称信息支持**
-- 所有论文相关的API响应现在都包含 `team_name` 字段
-- 提供更丰富的团队信息，减少前端额外的API调用需求
-- 提升用户体验，支持直接显示团队名称而无需额外查询
-
-**影响的API端点：**
-- `POST /api/papers/` - 创建论文
-- `GET /api/papers/` - 获取论文列表
-- `GET /api/papers/{paper_id}` - 获取单个论文
-- `PATCH /api/papers/{paper_id}` - 更新论文
-
-**API响应变更示例：**
-
-*之前的响应格式：*
-```json
-{
-    "id": 1,
-    "title": "论文标题",
-    "team_id": 2,
-    "created_by_id": 1
-    // ... 其他字段
-}
-```
-
-*现在的响应格式：*
-```json
-{
-    "id": 1,
-    "title": "论文标题",
-    "team_id": 2,
-    "team_name": "研究团队A",
-    "created_by_id": 1
-    // ... 其他字段
-}
-```
-
-**技术细节：**
-- 后端通过数据库JOIN查询自动填充团队名称
-- 保持向后兼容性，现有的`team_id`字段保持不变
-- 新增的`team_name`字段为可选字段，不影响现有客户端
-
-**开发者收益：**
-- 前端显示论文列表时无需额外调用团队API
-- 减少网络请求次数，提升应用性能
-- 简化前端数据处理逻辑
-
----
-
 ## 快速开始
 
 ### 环境要求
@@ -106,55 +52,6 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 - API 文档: <http://localhost:8000/docs>
 - ReDoc 文档: <http://localhost:8000/redoc>
 
-## 📋 更新日志
-
-### [最新] 论文API增强 - 团队名称支持
-
-**变更类型：** API增强
-
-**影响范围：** 论文相关API响应
-
-**变更内容：**
-
-1. **PaperRead模型更新**
-   - 新增 `team_name` 字段（可选字符串类型）
-   - 为所有论文API响应提供团队名称信息
-
-2. **API响应增强**
-   - `GET /api/papers/` - 论文列表API现在包含团队名称
-   - `GET /api/papers/{paper_id}` - 单个论文API现在包含团队名称
-   - `POST /api/papers/` - 创建论文API响应现在包含团队名称
-
-3. **前端开发优势**
-   - 前端无需额外API调用即可显示团队名称
-   - 减少API请求次数，提升用户体验
-   - 便于在论文列表中直接显示所属团队信息
-
-**向后兼容性：** ✅ 完全兼容
-- 现有API调用不受影响
-- 新增字段为可选字段，不会破坏现有集成
-
-**示例响应变化：**
-
-```json
-// 之前
-{
-  "id": 1,
-  "title": "论文标题",
-  "team_id": 5
-}
-
-// 现在
-{
-  "id": 1,
-  "title": "论文标题",
-  "team_id": 5,
-  "team_name": "研究团队A"
-}
-```
-
----
-
 ## 1. 项目结构
 
 ```text
@@ -190,154 +87,151 @@ paper-manager-backend/
 
 ### User 用户表
 
-| 字段名 | 类型 | 说明 | 约束 |
-|--------|------|------|------|
-| id | Integer | 用户ID | Primary Key |
-| username | String | 用户名 | Unique, Index |
-| email | String | 邮箱 | Unique, Index |
-| full_name | String | 全名 | Not Null |
-| hashed_password | String | 加密密码 | Not Null |
-| is_active | Boolean | 是否激活 | Default True |
-| is_superuser | Boolean | 是否超级用户 | Default False |
-| created_at | DateTime | 创建时间 | Default Now |
-| updated_at | DateTime | 更新时间 | Default Now |
+| 字段名          | 类型     | 说明         | 约束          |
+| --------------- | -------- | ------------ | ------------- |
+| id              | Integer  | 用户ID       | Primary Key   |
+| username        | String   | 用户名       | Unique, Index |
+| email           | String   | 邮箱         | Unique, Index |
+| full_name       | String   | 全名         | Not Null      |
+| hashed_password | String   | 加密密码     | Not Null      |
+| is_active       | Boolean  | 是否激活     | Default True  |
+| is_superuser    | Boolean  | 是否超级用户 | Default False |
+| created_at      | DateTime | 创建时间     | Default Now   |
+| updated_at      | DateTime | 更新时间     | Default Now   |
 
 ### Team 团队表
 
-| 字段名 | 类型 | 说明 | 约束 |
-|--------|------|------|------|
-| id | Integer | 团队ID | Primary Key |
-| name | String | 团队名称 | Index |
-| description | String | 团队描述 | Nullable |
-| creator_id | Integer | 创建者ID | Foreign Key -> User.id |
-| created_at | DateTime | 创建时间 | Default Now |
-| updated_at | DateTime | 更新时间 | Default Now |
-| max_members | Integer | 最大成员数 | Nullable |
-| is_active | Boolean | 是否激活 | Default True |
-| last_active_at | DateTime | 最后活跃时间 | Nullable |
+| 字段名         | 类型     | 说明         | 约束                   |
+| -------------- | -------- | ------------ | ---------------------- |
+| id             | Integer  | 团队ID       | Primary Key            |
+| name           | String   | 团队名称     | Index                  |
+| description    | String   | 团队描述     | Nullable               |
+| creator_id     | Integer  | 创建者ID     | Foreign Key -> User.id |
+| created_at     | DateTime | 创建时间     | Default Now            |
+| updated_at     | DateTime | 更新时间     | Default Now            |
+| max_members    | Integer  | 最大成员数   | Nullable               |
+| is_active      | Boolean  | 是否激活     | Default True           |
+| last_active_at | DateTime | 最后活跃时间 | Nullable               |
 
 ### TeamUser 团队成员关联表
 
-| 字段名 | 类型 | 说明 | 约束 |
-|--------|------|------|------|
-| team_id | Integer | 团队ID | Primary Key, Foreign Key -> Team.id |
-| user_id | Integer | 用户ID | Primary Key, Foreign Key -> User.id |
-| role | Enum | 角色 | Enum(OWNER, ADMIN, MEMBER), Default MEMBER |
-| joined_at | DateTime | 加入时间 | Default Now |
+| 字段名    | 类型     | 说明     | 约束                                       |
+| --------- | -------- | -------- | ------------------------------------------ |
+| team_id   | Integer  | 团队ID   | Primary Key, Foreign Key -> Team.id        |
+| user_id   | Integer  | 用户ID   | Primary Key, Foreign Key -> User.id        |
+| role      | Enum     | 角色     | Enum(OWNER, ADMIN, MEMBER), Default MEMBER |
+| joined_at | DateTime | 加入时间 | Default Now                                |
 
 ### Paper 论文表
 
-| 字段名 | 类型 | 说明 | 约束 |
-|--------|------|------|------|
-| id | Integer | 论文ID | Primary Key |
-| title | String | 标题 | Not Null, Index |
-| abstract | String | 摘要 | Nullable |
-| publication_date | DateTime | 发表日期 | Nullable |
-| journal_id | Integer | 期刊ID | Foreign Key -> Journal.id, Nullable |
-| doi | String | DOI | Unique, Nullable |
-| file_path | String | 文件路径 | Nullable |
-| created_at | DateTime | 创建时间 | Default Now |
-| updated_at | DateTime | 更新时间 | Default Now |
-| created_by_id | Integer | 创建者ID | Foreign Key -> User.id |
-| team_id | Integer | 团队ID | Foreign Key -> Team.id |
+| 字段名           | 类型     | 说明     | 约束                                 |
+| ---------------- | -------- | -------- | ------------------------------------ |
+| id               | Integer  | 论文ID   | Primary Key                          |
+| title            | String   | 标题     | Not Null, Index                      |
+| abstract         | String   | 摘要     | Nullable                             |
+| publication_date | DateTime | 发表日期 | Nullable                             |
+| journal_id       | Integer  | 期刊ID   | Foreign Key -> Journal.id, Nullable  |
+| doi              | String   | DOI      | Unique, Nullable                     |
+| file_path        | String   | 文件路径 | Nullable                             |
+| category_id      | Integer  | 分类ID   | Foreign Key -> Category.id, Nullable |
+| created_at       | DateTime | 创建时间 | Default Now                          |
+| updated_at       | DateTime | 更新时间 | Default Now                          |
+| created_by_id    | Integer  | 创建者ID | Foreign Key -> User.id               |
+| team_id          | Integer  | 团队ID   | Foreign Key -> Team.id               |
 
 ### Author 作者表
 
-| 字段名 | 类型 | 说明 | 约束 |
-|--------|------|------|------|
-| id | Integer | 作者ID | Primary Key |
-| name | String | 作者姓名 | Index |
-| email | String | 邮箱 | Unique, Nullable |
-| affiliation | String | 所属机构 | Nullable |
-| created_at | DateTime | 创建时间 | Default Now |
-| updated_at | DateTime | 更新时间 | Default Now |
+| 字段名      | 类型     | 说明     | 约束             |
+| ----------- | -------- | -------- | ---------------- |
+| id          | Integer  | 作者ID   | Primary Key      |
+| name        | String   | 作者姓名 | Index            |
+| email       | String   | 邮箱     | Unique, Nullable |
+| affiliation | String   | 所属机构 | Nullable         |
+| created_at  | DateTime | 创建时间 | Default Now      |
+| updated_at  | DateTime | 更新时间 | Default Now      |
 
 ### PaperAuthor 论文-作者关联表
 
-| 字段名 | 类型 | 说明 | 约束 |
-|--------|------|------|------|
-| paper_id | Integer | 论文ID | Primary Key, Foreign Key -> Paper.id |
-| author_id | Integer | 作者ID | Primary Key, Foreign Key -> Author.id |
-| contribution_ratio | Float | 贡献率 | Default 1.0 |
-| is_corresponding | Boolean | 是否通讯作者 | Default False |
-| author_order | Integer | 作者顺序 | Not Null |
+| 字段名             | 类型    | 说明         | 约束                                  |
+| ------------------ | ------- | ------------ | ------------------------------------- |
+| paper_id           | Integer | 论文ID       | Primary Key, Foreign Key -> Paper.id  |
+| author_id          | Integer | 作者ID       | Primary Key, Foreign Key -> Author.id |
+| contribution_ratio | Float   | 贡献率       | Default 1.0                           |
+| is_corresponding   | Boolean | 是否通讯作者 | Default False                         |
+| author_order       | Integer | 作者顺序     | Not Null                              |
 
 ### Category 论文分类表
 
-| 字段名 | 类型 | 说明 | 约束 |
-|--------|------|------|------|
-| id | Integer | 分类ID | Primary Key |
-| name | String | 分类名称 | Not Null, Index |
-| description | String | 分类描述 | Nullable |
-| parent_id | Integer | 父分类ID | Foreign Key -> Category.id, Nullable |
-
-### PaperCategory 论文-分类关联表
-
-| 字段名 | 类型 | 说明 | 约束 |
-|--------|------|------|------|
-| paper_id | Integer | 论文ID | Primary Key, Foreign Key -> Paper.id |
-| category_id | Integer | 分类ID | Primary Key, Foreign Key -> Category.id |
+| 字段名      | 类型    | 说明     | 约束                                 |
+| ----------- | ------- | -------- | ------------------------------------ |
+| id          | Integer | 分类ID   | Primary Key                          |
+| name        | String  | 分类名称 | Not Null, Index                      |
+| description | String  | 分类描述 | Nullable                             |
+| parent_id   | Integer | 父分类ID | Foreign Key -> Category.id, Nullable |
 
 ### ReferencePaper 参考文献表
 
-| 字段名 | 类型 | 说明 | 约束 |
-|--------|------|------|------|
-| id | Integer | 参考文献ID | Primary Key |
-| title | String | 标题 | Not Null, Index |
-| authors | String | 作者信息 | Not Null |
-| doi | String | DOI | Unique, Nullable |
-| file_path | String | 文件路径 | Nullable |
-| created_at | DateTime | 创建时间 | Default Now |
-| updated_at | DateTime | 更新时间 | Default Now |
-| team_id | Integer | 团队ID | Foreign Key -> Team.id, Nullable |
-| category_id | Integer | 分类ID | Foreign Key -> ReferenceCategory.id, Nullable |
-| created_by_id | Integer | 创建者ID | Foreign Key -> User.id, Not Null |
+| 字段名           | 类型     | 说明       | 约束                                          |
+| ---------------- | -------- | ---------- | --------------------------------------------- |
+| id               | Integer  | 参考文献ID | Primary Key                                   |
+| title            | String   | 标题       | Not Null, Index                               |
+| authors          | String   | 作者信息   | Not Null                                      |
+| doi              | String   | DOI        | Unique, Nullable                              |
+| file_path        | String   | 文件路径   | Nullable                                      |
+| journal_id       | Integer  | 期刊ID     | Foreign Key -> Journal.id, Nullable           |
+| publication_year | Integer  | 发表年份   | Index, Nullable                               |
+| category_id      | Integer  | 分类ID     | Foreign Key -> ReferenceCategory.id, Nullable |
+| created_at       | DateTime | 创建时间   | Default Now                                   |
+| updated_at       | DateTime | 更新时间   | Default Now                                   |
+| team_id          | Integer  | 团队ID     | Foreign Key -> Team.id, Nullable              |
+| created_by_id    | Integer  | 创建者ID   | Foreign Key -> User.id, Not Null              |
 
 ### ReferenceCategory 参考文献分类表
 
-| 字段名 | 类型 | 说明 | 约束 |
-|--------|------|------|------|
-| id | Integer | 分类ID | Primary Key |
-| name | String | 分类名称 | Not Null, Index |
-| description | String | 分类描述 | Nullable |
-| parent_id | Integer | 父分类ID | Foreign Key -> ReferenceCategory.id, Nullable |
-| team_id | Integer | 团队ID | Foreign Key -> Team.id, Not Null |
+| 字段名      | 类型    | 说明     | 约束                                          |
+| ----------- | ------- | -------- | --------------------------------------------- |
+| id          | Integer | 分类ID   | Primary Key                                   |
+| name        | String  | 分类名称 | Not Null, Index                               |
+| description | String  | 分类描述 | Nullable                                      |
+| parent_id   | Integer | 父分类ID | Foreign Key -> ReferenceCategory.id, Nullable |
+| team_id     | Integer | 团队ID   | Foreign Key -> Team.id, Not Null              |
 
 ### Keyword 关键词表
 
-| 字段名 | 类型 | 说明 | 约束 |
-|--------|------|------|------|
-| id | Integer | 关键词ID | Primary Key |
-| name | String | 关键词名称 | Not Null, Unique, Index |
-| created_at | DateTime | 创建时间 | Default Now |
-| updated_at | DateTime | 更新时间 | Default Now |
+| 字段名     | 类型     | 说明       | 约束                    |
+| ---------- | -------- | ---------- | ----------------------- |
+| id         | Integer  | 关键词ID   | Primary Key             |
+| name       | String   | 关键词名称 | Not Null, Unique, Index |
+| created_at | DateTime | 创建时间   | Default Now             |
+| updated_at | DateTime | 更新时间   | Default Now             |
 
 ### PaperKeyword 论文-关键词关联表
 
-| 字段名 | 类型 | 说明 | 约束 |
-|--------|------|------|------|
-| paper_id | Integer | 论文ID | Primary Key, Foreign Key -> Paper.id |
+| 字段名     | 类型    | 说明     | 约束                                   |
+| ---------- | ------- | -------- | -------------------------------------- |
+| paper_id   | Integer | 论文ID   | Primary Key, Foreign Key -> Paper.id   |
 | keyword_id | Integer | 关键词ID | Primary Key, Foreign Key -> Keyword.id |
 
 ### ReferenceKeyword 参考文献-关键词关联表
 
-| 字段名 | 类型 | 说明 | 约束 |
-|--------|------|------|------|
+| 字段名       | 类型    | 说明       | 约束                                          |
+| ------------ | ------- | ---------- | --------------------------------------------- |
 | reference_id | Integer | 参考文献ID | Primary Key, Foreign Key -> ReferencePaper.id |
-| keyword_id | Integer | 关键词ID | Primary Key, Foreign Key -> Keyword.id |
+| keyword_id   | Integer | 关键词ID   | Primary Key, Foreign Key -> Keyword.id        |
 
 ### Journal 期刊表
 
-| 字段名 | 类型 | 说明 | 约束 |
-|--------|------|------|------|
-| id | Integer | 期刊ID | Primary Key |
-| name | String | 期刊名称 | Not Null, Unique, Index |
-| grade | String | 期刊等级 | Default "OTHER" |
-| description | String | 期刊描述 | Nullable |
-| created_at | DateTime | 创建时间 | Default Now |
-| updated_at | DateTime | 更新时间 | Default Now |
+| 字段名      | 类型     | 说明     | 约束                    |
+| ----------- | -------- | -------- | ----------------------- |
+| id          | Integer  | 期刊ID   | Primary Key             |
+| name        | String   | 期刊名称 | Not Null, Unique, Index |
+| grade       | String   | 期刊等级 | Default "OTHER"         |
+| description | String   | 期刊描述 | Nullable                |
+| created_at  | DateTime | 创建时间 | Default Now             |
+| updated_at  | DateTime | 更新时间 | Default Now             |
 
 **期刊等级说明：**
+
 - `SCI_Q1`: SCI一区期刊（工作量基础分：10.0）
 - `SCI_Q2`: SCI二区期刊（工作量基础分：8.0）
 - `SCI_Q3`: SCI三区期刊（工作量基础分：6.0）
@@ -388,7 +282,7 @@ paper-manager-backend/
 - `journal_name`: 通过 `journal_id` 关联查询 `Journal` 表获得的期刊名称
 - `keywords`: 通过 `PaperKeyword` 关联表获得的关键词名称列表
 - `authors`: 通过 `PaperAuthor` 关联表获得的作者姓名列表
-- `categories`: 通过 `PaperCategory` 关联表获得的分类信息列表
+- `category_name`: 通过 `category_id` 关联查询 `Category` 表获得的分类名称
 
 **团队API响应中的计算字段：**
 
@@ -398,6 +292,7 @@ paper-manager-backend/
 
 - `keywords`: 通过 `ReferenceKeyword` 关联表获得的关键词名称列表
 - `category`: 通过 `category_id` 关联查询 `ReferenceCategory` 表获得的分类信息
+- `journal_name`: 通过 `journal_id` 关联查询 `Journal` 表获得的期刊名称
 
 **期刊与工作量计算：**
 
@@ -405,6 +300,7 @@ paper-manager-backend/
 - 支持按作者名称统计总工作量，包含所有参与论文的详细信息
 
 **设计优势：**
+
 - 减少前端API调用次数，提升用户体验
 - 在单次查询中提供完整的业务信息
 - 保持数据库规范化设计的同时，优化API响应结构
@@ -821,7 +717,7 @@ client_secret: string (可选)
     "journal_id": "integer",
     "doi": "string",
     "author_names": ["string"],
-    "category_ids": ["integer"],
+    "category_id": "integer",
     "keyword_names": ["string"],
     "author_contribution_ratios": ["number"],
     "corresponding_author_name": "string",
@@ -842,7 +738,7 @@ client_secret: string (可选)
 - `publication_date`: datetime - 发表日期
 - `journal_id`: integer - 期刊ID
 - `doi`: string - DOI标识符
-- `category_ids`: array[integer] - 分类ID列表
+- `category_id`: integer - 分类ID
 - `author_contribution_ratios`: array[number] - 作者贡献率列表
 - `corresponding_author_name`: string - 通讯作者姓名
 
@@ -862,13 +758,8 @@ client_secret: string (可选)
     "updated_at": "datetime",
     "keywords": ["string"],
     "authors": ["string"],
-    "categories": [
-        {
-            "id": "integer",
-            "name": "string",
-            "description": "string"
-        }
-    ],
+    "category_id": "integer",
+    "category_name": "string",
     "team_id": "integer",
     "team_name": "string",
     "created_by_id": "integer"
@@ -906,16 +797,10 @@ client_secret: string (可选)
             "doi": "string",
             "file_path": "string",
             "created_at": "datetime",
-            "updated_at": "datetime",
-            "keywords": ["string"],
+            "updated_at": "datetime",            "keywords": ["string"],
             "authors": ["string"],
-            "categories": [
-                {
-                    "id": "integer",
-                    "name": "string",
-                    "description": "string"
-                }
-            ],
+            "category_id": "integer",
+            "category_name": "string",
             "team_id": "integer",
             "team_name": "string",
             "created_by_id": "integer"
@@ -949,16 +834,10 @@ client_secret: string (可选)
     "doi": "string",
     "file_path": "string",
     "created_at": "datetime",
-    "updated_at": "datetime",
-    "keywords": ["string"],
+    "updated_at": "datetime",    "keywords": ["string"],
     "authors": ["string"],
-    "categories": [
-        {
-            "id": "integer",
-            "name": "string",
-            "description": "string"
-        }
-    ],
+    "category_id": "integer",
+    "category_name": "string",
     "team_id": "integer",
     "team_name": "string",
     "created_by_id": "integer"
@@ -982,7 +861,7 @@ client_secret: string (可选)
     "publication_date": "datetime",
     "journal_id": "integer",
     "doi": "string",
-    "category_ids": ["integer"],
+    "category_id": "integer",
     "keyword_names": ["string"],
     "file_path": "string",
     "team_id": "integer"
@@ -1005,13 +884,8 @@ client_secret: string (可选)
     "updated_at": "datetime",
     "keywords": ["string"],
     "authors": ["string"],
-    "categories": [
-        {
-            "id": "integer",
-            "name": "string",
-            "description": "string"
-        }
-    ],
+    "category_id": "integer",
+    "category_name": "string",
     "team_id": "integer",
     "team_name": "string",
     "created_by_id": "integer"
@@ -1375,6 +1249,15 @@ client_secret: string (可选)
 }
 ```
 
+**必填字段：**
+
+- `name`: string - 分类名称
+
+**可选字段：**
+
+- `description`: string - 分类描述
+- `parent_id`: integer - 父分类ID
+
 响应体：
 
 ```json
@@ -1382,18 +1265,21 @@ client_secret: string (可选)
     "id": "integer",
     "name": "string",
     "description": "string",
-    "parent_id": "integer"
+    "parent_id": "integer",
+    "paper_count": "integer"
 }
 ```
 
 ##### GET `/api/categories/`
 
-获取分类列表
+获取分类列表，可选择包含统计信息
 
 查询参数：
 
-- skip: integer (默认: 0)
-- limit: integer (默认: 100)
+- `skip`: integer (默认: 0) - 跳过的记录数
+- `limit`: integer (默认: 100) - 限制返回的记录数
+- `include_stats`: boolean (默认: false) - 是否包含统计信息
+- `paper_type`: string (可选) - 论文类型过滤
 
 响应体：
 
@@ -1403,7 +1289,8 @@ client_secret: string (可选)
         "id": "integer",
         "name": "string",
         "description": "string",
-        "parent_id": "integer"
+        "parent_id": "integer",
+        "paper_count": "integer"
     }
 ]
 ```
@@ -1414,7 +1301,7 @@ client_secret: string (可选)
 
 路径参数：
 
-- category_id: integer
+- `category_id`: integer - 分类ID
 
 响应体：
 
@@ -1423,7 +1310,8 @@ client_secret: string (可选)
     "id": "integer",
     "name": "string",
     "description": "string",
-    "parent_id": "integer"
+    "parent_id": "integer",
+    "paper_count": "integer"
 }
 ```
 
@@ -1433,7 +1321,7 @@ client_secret: string (可选)
 
 路径参数：
 
-- category_id: integer
+- `category_id`: integer - 分类ID
 
 请求体：
 
@@ -1445,6 +1333,12 @@ client_secret: string (可选)
 }
 ```
 
+**可选字段：**
+
+- `name`: string - 分类名称
+- `description`: string - 分类描述
+- `parent_id`: integer - 父分类ID
+
 响应体：
 
 ```json
@@ -1452,7 +1346,8 @@ client_secret: string (可选)
     "id": "integer",
     "name": "string",
     "description": "string",
-    "parent_id": "integer"
+    "parent_id": "integer",
+    "paper_count": "integer"
 }
 ```
 
@@ -1488,6 +1383,8 @@ client_secret: string (可选)
     "authors": "string",
     "doi": "string",
     "file_path": "string",
+    "journal_id": "integer",
+    "publication_year": "integer",
     "created_at": "datetime",
     "updated_at": "datetime",
     "team_id": "integer",
@@ -1501,15 +1398,14 @@ client_secret: string (可选)
 
 - `title`: string - 参考文献标题
 - `authors`: string - 作者信息
-- `created_by_id`: integer - 创建者ID (自动设置)
 - `keyword_names`: array[string] - 关键词列表
 
 **可选字段：**
 
 - `doi`: string - DOI标识符
 - `file_path`: string - 文件路径
-- `created_at`: datetime - 创建时间 (自动设置)
-- `updated_at`: datetime - 更新时间 (自动设置)
+- `journal_id`: integer - 期刊ID
+- `publication_year`: integer - 发表年份
 - `team_id`: integer - 团队ID
 - `category_id`: integer - 分类ID
 
@@ -1521,6 +1417,9 @@ client_secret: string (可选)
     "authors": "string",
     "doi": "string",
     "file_path": "string",
+    "journal_id": "integer",
+    "journal_name": "string",
+    "publication_year": "integer",
     "created_at": "datetime",
     "updated_at": "datetime",
     "team_id": "integer",
@@ -1553,13 +1452,15 @@ client_secret: string (可选)
 响应体：
 
 ```json
-{
-    "items": [
+{    "items": [
         {
             "title": "string",
             "authors": "string",
             "doi": "string",
             "file_path": "string",
+            "journal_id": "integer",
+            "journal_name": "string",
+            "publication_year": "integer",
             "created_at": "datetime",
             "updated_at": "datetime",
             "team_id": "integer",
@@ -1599,6 +1500,9 @@ client_secret: string (可选)
     "authors": "string",
     "doi": "string",
     "file_path": "string",
+    "journal_id": "integer",
+    "journal_name": "string",
+    "publication_year": "integer",
     "created_at": "datetime",
     "updated_at": "datetime",
     "team_id": "integer",
@@ -1632,6 +1536,8 @@ client_secret: string (可选)
     "authors": "string",
     "doi": "string",
     "file_path": "string",
+    "journal_id": "integer",
+    "publication_year": "integer",
     "category_id": "integer",
     "keyword_names": ["string"]
 }
@@ -1645,6 +1551,9 @@ client_secret: string (可选)
     "authors": "string",
     "doi": "string",
     "file_path": "string",
+    "journal_id": "integer",
+    "journal_name": "string",
+    "publication_year": "integer",
     "created_at": "datetime",
     "updated_at": "datetime",
     "team_id": "integer",
@@ -1737,6 +1646,16 @@ client_secret: string (可选)
 }
 ```
 
+**必填字段：**
+
+- `name`: string - 分类名称
+- `team_id`: integer - 团队ID
+
+**可选字段：**
+
+- `description`: string - 分类描述
+- `parent_id`: integer - 父分类ID
+
 响应体：
 
 ```json
@@ -1745,19 +1664,21 @@ client_secret: string (可选)
     "name": "string",
     "description": "string",
     "parent_id": "integer",
-    "team_id": "integer"
+    "team_id": "integer",
+    "reference_count": "integer"
 }
 ```
 
 ##### GET `/api/reference-categories/`
 
-获取团队的参考文献分类列表
+获取团队的参考文献分类列表，可选择包含统计信息
 
 查询参数：
 
-- team_id: integer (必填)
-- skip: integer (默认: 0)
-- limit: integer (默认: 100)
+- `team_id`: integer (必填) - 团队ID
+- `skip`: integer (默认: 0) - 跳过的记录数
+- `limit`: integer (默认: 100) - 限制返回的记录数
+- `include_stats`: boolean (默认: false) - 是否包含统计信息
 
 响应体：
 
@@ -1768,7 +1689,8 @@ client_secret: string (可选)
         "name": "string",
         "description": "string",
         "parent_id": "integer",
-        "team_id": "integer"
+        "team_id": "integer",
+        "reference_count": "integer"
     }
 ]
 ```
@@ -1779,7 +1701,7 @@ client_secret: string (可选)
 
 路径参数：
 
-- category_id: integer
+- `category_id`: integer - 分类ID
 
 响应体：
 
@@ -1789,7 +1711,8 @@ client_secret: string (可选)
     "name": "string",
     "description": "string",
     "parent_id": "integer",
-    "team_id": "integer"
+    "team_id": "integer",
+    "reference_count": "integer"
 }
 ```
 
@@ -1799,7 +1722,7 @@ client_secret: string (可选)
 
 路径参数：
 
-- category_id: integer
+- `category_id`: integer - 分类ID
 
 请求体：
 
@@ -1811,6 +1734,12 @@ client_secret: string (可选)
 }
 ```
 
+**可选字段：**
+
+- `name`: string - 分类名称
+- `description`: string - 分类描述
+- `parent_id`: integer - 父分类ID
+
 响应体：
 
 ```json
@@ -1819,7 +1748,8 @@ client_secret: string (可选)
     "name": "string",
     "description": "string",
     "parent_id": "integer",
-    "team_id": "integer"
+    "team_id": "integer",
+    "reference_count": "integer"
 }
 ```
 
@@ -1829,7 +1759,7 @@ client_secret: string (可选)
 
 路径参数：
 
-- category_id: integer
+- `category_id`: integer - 分类ID
 
 响应体：
 
