@@ -90,23 +90,18 @@
               :error="getFieldError('keyword_names')"
               @blur="markTouched('keyword_names')"
               @input="validateFieldRealtime('keyword_names', $event)"
-            />
-
-            <FormField
-              id="category_ids"
-              v-model="form.category_ids"
-              type="select"
-              label="分类"
-              :multiple="form.paper_type === 'published'"
-              @change="markTouched('category_ids')"
-            >
-              <option value="" v-if="form.paper_type === 'literature'">
-                请选择分类
-              </option>
-              <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-                {{ cat.name }}
-              </option>
-            </FormField>
+            />          <FormField
+            id="category_id"
+            v-model="form.category_id"
+            type="select"
+            label="分类"
+            @change="markTouched('category_id')"
+          >
+            <option value="">请选择分类</option>
+            <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+              {{ cat.name }}
+            </option>
+          </FormField>
           </div>          <FormField
             id="doi"
             v-model="form.doi"
@@ -158,11 +153,7 @@
               @blur="markTouched('publication_year')"
               @input="validateFieldRealtime('publication_year', $event)"
             />
-          </div>
-
-          <small class="form-hint" v-if="form.paper_type === 'published'"
-            >按住Ctrl键可选择多个分类</small
-          >
+          </div>          <small class="form-hint">选择合适的分类有助于论文的管理和检索</small>
         </div>
 
         <!-- 作者信息 -->
@@ -290,6 +281,8 @@ import { usePaperFormInitialization } from "../../composables/usePaperFormInitia
 import { usePaperFormValidation } from "../../composables/usePaperFormValidation";
 import { usePaperFormData } from "../../composables/usePaperFormData";
 import { useCategories } from "../../composables/useCategories";
+import { useCategoryEvents } from "../../composables/useCategoryEvents";
+import { usePaperEvents } from "../../composables/usePaperEvents";
 import { useJournals } from "../../composables/useJournals";
 import { useTeam } from "../../composables/useTeam";
 
@@ -316,7 +309,9 @@ const modeOptions = [
 ];
 
 // 使用组合式函数
-const { categories, loadCategories } = useCategories();
+const { categories, loadCategories, refreshCategories } = useCategories();
+const { onCategoryUpdate } = useCategoryEvents();
+const { triggerPaperUpdate } = usePaperEvents();
 const { journals, fetchJournals } = useJournals();
 const { currentTeam } = useTeam();
 const { form, file, authorContributions, isEdit, initializeForm, resetForm } =
@@ -396,6 +391,12 @@ const handleSubmit = async () => {
 
   try {
     const result = await submitForm(props, isEdit.value);
+
+    // 触发论文更新事件，通知其他组件刷新数据
+    const eventType = isEdit.value ? 'edit' : 'add';
+    const paperType = form.value.paper_type;
+    triggerPaperUpdate(eventType, paperType, result);
+
     emit("saved", result);
     if (!isEdit.value) {
       resetForm();
@@ -451,6 +452,11 @@ watch(
     }
   }
 );
+
+// 监听分类更新事件，自动刷新分类数据
+onCategoryUpdate(async () => {
+  await loadAppropriateCategories();
+});
 
 // 初始化表单
 initializeForm();

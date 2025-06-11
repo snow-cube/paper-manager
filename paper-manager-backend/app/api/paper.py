@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from app.core.database import get_session
 from app.models.paper import (
     Paper, PaperCreate, PaperRead, PaperUpdate,
-    PaperAuthor, PaperCategory, PaperKeyword, PaginatedPaperResponse
+    PaperAuthor, PaperKeyword, PaginatedPaperResponse
 )
 from app.models.keyword import Keyword
 from app.models.user import User
@@ -168,14 +168,20 @@ def create_paper(
         journal_id=paper.journal_id,
         doi=paper.doi,
         created_by_id=current_user.id,
-        team_id=paper.team_id
+        team_id=paper.team_id,
+        category_id=paper.category_id  # Direct category assignment
     )
     session.add(db_paper)
     session.flush()  # 获取ID
 
-    # 创建团队关联
-    # paper_team = PaperTeam(paper_id=db_paper.id, team_id=paper.team_id)
-    # session.add(paper_team)
+    # 验证分类是否存在
+    if paper.category_id:
+        category = session.get(Category, paper.category_id)
+        if not category:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Category {paper.category_id} not found"
+            )
 
     # 处理作者
     authors = []
@@ -211,23 +217,6 @@ def create_paper(
         session.add(paper_author)
         authors.append(name)
 
-    # 处理分类
-    if paper.category_ids:
-        for category_id in paper.category_ids:
-            # 检查分类是否存在
-            category = session.get(Category, category_id)
-            if not category:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"Category {category_id} not found"
-                )
-            # 创建论文-分类关联
-            paper_category = PaperCategory(
-                paper_id=db_paper.id,
-                category_id=category_id
-            )
-            session.add(paper_category)
-
     # 处理关键词
     keywords = []
     for name in paper.keyword_names:
@@ -248,6 +237,13 @@ def create_paper(
 
     session.commit()
     session.refresh(db_paper)
+
+    # 获取分类名称
+    category_name = None
+    if db_paper.category_id:
+        category = session.get(Category, db_paper.category_id)
+        if category:
+            category_name = category.name
 
     # 获取团队名称
     team_name = None
@@ -276,6 +272,8 @@ def create_paper(
         updated_at=db_paper.updated_at,
         keywords=keywords,
         authors=authors,
+        category_id=db_paper.category_id,
+        category_name=category_name,
         team_id=paper.team_id,
         team_name=team_name,
         created_by_id=current_user.id
@@ -355,11 +353,9 @@ def read_papers(
     if title:
         query = query.where(Paper.title.contains(title))
     if category_id:
-        query = (
-            query
-            .join(PaperCategory)
-            .where(PaperCategory.category_id == category_id)
-        )
+        # 获取指定分类及其所有子分类的ID列表
+        category_ids = get_category_and_subcategories(session, category_id)
+        query = query.where(Paper.category_id.in_(category_ids))
     if author_name:
         query = (
             query
@@ -408,18 +404,11 @@ def read_papers(
                 .order_by(PaperAuthor.author_order)
             ).all()
         ]        # 获取分类
-        categories = [
-            {
-                "id": category.id,
-                "name": category.name,
-                "description": category.description
-            }
-            for category in session.exec(
-                select(Category)
-                .join(PaperCategory)
-                .where(PaperCategory.paper_id == paper.id)
-            ).all()
-        ]
+        category_name = None
+        if paper.category_id:
+            category = session.get(Category, paper.category_id)
+            if category:
+                category_name = category.name
 
         # 获取期刊名称
         journal_name = None
@@ -450,7 +439,8 @@ def read_papers(
                 updated_at=paper.updated_at,
                 keywords=keywords,
                 authors=authors,
-                categories=categories,
+                category_id=paper.category_id,
+                category_name=category_name,
                 team_id=paper.team_id,
                 team_name=team_name,
                 created_by_id=paper.created_by_id
@@ -498,18 +488,11 @@ def read_paper(
             .order_by(PaperAuthor.author_order)
         ).all()
     ]    # 获取分类
-    categories = [
-        {
-            "id": category.id,
-            "name": category.name,
-            "description": category.description
-        }
-        for category in session.exec(
-            select(Category)
-            .join(PaperCategory)
-            .where(PaperCategory.paper_id == paper_id)
-        ).all()
-    ]
+    category_name = None
+    if paper.category_id:
+        category = session.get(Category, paper.category_id)
+        if category:
+            category_name = category.name
 
     # 获取期刊名称
     journal_name = None
@@ -538,7 +521,8 @@ def read_paper(
         updated_at=paper.updated_at,
         keywords=keywords,
         authors=authors,
-        categories=categories,
+        category_id=paper.category_id,
+        category_name=category_name,
         team_id=paper.team_id,
         team_name=team_name,
         created_by_id=paper.created_by_id
@@ -584,35 +568,25 @@ def update_paper(
                     detail=f"Journal {paper_update.journal_id} not found"
                 )
 
-    # 更新基本信息
-    paper_data = paper_update.dict(exclude_unset=True)
-    # 移除需要特殊处理的字段
-    special_fields = {"category_ids", "keyword_names", "author_names", "author_contribution_ratios"}
-    update_data = {k: v for k, v in paper_data.items() if k not in special_fields}
-
-    # 更新基本字段（包括team_id）
-    for key, value in update_data.items():
-        setattr(paper, key, value)
-
-    # 更新分类
-    if paper_update.category_ids is not None:
-        # 删除现有分类关联
-        session.exec(
-            delete(PaperCategory).where(PaperCategory.paper_id == paper_id)
-        )
-        # 添加新的分类关联
-        for category_id in paper_update.category_ids:
-            category = session.get(Category, category_id)
+    # 验证分类是否存在
+    if paper_update.category_id is not None:
+        if paper_update.category_id != 0:  # 0 表示清空分类
+            category = session.get(Category, paper_update.category_id)
             if not category:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"Category {category_id} not found"
+                    detail=f"Category {paper_update.category_id} not found"
                 )
-            paper_category = PaperCategory(
-                paper_id=paper_id,
-                category_id=category_id
-            )
-            session.add(paper_category)
+
+    # 更新基本信息
+    paper_data = paper_update.dict(exclude_unset=True)
+    # 移除需要特殊处理的字段
+    special_fields = {"keyword_names", "author_names", "author_contribution_ratios"}
+    update_data = {k: v for k, v in paper_data.items() if k not in special_fields}
+
+    # 更新基本字段（包括category_id）
+    for key, value in update_data.items():
+        setattr(paper, key, value)
 
     # 更新关键词
     if paper_update.keyword_names is not None:
@@ -659,9 +633,6 @@ def delete_paper(
     # 删除所有关联
     session.exec(
         delete(PaperAuthor).where(PaperAuthor.paper_id == paper_id)
-    )
-    session.exec(
-        delete(PaperCategory).where(PaperCategory.paper_id == paper_id)
     )
     session.exec(
         delete(PaperKeyword).where(PaperKeyword.paper_id == paper_id)

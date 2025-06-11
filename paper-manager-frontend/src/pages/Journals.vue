@@ -303,13 +303,13 @@ const confirmDeleteJournal = async (journal) => {
     await confirmDelete(`期刊"${journal.name}"`);
     // 如果用户确认删除，执行删除操作
     await deleteJournal(journal.id);
-    showToast("期刊删除成功", "success");
+    // 删除成功的提示已在 useJournals 中处理
   } catch (error) {
     // 用户取消删除或删除失败
     if (error !== false) {
       // 如果不是用户取消，而是实际的错误
       console.error("删除期刊失败:", error);
-      showToast("删除期刊失败", "error");
+      // 错误提示已在 useJournals 中处理，这里不需要重复显示
     }
   }
 };

@@ -102,11 +102,17 @@
 
 <script setup>
 import { RouterLink } from "vue-router";
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, onUnmounted } from "vue";
 import { getPapers, getCategories, getTeams } from "../services/api";
 import { useAuth } from "../composables/useAuth";
+import { useCategoryEvents } from "../composables/useCategoryEvents";
+import { usePaperEvents } from "../composables/usePaperEvents";
+import { useTeamEvents } from "../composables/useTeamEvents";
 
 const { isAuthenticated } = useAuth();
+const { onCategoryUpdate } = useCategoryEvents();
+const { onPaperUpdate } = usePaperEvents();
+const { onTeamUpdate } = useTeamEvents();
 
 const stats = ref({
   papers: 0,
@@ -165,6 +171,32 @@ watch(isAuthenticated, (newValue) => {
       teams: 0,
     };
   }
+});
+
+// 监听各种更新事件以刷新统计数据
+const unsubscribeCategoryUpdate = onCategoryUpdate(() => {
+  if (isAuthenticated.value) {
+    loadStats();
+  }
+});
+
+const unsubscribePaperUpdate = onPaperUpdate(() => {
+  if (isAuthenticated.value) {
+    loadStats();
+  }
+});
+
+const unsubscribeTeamUpdate = onTeamUpdate(() => {
+  if (isAuthenticated.value) {
+    loadStats();
+  }
+});
+
+// 组件卸载时清理事件监听器
+onUnmounted(() => {
+  unsubscribeCategoryUpdate();
+  unsubscribePaperUpdate();
+  unsubscribeTeamUpdate();
 });
 </script>
 

@@ -3360,19 +3360,16 @@
             "type": "array",
             "title": "Author Names"
           },
-          "category_ids": {
+          "category_id": {
             "anyOf": [
               {
-                "items": {
-                  "type": "integer"
-                },
-                "type": "array"
+                "type": "integer"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Category Ids"
+            "title": "Category Id"
           },
           "keyword_names": {
             "items": {
@@ -3524,14 +3521,27 @@
             "title": "Authors",
             "default": []
           },
-          "categories": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Categories",
-            "default": []
+          "category_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Id"
+          },
+          "category_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Name"
           },
           "team_id": {
             "type": "integer",
@@ -3623,19 +3633,16 @@
             ],
             "title": "Doi"
           },
-          "category_ids": {
+          "category_id": {
             "anyOf": [
               {
-                "items": {
-                  "type": "integer"
-                },
-                "type": "array"
+                "type": "integer"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Category Ids"
+            "title": "Category Id"
           },
           "keyword_names": {
             "anyOf": [

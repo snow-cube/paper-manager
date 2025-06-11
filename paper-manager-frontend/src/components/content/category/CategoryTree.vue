@@ -172,11 +172,11 @@ import {
   createReferenceCategory,
   updateReferenceCategory,
   deleteReferenceCategory as deleteReferenceCategoryAPI,
-  getPapers,
-  getReferences,
 } from "../../../services/api";
 import { useToast } from "../../../composables/useToast";
 import { useConfirmDialog } from "../../../composables/useConfirmDialog";
+import { useCategories } from "../../../composables/useCategories";
+import { useCategoryEvents } from "../../../composables/useCategoryEvents";
 import { LoadingSpinner, ConfirmDialog } from "../../base";
 import { CategoryNode } from ".";
 
@@ -202,6 +202,8 @@ const props = defineProps({
 const emit = defineEmits(["select"]);
 
 const { showToast } = useToast();
+const { refreshCategories } = useCategories(); // 添加全局分类刷新功能
+const { triggerCategoryUpdate } = useCategoryEvents(); // 添加事件总线
 const {
   dialogState,
   confirmDialog,
@@ -285,17 +287,24 @@ const loadCategories = async () => {
         totalPapers.value = 0;
         return;
       }
-      categories = await getReferenceCategories(props.teamId);
-      // 过滤出属于当前团队的分类 - 这里可能需要后端支持按团队过滤
+      // 使用服务端统计
+      categories = await getReferenceCategories(props.teamId, {
+        include_stats: true
+      });
     } else {
-      categories = await getCategories();
-    }
-
-    // 将扁平化列表转换为树形结构
+      // 使用服务端统计，传递论文类型用于筛选
+      categories = await getCategories({
+        include_stats: true,
+        paper_type: props.paperType
+      });
+    }    // 将扁平化列表转换为树形结构
     categoryTree.value = buildCategoryTree(categories || []);
 
-    // 加载统计数据
-    await loadPaperCounts();
+    // 设置服务端统计数据
+    setServerStats(categoryTree.value);
+
+    // 计算总数量（从服务端统计数据中获取）
+    totalPapers.value = calculateTotalFromStats(categories || []);
   } catch (err) {
     console.error("加载分类失败:", err);
     error.value = "加载分类失败，请重试";
@@ -304,63 +313,44 @@ const loadCategories = async () => {
   }
 };
 
-// 递归计算分类树中每个节点的数量
-const calculatePaperCounts = (categories, items) => {
+// 从服务端统计数据计算总数量
+const calculateTotalFromStats = (categories) => {
+  return categories.reduce((total, category) => {
+    // 如果服务端返回了统计信息
+    const count = category.paper_count || category.reference_count || 0;
+    return total + count;
+  }, 0);
+};
+
+// 递归设置分类统计数据（完全依赖服务端）
+const setServerStats = (categories) => {
   categories.forEach((category) => {
-    const categoryItems = items.filter((item) => {
-      // 支持多分类和单分类
-      if (Array.isArray(item.categories)) {
-        return item.categories.some((cat) => cat.id === category.id);
-      }
-      return item.category_id === category.id;
-    });
-    category.paper_count = categoryItems.length;
+    // 直接使用服务端返回的统计数据
+    // 论文分类使用 paper_count，参考文献分类使用 reference_count
+    if (typeof category.paper_count !== 'undefined') {
+      // 保持原有值
+    } else if (typeof category.reference_count !== 'undefined') {
+      // 将 reference_count 映射到 paper_count 用于显示
+      category.paper_count = category.reference_count;
+    } else {
+      // 如果服务端没有返回统计数据，记录错误但不降级
+      console.warn(`分类 ${category.name} 缺少统计数据`);
+      category.paper_count = 0;
+    }
 
     // 递归处理子分类
     if (category.children && category.children.length > 0) {
-      calculatePaperCounts(category.children, items);
+      setServerStats(category.children);
     }
   });
-};
-
-// 加载论文数量统计
-const loadPaperCounts = async () => {
-  try {
-    let data, filteredData;
-
-    if (props.categoryType === "references") {
-      // 对于参考文献分类，需要团队ID
-      if (!props.teamId) {
-        totalPapers.value = 0;
-        return;
-      }
-      data = await getReferences(props.teamId);
-      filteredData = data || [];
-    } else {
-      // 对于论文分类
-      data = await getPapers();
-      // 根据paper_type筛选论文
-      filteredData = props.paperType
-        ? data.filter((paper) => paper.paper_type === props.paperType)
-        : data;
-    }
-
-    totalPapers.value = filteredData.length;
-
-    // 递归计算所有分类的数量
-    calculatePaperCounts(categoryTree.value, filteredData);
-  } catch (err) {
-    console.error("加载统计失败:", err);
-  }
 };
 
 // 监听 paperType 变化，重新加载统计
 watch(
   () => props.paperType,
   () => {
-    if (categoryTree.value.length > 0) {
-      loadPaperCounts();
-    }
+    // 重新加载分类以获取正确的统计数据
+    loadCategories();
   }
 );
 
@@ -483,9 +473,15 @@ const saveCategory = async () => {
         await createReferenceCategory(data);
       } else {
         await createCategory(data);
-      }
-    }
+      }    }
     await loadCategories();
+
+    // 通知全局分类数据已更新
+    await refreshCategories(props.categoryType, props.teamId);
+
+    // 触发全局分类更新事件
+    triggerCategoryUpdate();
+
     closeCategoryDialog();
     showToast(isEditing.value ? "分类更新成功" : "分类创建成功", "success");
   } catch (error) {
@@ -525,10 +521,13 @@ const deleteCategory = async (category) => {
     if (props.categoryType === "references") {
       await deleteReferenceCategoryAPI(category.id);
     } else {
-      await deleteCategoryAPI(category.id);
-    }
+      await deleteCategoryAPI(category.id);    }    await loadCategories();
 
-    await loadCategories();
+    // 通知全局分类数据已更新
+    await refreshCategories(props.categoryType, props.teamId);
+
+    // 触发全局分类更新事件
+    triggerCategoryUpdate();
 
     // 如果删除的是当前选中的分类，重置选择
     if (props.selectedCategoryId === category.id) {

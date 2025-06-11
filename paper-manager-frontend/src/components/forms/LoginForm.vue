@@ -130,7 +130,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from "vue";
+import { ref, reactive, watch } from "vue";
 import { login, setAuthToken } from "../../services/api.js";
 import { useToast } from "../../composables/useToast.js";
 
@@ -145,6 +145,13 @@ const rememberMe = ref(false);
 const formData = reactive({
   username: "",
   password: "",
+});
+
+// 监听表单数据变化，自动清除错误信息
+watch([() => formData.username, () => formData.password], () => {
+  if (error.value) {
+    error.value = "";
+  }
 });
 
 const handleLogin = async () => {
@@ -167,15 +174,28 @@ const handleLogin = async () => {
   } catch (err) {
     console.error("Login error:", err);
 
+    // 确保loading状态先设置为false，避免界面状态混乱
+    loading.value = false;
+
     if (err.response?.status === 401) {
-      error.value = "用户名或密码错误";
+      error.value = "用户名或密码错误，请检查后重试";
     } else if (err.response?.status === 403) {
       error.value = "账号未激活，请联系管理员";
-    } else {
+    } else if (err.response?.status === 429) {
+      error.value = "登录尝试过于频繁，请稍后再试";
+    } else if (err.code === 'NETWORK_ERROR' || !err.response) {
+      error.value = "网络连接失败，请检查网络后重试";    } else {
       error.value = "登录失败，请稍后重试";
     }
+
+    // 确保loading在catch块中也被重置
+    return;
   } finally {
-    loading.value = false;
+    // 只有在登录成功时才设置loading为false
+    // 登录失败时已经在catch块中设置了
+    if (!error.value) {
+      loading.value = false;
+    }
   }
 };
 </script>
@@ -372,21 +392,28 @@ const handleLogin = async () => {
   text-decoration: underline;
 }
 
-.error-slide-enter-active,
-.error-slide-leave-active {
-  transition: all 0.3s ease;
+.error-slide-enter-active {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.error-slide-enter-from,
+.error-slide-leave-active {
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.error-slide-enter-from {
+  opacity: 0;
+  transform: translateY(-15px) scale(0.95);
+}
+
 .error-slide-leave-to {
   opacity: 0;
-  transform: translateY(-10px);
+  transform: translateY(-10px) scale(0.98);
 }
 
 .error-message {
   background: linear-gradient(135deg, #fef2f2, #fee2e2);
   color: #dc2626;
-  padding: 1rem;
+  padding: 1.25rem;
   border-radius: 12px;
   margin-bottom: 1.5rem;
   font-size: 0.875rem;
@@ -394,6 +421,10 @@ const handleLogin = async () => {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+  position: relative;
+  overflow: hidden;
+  animation: pulse-error 0.6s ease-out;
 }
 
 .error-icon {
@@ -578,9 +609,24 @@ const handleLogin = async () => {
   .checkbox-wrapper {
     font-size: 0.75rem;
   }
-
   .forgot-link {
     font-size: 0.75rem;
+  }
+}
+
+/* 错误消息脉冲动画 */
+@keyframes pulse-error {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.25);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
   }
 }
 </style>

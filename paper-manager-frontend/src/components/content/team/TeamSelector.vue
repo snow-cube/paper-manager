@@ -46,7 +46,7 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import { useTeam } from "../../../composables/useTeam.js";
 
-const { currentTeam, userTeams, switchTeam } = useTeam();
+const { currentTeam, userTeams, switchTeam, onTeamUpdate, refreshTeams } = useTeam();
 const isOpen = ref(false);
 
 const toggleDropdown = () => {
@@ -71,6 +71,11 @@ const handleClickOutside = (event) => {
 
 onMounted(() => {
   document.addEventListener("click", handleClickOutside);
+
+  // 监听团队更新事件
+  onTeamUpdate(async () => {
+    await refreshTeams();
+  });
 });
 
 onUnmounted(() => {

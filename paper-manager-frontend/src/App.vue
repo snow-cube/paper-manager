@@ -249,12 +249,13 @@
 </template>
 
 <script setup>
-import { RouterLink, RouterView } from "vue-router";
+import { RouterLink, RouterView, useRouter } from "vue-router";
 import { ref, onMounted, onUnmounted } from "vue";
 import { ToastContainer, ErrorBoundary, TeamSelector } from "@/components";
 import { useAuth } from "./composables/useAuth";
 import { useTeam } from "./composables/useTeam";
 
+const router = useRouter();
 const { currentUser, isAuthenticated, isLoading, logout } = useAuth();
 const { hasTeams } = useTeam();
 
@@ -277,6 +278,8 @@ const closeUserDropdown = () => {
 const handleLogout = async () => {
   closeUserDropdown();
   await logout();
+  // 跳转到登录页面
+  router.push('/login');
 };
 
 const handleUserProfile = () => {

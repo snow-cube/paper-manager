@@ -140,6 +140,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import { useCategories } from "../../../composables/useCategories";
+import { useCategoryEvents } from "../../../composables/useCategoryEvents";
 import { useTeam } from "../../../composables/useTeam";
 import {
   downloadItem,
@@ -158,6 +159,7 @@ const props = defineProps({
 defineEmits(["edit", "delete", "view"]);
 
 const { getCategoryName, loadCategories } = useCategories();
+const { onCategoryUpdate } = useCategoryEvents();
 const { showToast } = useToast();
 const { currentTeam } = useTeam();
 
@@ -200,6 +202,11 @@ watch(
     loadAppropriateCategories();
   }
 );
+
+// 监听分类更新事件，自动刷新分类数据
+onCategoryUpdate(async () => {
+  await loadAppropriateCategories();
+});
 
 const authorsDisplay = computed(() => {
   if (!props.paper.authors) return "未知作者";

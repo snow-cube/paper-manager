@@ -2,9 +2,6 @@ from typing import Optional, List, TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Relationship
 from datetime import datetime
 
-# 导入需要在运行时使用的类
-from .paper import PaperCategory
-
 if TYPE_CHECKING:
     from .paper import Paper
 
@@ -28,13 +25,8 @@ class Category(SQLModel, table=True):
             "overlaps": "children"
         }
     )
-    papers: List["Paper"] = Relationship(
-        back_populates="categories",
-        link_model=PaperCategory
-    )
-    paper_links: List[PaperCategory] = Relationship(
-        back_populates="category"
-    )
+    # Direct relationship to papers
+    papers: List["Paper"] = Relationship(back_populates="category")
 
 
 class CategoryCreate(SQLModel):
@@ -50,6 +42,7 @@ class CategoryRead(SQLModel):
     name: str
     description: Optional[str] = None
     parent_id: Optional[int] = None
+    paper_count: Optional[int] = None  # 添加论文计数字段
 
 
 class CategoryUpdate(SQLModel):

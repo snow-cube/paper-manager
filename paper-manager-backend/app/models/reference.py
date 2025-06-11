@@ -50,6 +50,7 @@ class ReferenceCategoryRead(SQLModel):
     description: Optional[str] = None
     parent_id: Optional[int] = None
     team_id: int
+    reference_count: Optional[int] = None  # 添加参考文献计数字段
 
 
 class ReferenceCategoryUpdate(SQLModel):
