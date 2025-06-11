@@ -3,11 +3,9 @@
     <!-- 卡片头部 -->
     <div class="paper-header">
       <div class="badge-section">
-        <div :class="['paper-type-badge', paper.paper_type]">
-          <span class="badge-icon">{{
-            paper.paper_type === "published" ? "🎓" : "📚"
-          }}</span>
-          {{ paper.paper_type === "published" ? "发表论文" : "参考文献" }}
+        <div :class="['paper-type-badge', paperTypeBadgeClass]">
+          <span class="badge-icon">{{ isLiteratureType ? "📚" : "🎓" }}</span>
+          {{ isLiteratureType ? "参考文献" : "发表论文" }}
         </div>
         <div v-if="paper.team_name || teamName" class="team-badge">
           <span class="team-icon">👥</span>
@@ -62,18 +60,19 @@
             <span class="meta-value">{{ authorsDisplay }}</span>
           </div>
         </div>
-
         <div class="meta-row secondary">
-          <div v-if="paper.journal" class="meta-item journal">
+          <div v-if="journalDisplay" class="meta-item journal">
             <span class="meta-icon">📖</span>
             <span class="meta-label">期刊</span>
-            <span class="meta-value">{{ paper.journal }}</span>
+            <span class="meta-value" :title="journalDisplay">{{
+              journalDisplay
+            }}</span>
           </div>
 
           <div class="meta-item year">
             <span class="meta-icon">📅</span>
             <span class="meta-label">年份</span>
-            <span class="meta-value">{{ paper.year }}</span>
+            <span class="meta-value">{{ yearDisplay }}</span>
           </div>
         </div>
 
@@ -179,9 +178,35 @@ const teamName = computed(() => {
   return null;
 });
 
+// 判断是否为文献类型
+const isLiteratureType = computed(() => {
+  // 根据不同的判断方式确定是否为文献
+  if (props.paper.paper_type) {
+    return props.paper.paper_type === "literature";
+  }
+  // 如果没有 paper_type 字段，可以根据其他字段判断
+  // 比如参考文献通常有 publication_year 而不是 publication_date
+  if (props.paper.publication_year && !props.paper.publication_date) {
+    return true;
+  }
+  // 或者根据 URL 路径判断（如果从路由传递的话）
+  if (
+    typeof window !== "undefined" &&
+    window.location.pathname.includes("literature")
+  ) {
+    return true;
+  }
+  return false;
+});
+
+// 论文类型徽章的CSS类
+const paperTypeBadgeClass = computed(() => {
+  return isLiteratureType.value ? "literature" : "published";
+});
+
 // 加载适当的分类数据
 const loadAppropriateCategories = async () => {
-  if (props.paper?.paper_type === "literature") {
+  if (isLiteratureType.value) {
     // 文献使用参考文献分类（团队特定）
     await loadCategories("references", currentTeam.value?.id);
   } else {
@@ -197,7 +222,7 @@ onMounted(() => {
 
 // 监听paper变化，重新加载分类
 watch(
-  () => props.paper?.paper_type,
+  () => isLiteratureType.value,
   () => {
     loadAppropriateCategories();
   }
@@ -218,8 +243,54 @@ const authorsDisplay = computed(() => {
   return props.paper.authors;
 });
 
+// 期刊显示
+const journalDisplay = computed(() => {
+  // 优先使用 journal_name 字段（API返回的字段）
+  if (props.paper.journal_name) {
+    return props.paper.journal_name;
+  }
+  // 兼容旧的 journal 字段
+  if (props.paper.journal) {
+    return typeof props.paper.journal === "object"
+      ? props.paper.journal.name
+      : props.paper.journal;
+  }
+  return null;
+});
+
+// 年份显示
+const yearDisplay = computed(() => {
+  // 对于参考文献，使用 publication_year 字段
+  if (props.paper.publication_year) {
+    return props.paper.publication_year;
+  }
+  // 对于发表论文，从 publication_date 提取年份
+  if (props.paper.publication_date) {
+    return new Date(props.paper.publication_date).getFullYear();
+  }
+  // 兼容旧的 year 字段
+  if (props.paper.year) {
+    return props.paper.year;
+  }
+  // 最后从创建时间提取年份
+  if (props.paper.created_at) {
+    return new Date(props.paper.created_at).getFullYear();
+  }
+  return "未知";
+});
+
 const categoriesDisplay = computed(() => {
   if (!props.paper) return "未分类";
+
+  // 优先使用 category_name 字段（API直接返回的分类名称）
+  if (props.paper.category_name) {
+    return props.paper.category_name;
+  }
+
+  // 处理 category 对象（参考文献可能返回完整的分类对象）
+  if (props.paper.category && typeof props.paper.category === "object") {
+    return props.paper.category.name || "未知分类";
+  }
 
   // Handle single category_id
   if (props.paper.category_id) {
@@ -357,18 +428,15 @@ const handleDownload = async () => {
   padding: var(--space-sm);
   background: linear-gradient(135deg, var(--white), var(--primary-50));
   border-bottom: 1px solid var(--primary-200);
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: var(--space-sm);
+  position: relative; /* 为浮动操作按钮提供定位基准 */
 }
 
 .badge-section {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  flex: 1;
-  overflow: hidden;
+  flex-wrap: wrap; /* 允许徽章换行 */
+  /* padding-right: calc(var(--space-lg) + 140px); 为浮动按钮留出空间 */
 }
 
 .paper-type-badge {
@@ -383,6 +451,7 @@ const handleDownload = async () => {
   letter-spacing: 0.5px;
   box-shadow: var(--shadow-md);
   flex-shrink: 0;
+  white-space: nowrap; /* 防止文字换行 */
 }
 
 .paper-type-badge.literature {
@@ -407,15 +476,23 @@ const handleDownload = async () => {
   border-radius: var(--border-radius-lg);
   font-size: var(--text-xs);
   font-weight: 600;
-  background: linear-gradient(135deg, #f59e0b, #f97316);
-  color: var(--white);
+  background: linear-gradient(
+    135deg,
+    rgba(245, 158, 11, 0.05),
+    rgba(249, 115, 22, 0.05)
+  );
+  color: #d97706; /* 更淡的橙色文字 */
+  border: 2px solid rgba(249, 115, 22, 0.3); /* 更淡的边框 */
   box-shadow: var(--shadow-sm);
   max-width: 150px;
   flex-shrink: 1;
+  min-width: 0; /* 确保能够收缩 */
+  transition: all var(--transition-normal); /* 添加过渡效果 */
 }
 
 .team-icon {
   font-size: 0.9em;
+  color: rgba(249, 115, 22, 0.7); /* 图标也使用更淡的橙色 */
 }
 
 .team-name {
@@ -424,19 +501,47 @@ const handleDownload = async () => {
   white-space: nowrap;
 }
 
+/* 团队徽章悬停效果 */
+.team-badge:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(245, 158, 11, 0.1),
+    rgba(249, 115, 22, 0.1)
+  );
+  border-color: rgba(249, 115, 22, 0.5);
+  color: #ea580c;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
 .paper-actions {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
   display: flex;
   gap: var(--space-xs);
   opacity: 0;
   transform: translateX(20px);
   transition: all var(--transition-bounce);
-  z-index: 10;
-  position: relative;
+  z-index: 20; /* 确保浮动在其他内容之上 */
+  background: rgba(255, 255, 255, 0.95); /* 半透明背景提供更好的可读性 */
+  backdrop-filter: blur(8px); /* 背景模糊效果 */
+  padding: var(--space-xs);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md); /* 添加阴影增强浮动效果 */
+  border: 1px solid rgba(255, 255, 255, 0.8);
 }
 
 .paper-card:hover .paper-actions {
   opacity: 1;
   transform: translateX(0);
+}
+
+/* 增强浮动效果的视觉提示 */
+.paper-actions:hover {
+  background: rgba(255, 255, 255, 1); /* 悬停时背景更不透明 */
+  box-shadow: var(--shadow-lg); /* 增强阴影 */
+  transform: translateY(-1px); /* 轻微上移 */
 }
 
 .action-btn {
@@ -452,6 +557,7 @@ const handleDownload = async () => {
   width: 32px;
   height: 32px;
   box-shadow: var(--shadow-sm);
+  position: relative; /* 为悬停效果提供定位基准 */
 }
 
 .action-btn:hover {
@@ -737,26 +843,61 @@ const handleDownload = async () => {
 }
 
 /* 响应式设计 */
+@media (max-width: 768px) {
+  .badge-section {
+    padding-right: calc(var(--space-md) + 120px); /* 中等屏幕调整右边距 */
+  }
+
+  .team-badge {
+    max-width: 120px; /* 在中等屏幕上稍微缩小 */
+  }
+
+  .paper-actions {
+    top: var(--space-xs); /* 调整浮动位置 */
+    right: var(--space-xs);
+    gap: 2px; /* 减小按钮间距 */
+  }
+
+  .action-btn {
+    width: 28px; /* 缩小按钮尺寸 */
+    height: 28px;
+  }
+}
+
 @media (max-width: 480px) {
   .paper-card {
     min-height: 380px;
   }
+
   .paper-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--space-sm);
+    padding: var(--space-xs); /* 减少内边距 */
   }
 
   .badge-section {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-xs);
+    flex-wrap: nowrap; /* 移动端使用垂直布局，不需要换行 */
+    padding-right: 0; /* 移动端移除右边距 */
   }
 
   .paper-actions {
+    position: static; /* 移动端恢复为正常文档流 */
+    background: none;
+    backdrop-filter: none;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
     align-self: flex-end;
     opacity: 1;
     transform: none;
+    margin-top: var(--space-xs);
+  }
+
+  .action-btn {
+    width: 32px; /* 移动端恢复正常尺寸 */
+    height: 32px;
   }
 
   .meta-row {

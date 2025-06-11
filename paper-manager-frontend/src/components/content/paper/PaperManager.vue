@@ -17,8 +17,10 @@
           :selectedCategoryId="selectedCategoryId"
           @select="handleCategorySelect"
         />
-      </div>      <!-- 右侧内容 -->
-      <div class="main-content">        <!-- 搜索和筛选区域 -->
+      </div>
+      <!-- 右侧内容 -->
+      <div class="main-content">
+        <!-- 搜索和筛选区域 -->
         <div class="search-filter-section">
           <PaperSearchFilter
             :paper-type="config.paperType"
@@ -32,18 +34,45 @@
             ref="searchFilterRef"
           />
         </div>
-
         <!-- 内容头部 -->
         <div class="content-header">
           <div class="header-left">
-            <!-- 保留原有的分类信息显示 -->
+            <!-- 分类路径显示 -->
             <div v-if="selectedCategory" class="selected-category">
-              当前分类：{{ selectedCategory.name }}
+              <div class="category-breadcrumb">
+                <span
+                  v-for="(pathItem, index) in categoryPath"
+                  :key="pathItem.id"
+                  class="breadcrumb-item"
+                >
+                  <span class="breadcrumb-text">{{ pathItem.name }}</span>
+                  <span
+                    v-if="index < categoryPath.length - 1"
+                    class="breadcrumb-arrow"
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="currentColor"
+                    >
+                      <path
+                        d="M4.5 2l4 4-4 4"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        fill="none"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </span>
+                </span>
+              </div>
             </div>
           </div>
           <div class="header-right">
             <div class="papers-count">
-              共 {{ papers.length }} 篇{{
+              共 {{ totalItems }} 篇{{
                 config.paperType === "literature" ? "文献" : "论文"
               }}
             </div>
@@ -70,19 +99,31 @@
             <button @click="loadPapers" class="btn btn-primary">
               重新加载
             </button>
-          </div>          <!-- 空状态 -->
+          </div>
+          <!-- 空状态 -->
           <div v-else-if="filteredPapers.length === 0" class="empty-state">
             <div class="empty-icon">{{ config.emptyIcon }}</div>
-            <h3>{{ searchParams.keyword || Object.keys(searchParams).some(key => searchParams[key]) ? "未找到匹配的结果" : config.emptyTitle }}</h3>
+            <h3>
+              {{
+                searchParams.keyword ||
+                Object.keys(searchParams).some((key) => searchParams[key])
+                  ? "未找到匹配的结果"
+                  : config.emptyTitle
+              }}
+            </h3>
             <p>
               {{
-                searchParams.keyword || Object.keys(searchParams).some(key => searchParams[key])
+                searchParams.keyword ||
+                Object.keys(searchParams).some((key) => searchParams[key])
                   ? "试试调整搜索关键词或选择其他分类"
                   : config.emptyDescription
               }}
             </p>
             <button
-              v-if="!searchParams.keyword && !Object.keys(searchParams).some(key => searchParams[key])"
+              v-if="
+                !searchParams.keyword &&
+                !Object.keys(searchParams).some((key) => searchParams[key])
+              "
               @click="$emit('add-new')"
               class="btn btn-outline-purple"
             >
@@ -90,7 +131,6 @@
               {{ config.addButtonText }}
             </button>
           </div>
-
           <!-- 论文列表 -->
           <div v-else class="papers-grid">
             <PaperCard
@@ -99,7 +139,7 @@
               :paper="paper"
               :paper-type="config.paperType"
               @edit="$emit('edit', paper)"
-              @delete="handleDelete"
+              @delete="handleDeleteWithConfirm"
               @view="$emit('view', paper)"
             />
           </div>
@@ -172,6 +212,19 @@
         </div>
       </div>
     </div>
+
+    <!-- 确认删除对话框 -->
+    <ConfirmDialog
+      :visible="dialogState.visible"
+      :title="dialogState.title"
+      :message="dialogState.message"
+      :confirmText="dialogState.confirmText"
+      :cancelText="dialogState.cancelText"
+      :loading="dialogState.loading"
+      @confirm="confirmDialog"
+      @cancel="cancelDialog"
+      @close="cancelDialog"
+    />
   </div>
 </template>
 
@@ -180,6 +233,7 @@ import { computed, onMounted, watch, ref } from "vue";
 import { RouterLink } from "vue-router";
 import { CategoryTree } from "../category";
 import { PaperCard, PaperSearchFilter } from ".";
+import { ConfirmDialog } from "../../base";
 import { usePapersAdvanced } from "../../../composables/usePapersAdvanced";
 import { useTeam } from "../../../composables/useTeam";
 import { useCategories } from "../../../composables/useCategories";
@@ -187,6 +241,7 @@ import { useCategoryFiltering } from "../../../composables/useCategoryFiltering"
 import { useCategoryEvents } from "../../../composables/useCategoryEvents";
 import { usePaperEvents } from "../../../composables/usePaperEvents";
 import { useJournals } from "../../../composables/useJournals";
+import { useConfirmDialog } from "../../../composables/useConfirmDialog";
 
 const props = defineProps({
   config: {
@@ -218,14 +273,17 @@ const {
   selectedCategory: enhancedSelectedCategory,
   selectCategory: handleEnhancedCategorySelect,
   getFilteredItems,
-  loading: categoryLoading
+  loading: categoryLoading,
 } = useCategoryFiltering({
-  categoryType: computed(() =>
-    props.config.categoryType ||
-    (props.config.paperType === 'literature' ? 'references' : 'papers')
+  categoryType: computed(
+    () =>
+      props.config.categoryType ||
+      (props.config.paperType === "literature" ? "references" : "papers")
   ),
   paperType: computed(() => props.config.paperType),
-  teamId: computed(() => props.config.requireTeam ? currentTeam.value?.id : null)
+  teamId: computed(() =>
+    props.config.requireTeam ? currentTeam.value?.id : null
+  ),
 });
 
 // Get journals for the search filter (needed for literature search)
@@ -244,22 +302,29 @@ const loadJournalsForSearch = async () => {
       await fetchJournals();
     }
   } catch (error) {
-    console.error('Failed to load journals:', error);
+    console.error("Failed to load journals:", error);
   }
 };
 
 // Load categories when component mounts or when relevant props change
-const categoryType = computed(() =>
-  props.config.categoryType ||
-  (props.config.paperType === 'literature' ? 'references' : 'papers')
+const categoryType = computed(
+  () =>
+    props.config.categoryType ||
+    (props.config.paperType === "literature" ? "references" : "papers")
 );
 
-const teamId = computed(() => props.config.requireTeam ? currentTeam.value?.id : null);
+const teamId = computed(() =>
+  props.config.requireTeam ? currentTeam.value?.id : null
+);
 
 // Load categories when needed
-watch([categoryType, teamId], () => {
-  loadCategories(categoryType.value, teamId.value);
-}, { immediate: true });
+watch(
+  [categoryType, teamId],
+  () => {
+    loadCategories(categoryType.value, teamId.value);
+  },
+  { immediate: true }
+);
 
 // 监听分类更新事件，自动刷新分类数据
 onCategoryUpdate(async () => {
@@ -272,9 +337,13 @@ onPaperUpdate(async () => {
 });
 
 // Load journals when needed (especially for literature search)
-watch([teamId], () => {
-  loadJournalsForSearch();
-}, { immediate: true });
+watch(
+  [teamId],
+  () => {
+    loadJournalsForSearch();
+  },
+  { immediate: true }
+);
 
 // 使用高级的论文管理逻辑
 const {
@@ -304,6 +373,15 @@ const {
 // Reference to the search filter component
 const searchFilterRef = ref(null);
 
+// 确认删除对话框
+const { dialogState, confirmDialog, cancelDialog, confirmDelete } =
+  useConfirmDialog();
+
+// 包装删除函数以使用确认对话框
+const handleDeleteWithConfirm = async (paper) => {
+  await handleDelete(paper, confirmDelete);
+};
+
 // Handle category selection - integrate both old and new systems
 const handleCategorySelect = (categoryId) => {
   // Update the enhanced category filtering
@@ -322,7 +400,57 @@ const selectedCategory = computed(() => {
 
   // Fallback to original logic
   if (!selectedCategoryId.value || !categories.value) return null;
-  return categories.value.find(cat => cat.id === selectedCategoryId.value);
+  return categories.value.find((cat) => cat.id === selectedCategoryId.value);
+});
+
+// 构建分类映射用于查找父分类
+const categoryMap = computed(() => {
+  const map = new Map();
+  if (categories.value) {
+    const addToMap = (cats) => {
+      cats.forEach((category) => {
+        map.set(category.id, category);
+        if (category.children && category.children.length > 0) {
+          addToMap(category.children);
+        }
+      });
+    };
+    addToMap(categories.value);
+  }
+  return map;
+});
+
+// 计算分类路径（面包屑导航）
+const categoryPath = computed(() => {
+  if (!selectedCategory.value) return [];
+
+  // 如果使用增强的分类选择，且有完整的路径信息
+  if (enhancedSelectedCategory.value && enhancedSelectedCategory.value.path) {
+    return enhancedSelectedCategory.value.path.map((pathItem) => ({
+      id: pathItem.id,
+      name: pathItem.name || pathItem.category_name,
+    }));
+  }
+
+  // 构建从根到当前分类的路径
+  const path = [];
+  let current = selectedCategory.value;
+
+  while (current) {
+    path.unshift({
+      id: current.id,
+      name: current.name || current.category_name,
+    });
+
+    // 查找父分类
+    if (current.parent_id) {
+      current = categoryMap.value.get(current.parent_id);
+    } else {
+      current = null;
+    }
+  }
+
+  return path;
 });
 
 // 动态描述
@@ -444,6 +572,48 @@ defineExpose({
 .selected-category::before {
   content: "📁";
   font-size: 1.1em;
+}
+
+/* 面包屑导航样式 */
+.category-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.breadcrumb-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.breadcrumb-text {
+  color: var(--primary-700);
+  font-weight: 600;
+  font-size: var(--text-sm);
+  transition: color var(--transition-normal);
+}
+
+.breadcrumb-text:hover {
+  color: var(--primary-800);
+}
+
+.breadcrumb-arrow {
+  display: flex;
+  align-items: center;
+  color: var(--primary-500);
+  opacity: 0.7;
+  transition: opacity var(--transition-normal);
+}
+
+.breadcrumb-arrow:hover {
+  opacity: 1;
+}
+
+.breadcrumb-arrow svg {
+  fill: none;
+  stroke: currentColor;
 }
 
 .content-header {
