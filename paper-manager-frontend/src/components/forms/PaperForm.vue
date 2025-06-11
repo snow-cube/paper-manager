@@ -42,7 +42,8 @@
             </li>
           </ul>
         </div>
-      </div>      <!-- 表单内容区域 -->
+      </div>
+      <!-- 表单内容区域 -->
       <div class="form-content">
         <!-- 论文类型选择 -->
         <div class="form-section">
@@ -90,19 +91,21 @@
               :error="getFieldError('keyword_names')"
               @blur="markTouched('keyword_names')"
               @input="validateFieldRealtime('keyword_names', $event)"
-            />          <FormField
-            id="category_id"
-            v-model="form.category_id"
-            type="select"
-            label="分类"
-            @change="markTouched('category_id')"
-          >
-            <option value="">请选择分类</option>
-            <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-              {{ cat.name }}
-            </option>
-          </FormField>
-          </div>          <FormField
+            />
+            <CategorySelect
+              id="category_id"
+              v-model="form.category_id"
+              label="分类"
+              placeholder="请选择分类"
+              :categories="categoryTree"
+              :required="form.paper_type === 'published'"
+              :error="getFieldError('category_id')"
+              hint="选择合适的分类有助于论文的管理和检索"
+              @change="markTouched('category_id')"
+              @blur="markTouched('category_id')"
+            />
+          </div>
+          <FormField
             id="doi"
             v-model="form.doi"
             label="DOI"
@@ -153,7 +156,7 @@
               @blur="markTouched('publication_year')"
               @input="validateFieldRealtime('publication_year', $event)"
             />
-          </div>          <small class="form-hint">选择合适的分类有助于论文的管理和检索</small>
+          </div>
         </div>
 
         <!-- 作者信息 -->
@@ -199,7 +202,8 @@
                 :error="getFieldError('author_contributions')"
               />
             </div>
-          </transition>        </div>
+          </transition>
+        </div>
 
         <!-- 摘要和文件上传 -->
         <div class="form-section">
@@ -276,6 +280,7 @@ import {
   AuthorContributions,
   ModeSwitch,
   JournalSearchField,
+  CategorySelect,
 } from "./fields";
 import { usePaperFormInitialization } from "../../composables/usePaperFormInitialization";
 import { usePaperFormValidation } from "../../composables/usePaperFormValidation";
@@ -341,6 +346,41 @@ const authorList = computed(() => {
     .filter((name) => name.length > 0);
 });
 
+// 计算属性：分类树形结构
+const categoryTree = computed(() => {
+  if (!categories.value || categories.value.length === 0) {
+    return [];
+  }
+
+  // 构建分类映射
+  const categoryMap = new Map();
+  const rootCategories = [];
+
+  // 创建所有分类的映射
+  categories.value.forEach((category) => {
+    categoryMap.set(category.id, { ...category, children: [] });
+  });
+
+  // 构建树形结构
+  categories.value.forEach((category) => {
+    const categoryNode = categoryMap.get(category.id);
+    if (category.parent_id) {
+      const parent = categoryMap.get(category.parent_id);
+      if (parent) {
+        parent.children.push(categoryNode);
+      } else {
+        // 如果父分类不存在，则作为根分类
+        rootCategories.push(categoryNode);
+      }
+    } else {
+      // 根分类
+      rootCategories.push(categoryNode);
+    }
+  });
+
+  return rootCategories;
+});
+
 // 计算属性：验证错误相关
 const hasErrors = computed(() => {
   return Object.keys(errors.value).some((key) => errors.value[key]);
@@ -393,7 +433,7 @@ const handleSubmit = async () => {
     const result = await submitForm(props, isEdit.value);
 
     // 触发论文更新事件，通知其他组件刷新数据
-    const eventType = isEdit.value ? 'edit' : 'add';
+    const eventType = isEdit.value ? "edit" : "add";
     const paperType = form.value.paper_type;
     triggerPaperUpdate(eventType, paperType, result);
 
@@ -422,7 +462,7 @@ const handleJournalChange = (journal) => {
     form.value.journal = journal.name;
     console.log("Updated form journal fields:", {
       journal_id: form.value.journal_id,
-      journal: form.value.journal
+      journal: form.value.journal,
     }); // 调试信息
     validateFieldRealtime("journal_id", journal.id);
   } else {

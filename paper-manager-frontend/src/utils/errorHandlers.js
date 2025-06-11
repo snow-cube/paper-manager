@@ -239,3 +239,87 @@ export const handleFileUploadError = (error, paperType = 'published') => {
 
   return `${entityName}文件上传失败，请重试`;
 };
+
+/**
+ * 处理分类管理错误
+ * @param {Error} error - 错误对象
+ * @param {string} operationType - 操作类型 ('create' | 'update' | 'delete' | 'load')
+ * @param {string} categoryType - 分类类型 ('papers' | 'references')
+ * @returns {string} 用户友好的错误消息
+ */
+export const handleCategoryError = (error, operationType = 'create', categoryType = 'papers') => {
+  console.error(`${operationType} ${categoryType} category error:`, error);
+
+  const isReferenceCategory = categoryType === 'references';
+  const entityName = isReferenceCategory ? '参考文献分类' : '论文分类';
+
+  let actionName = '';
+  switch (operationType) {
+    case 'create':
+      actionName = '创建';
+      break;
+    case 'update':
+      actionName = '更新';
+      break;
+    case 'delete':
+      actionName = '删除';
+      break;
+    case 'load':
+      actionName = '加载';
+      break;
+    default:
+      actionName = '操作';
+  }
+
+  // 检查是否有响应错误
+  if (error.response) {
+    const status = error.response.status;
+    const data = error.response.data;
+
+    // 优先使用后端返回的详细错误信息
+    if (data?.detail) {
+      return `${actionName}${entityName}失败：${data.detail}`;
+    }
+
+    if (data?.message) {
+      return `${actionName}${entityName}失败：${data.message}`;
+    }
+
+    // 如果没有详细错误信息，使用基本的状态码错误信息
+    switch (status) {
+      case 400:
+        return `${actionName}${entityName}失败：请求参数有误`;
+      case 401:
+        return `${actionName}${entityName}失败：登录已过期，请重新登录`;
+      case 403:
+        return `${actionName}${entityName}失败：权限不足`;
+      case 404:
+        return `${actionName}${entityName}失败：资源不存在`;
+      case 409:
+        return `${actionName}${entityName}失败：操作冲突`;
+      case 422:
+        return `${actionName}${entityName}失败：数据验证失败`;
+      case 500:
+        return `${actionName}${entityName}失败：服务器内部错误`;
+      default:
+        return `${actionName}${entityName}失败：服务器响应异常（状态码：${status}）`;
+    }
+  }
+
+  // 检查是否是取消操作
+  if (error === false || error.message === 'canceled') {
+    return null; // 不显示错误，用户主动取消
+  }
+
+  // 网络错误或其他错误
+  if (error.code === 'NETWORK_ERROR' || error.message?.includes('Network Error')) {
+    return `${actionName}${entityName}失败：网络连接异常，请检查网络后重试`;
+  }
+
+  if (error.code === 'TIMEOUT' || error.message?.includes('timeout')) {
+    return `${actionName}${entityName}失败：请求超时，请稍后重试`;
+  }
+  // 默认错误消息
+  const errorMessage = error.message || '未知错误';
+  return `${actionName}${entityName}失败：${errorMessage}`;
+};

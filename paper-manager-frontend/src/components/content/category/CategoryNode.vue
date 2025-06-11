@@ -1,9 +1,9 @@
 <template>
-  <div class="category-node">
+  <div class="category-node" :style="{ '--current-level': level }">
     <div
       class="node-content"
       :class="{ 'node-active': selectedId === category.id }"
-      :style="{ paddingLeft: `${level * 1.5 + 0.75}rem` }"
+      :style="{ paddingLeft: `${level * 1.5 + 0.8}rem` }"
       @click="$emit('select', category.id)"
     >
       <!-- 展开/收起按钮 -->
@@ -49,15 +49,19 @@
         </button>
       </div>
     </div>
-
     <!-- 子分类 -->
-    <div v-if="hasChildren && expanded" class="node-children">
+    <div
+      v-if="hasChildren && expanded"
+      class="node-children"
+      :style="{ '--parent-level': level }"
+    >
       <CategoryNode
-        v-for="child in category.children"
+        v-for="(child, index) in category.children"
         :key="child.id"
         :category="child"
         :selected-id="selectedId"
         :level="level + 1"
+        :is-last="index === category.children.length - 1"
         @select="$emit('select', $event)"
         @add-child="$emit('add-child', $event)"
         @edit="$emit('edit', $event)"
@@ -82,6 +86,10 @@ const props = defineProps({
   level: {
     type: Number,
     default: 0,
+  },
+  isLast: {
+    type: Boolean,
+    default: false,
   },
 });
 
@@ -213,7 +221,7 @@ const toggleExpanded = () => {
   visibility: hidden;
   transition: all var(--transition-normal);
   position: absolute;
-  right: 2.5rem; /* 更靠右的位置，靠近论文数量但不重叠 */
+  right: 3rem; /* 更靠右的位置，靠近论文数量但不重叠 */
   background: rgba(255, 255, 255, 0.95); /* 半透明背景 */
   padding: var(--space-xs);
   border-radius: var(--border-radius);
@@ -265,23 +273,46 @@ const toggleExpanded = () => {
 }
 
 .node-children {
-  margin-left: var(--space-sm);
-  border-left: 1px solid var(--color-border);
-  padding-left: var(--space-sm);
-}
-
-/* 深层级的缩进样式 */
-.node-content[style*="padding-left"] {
   position: relative;
 }
 
-.node-content[style*="padding-left"]::before {
+/* 垂直连接线 - 从父节点的切换按钮位置向下 */
+.node-children::before {
   content: "";
   position: absolute;
-  left: calc(var(--level, 0) * var(--space-lg) + var(--space-sm));
+  left: calc(
+    var(--parent-level, 0) * 1.5rem + 0.5rem + 0.75rem
+  ); /* 与调整后的父节点缩进公式匹配 + 切换按钮中心 */
+  top: -0.75rem; /* 从父节点中心开始 */
+  bottom: 0.75rem; /* 延伸到最后一个子节点 */
+  width: 1px;
+  background: var(--color-border);
+  z-index: 1;
+}
+
+/* 每个子节点的水平连接线 */
+.node-children .category-node .node-content::before {
+  content: "";
+  position: absolute;
+  left: calc(
+    var(--parent-level, 0) * 1.5rem + 0.5rem + 0.75rem
+  ); /* 从父级垂直线位置开始 */
   top: 50%;
-  width: var(--space-md);
+  width: 1.125rem; /* 延伸到图标位置 */
   height: 1px;
   background: var(--color-border);
+  z-index: 1;
+}
+
+/* 最后一个子节点的垂直线处理 */
+.node-children .category-node:last-child::after {
+  content: "";
+  position: absolute;
+  left: calc(var(--parent-level, 0) * 1.5rem + 0.5rem + 0.75rem);
+  top: 50%;
+  height: 0.75rem; /* 覆盖从节点中心到底部的垂直线 */
+  width: 1px;
+  background: var(--white);
+  z-index: 2;
 }
 </style>

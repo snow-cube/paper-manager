@@ -177,6 +177,7 @@ import { useToast } from "../../../composables/useToast";
 import { useConfirmDialog } from "../../../composables/useConfirmDialog";
 import { useCategories } from "../../../composables/useCategories";
 import { useCategoryEvents } from "../../../composables/useCategoryEvents";
+import { handleCategoryError } from "../../../utils/errorHandlers";
 import { LoadingSpinner, ConfirmDialog } from "../../base";
 import { CategoryNode } from ".";
 
@@ -289,25 +290,23 @@ const loadCategories = async () => {
       }
       // 使用服务端统计
       categories = await getReferenceCategories(props.teamId, {
-        include_stats: true
+        include_stats: true,
       });
     } else {
       // 使用服务端统计，传递论文类型用于筛选
       categories = await getCategories({
         include_stats: true,
-        paper_type: props.paperType
+        paper_type: props.paperType,
       });
-    }    // 将扁平化列表转换为树形结构
+    } // 将扁平化列表转换为树形结构
     categoryTree.value = buildCategoryTree(categories || []);
 
     // 设置服务端统计数据
-    setServerStats(categoryTree.value);
-
-    // 计算总数量（从服务端统计数据中获取）
+    setServerStats(categoryTree.value); // 计算总数量（从服务端统计数据中获取）
     totalPapers.value = calculateTotalFromStats(categories || []);
   } catch (err) {
     console.error("加载分类失败:", err);
-    error.value = "加载分类失败，请重试";
+    error.value = handleCategoryError(err, "load", props.categoryType);
   } finally {
     loading.value = false;
   }
@@ -327,9 +326,9 @@ const setServerStats = (categories) => {
   categories.forEach((category) => {
     // 直接使用服务端返回的统计数据
     // 论文分类使用 paper_count，参考文献分类使用 reference_count
-    if (typeof category.paper_count !== 'undefined') {
+    if (typeof category.paper_count !== "undefined") {
       // 保持原有值
-    } else if (typeof category.reference_count !== 'undefined') {
+    } else if (typeof category.reference_count !== "undefined") {
       // 将 reference_count 映射到 paper_count 用于显示
       category.paper_count = category.reference_count;
     } else {
@@ -473,7 +472,8 @@ const saveCategory = async () => {
         await createReferenceCategory(data);
       } else {
         await createCategory(data);
-      }    }
+      }
+    }
     await loadCategories();
 
     // 通知全局分类数据已更新
@@ -486,7 +486,14 @@ const saveCategory = async () => {
     showToast(isEditing.value ? "分类更新成功" : "分类创建成功", "success");
   } catch (error) {
     console.error("保存分类失败:", error);
-    showToast("保存分类失败，请重试", "error");
+    const errorMessage = handleCategoryError(
+      error,
+      isEditing.value ? "update" : "create",
+      props.categoryType
+    );
+    if (errorMessage) {
+      showToast(errorMessage, "error");
+    }
   }
 };
 
@@ -513,7 +520,7 @@ const handleDeleteCategory = (categoryId) => {
 // 删除分类
 const deleteCategory = async (category) => {
   try {
-    await confirmDelete("这个分类（删除后其子分类也会被删除）");
+    await confirmDelete("这个分类");
 
     setLoading(true);
 
@@ -521,7 +528,9 @@ const deleteCategory = async (category) => {
     if (props.categoryType === "references") {
       await deleteReferenceCategoryAPI(category.id);
     } else {
-      await deleteCategoryAPI(category.id);    }    await loadCategories();
+      await deleteCategoryAPI(category.id);
+    }
+    await loadCategories();
 
     // 通知全局分类数据已更新
     await refreshCategories(props.categoryType, props.teamId);
@@ -539,7 +548,14 @@ const deleteCategory = async (category) => {
     if (error !== false) {
       // 用户没有取消操作
       console.error("删除分类失败:", error);
-      showToast("删除分类失败，请重试", "error");
+      const errorMessage = handleCategoryError(
+        error,
+        "delete",
+        props.categoryType
+      );
+      if (errorMessage) {
+        showToast(errorMessage, "error");
+      }
     }
     setLoading(false);
   }
@@ -660,11 +676,15 @@ defineExpose({
 
 .tree-node-all {
   margin: 0 var(--space-sm) var(--space-sm);
-  padding: var(--space-md);
+  padding: var(--space-sm);
   border-radius: var(--border-radius);
   border: 1px solid var(--primary-200);
   background: linear-gradient(to right, var(--primary-50), var(--white));
   box-shadow: var(--shadow-sm);
+}
+
+.tree-node-all .tree-node-content {
+  padding: var(--space-sm);
 }
 
 .tree-node-content {
