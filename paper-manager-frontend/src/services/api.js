@@ -21,7 +21,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // 检查是否是登录请求失败，如果是则不重定向
-      const isLoginRequest = error.config?.url?.includes('/users/token');
+      const isLoginRequest = error.config?.url?.includes("/users/token");
 
       if (!isLoginRequest) {
         // 只有在非登录请求时才清除token并重定向
@@ -193,7 +193,12 @@ export const getAuthorCollaborationNetwork = async (authorName) => {
 // ==================== 分类管理 APIs ====================
 // 获取分类列表
 export const getCategories = async (params = {}) => {
-  const { skip = 0, limit = 100, include_stats = false, paper_type, ...otherParams } = params;
+  const {
+    skip = 0,
+    limit = 100,
+    include_stats = false,
+    ...otherParams
+  } = params;
 
   const queryParams = {
     skip,
@@ -204,28 +209,9 @@ export const getCategories = async (params = {}) => {
   // 如果需要统计信息，添加相应参数
   if (include_stats) {
     queryParams.include_stats = true;
-    if (paper_type) {
-      queryParams.paper_type = paper_type;
-    }
   }
 
   return (await api.get("/categories/", { params: queryParams })).data;
-};
-
-// 获取分类树（兼容旧版本调用）
-export const getCategoryTree = async (categoryType = "papers", teamId = null, paperType = null) => {
-  let categories;
-
-  if (categoryType === "references") {
-    if (!teamId) {
-      return { categories: [] };
-    }
-    categories = await getReferenceCategories(teamId, { include_stats: true });
-  } else {
-    categories = await getCategories({ include_stats: true, paper_type: paperType });
-  }
-
-  return { categories }; // 包装为兼容格式
 };
 
 // 创建分类
@@ -247,13 +233,18 @@ export const deleteCategory = async (categoryId) =>
 // ==================== 参考文献分类管理 APIs ====================
 // 获取参考文献分类列表
 export const getReferenceCategories = async (teamId, params = {}) => {
-  const { skip = 0, limit = 100, include_stats = false, ...otherParams } = params;
+  const {
+    skip = 0,
+    limit = 100,
+    include_stats = false,
+    ...otherParams
+  } = params;
 
   const queryParams = {
     team_id: teamId,
     skip,
     limit,
-    ...otherParams
+    ...otherParams,
   };
 
   // 如果需要统计信息，添加相应参数
@@ -261,7 +252,8 @@ export const getReferenceCategories = async (teamId, params = {}) => {
     queryParams.include_stats = true;
   }
 
-  return (await api.get("/reference-categories/", { params: queryParams })).data;
+  return (await api.get("/reference-categories/", { params: queryParams }))
+    .data;
 };
 
 // 创建参考文献分类
@@ -369,7 +361,49 @@ export const uploadReference = async (referenceId, file) => {
   return (await api.post(`/references/${referenceId}/upload`, formData)).data;
 };
 
-// ==================== 期刊管理 APIs ====================
+// 导出论文列表为Excel
+export const exportPapersExcel = async (params = {}) => {
+  const queryParams = {};
+
+  // 构建查询参数，只添加非空值
+  if (params.title) queryParams.title = params.title;
+  if (params.category_id) queryParams.category_id = params.category_id;
+  if (params.author_name) queryParams.author_name = params.author_name;
+  if (params.keyword) queryParams.keyword = params.keyword;
+  if (params.journal_id) queryParams.journal_id = params.journal_id;
+  if (params.start_date) queryParams.start_date = params.start_date;
+  if (params.end_date) queryParams.end_date = params.end_date;
+  if (params.team_id) queryParams.team_id = params.team_id;
+
+  console.log("Exporting papers with params:", queryParams);
+
+  return await api.get("/papers/export/excel", {
+    params: queryParams,
+    responseType: "blob",
+  });
+};
+
+// 导出参考文献列表为Excel
+export const exportReferencesExcel = async (params = {}) => {
+  const queryParams = {};
+
+  // 构建查询参数，只添加非空值
+  if (params.team_id) queryParams.team_id = params.team_id;
+  if (params.category_id) queryParams.category_id = params.category_id;
+  if (params.keyword) queryParams.keyword = params.keyword;
+  if (params.journal_id) queryParams.journal_id = params.journal_id;
+  if (params.publication_year)
+    queryParams.publication_year = params.publication_year;
+  if (params.title) queryParams.title = params.title;
+
+  console.log("Exporting references with params:", queryParams);
+
+  return await api.get("/references/export/excel", {
+    params: queryParams,
+    responseType: "blob",
+  });
+};
+
 // 获取期刊列表
 export const getJournals = async (params = {}) => {
   // 确保分页参数有默认值

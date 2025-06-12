@@ -5,6 +5,8 @@ from typing import List, Optional
 from datetime import datetime
 import os
 import shutil
+import tempfile
+import pandas as pd
 
 from app.core.database import get_session
 from app.core.config_dev import get_team_upload_dir
@@ -526,4 +528,115 @@ async def download_reference_by_title(
         db_reference.file_path,
         filename=filename,
         media_type="application/pdf"
+    )
+
+
+@router.get("/export/excel")
+def export_references_excel(
+    team_id: Optional[int] = None,
+    category_id: Optional[int] = None,
+    keyword: Optional[str] = None,
+    journal_id: Optional[int] = None,
+    publication_year: Optional[int] = None,
+    title: Optional[str] = None,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    """导出参考文献列表为Excel格式"""
+    # 使用与read_references相同的查询逻辑
+    query = select(ReferencePaper)
+
+    # 如果指定了团队，检查用户是否为团队成员
+    if team_id is not None:
+        check_team_member(team_id, current_user, session)
+        query = query.where(ReferencePaper.team_id == team_id)
+    else:
+        # 获取用户所在的所有团队ID
+        user_teams = session.exec(
+            select(TeamUser).where(TeamUser.user_id == current_user.id)
+        ).all()
+        team_ids = [0] + [tu.team_id for tu in user_teams]  # 包括公开的参考文献
+        query = query.where(ReferencePaper.team_id.in_(team_ids))
+
+    # 应用其他过滤条件
+    if title:
+        query = query.where(ReferencePaper.title.contains(title))
+    if category_id:
+        category_ids = get_reference_category_and_subcategories(session, category_id)
+        query = query.where(ReferencePaper.category_id.in_(category_ids))
+    if keyword:
+        query = (
+            query
+            .join(ReferenceKeyword)
+            .join(Keyword)
+            .where(Keyword.name == keyword)
+        )
+    if journal_id:
+        query = query.where(ReferencePaper.journal_id == journal_id)
+    if publication_year:
+        query = query.where(ReferencePaper.publication_year == publication_year)
+
+    references = session.exec(query).all()
+
+    # 准备Excel数据
+    excel_data = []
+    for ref in references:
+        # 获取相关信息
+        keywords = [
+            kw.name for kw in session.exec(
+                select(Keyword)
+                .join(ReferenceKeyword)
+                .where(ReferenceKeyword.reference_id == ref.id)
+            ).all()
+        ]
+
+        category_name = None
+        if ref.category_id:
+            category = session.get(ReferenceCategory, ref.category_id)
+            if category:
+                category_name = category.name
+
+        journal_name = None
+        if ref.journal_id:
+            journal = session.get(Journal, ref.journal_id)
+            if journal:
+                journal_name = journal.name
+
+        team_name = None
+        if ref.team_id:
+            team = session.get(Team, ref.team_id)
+            if team:
+                team_name = team.name
+
+        excel_data.append({
+            'ID': ref.id,
+            'Title': ref.title,
+            'Authors': ref.authors or '',
+            'Keywords': '; '.join(keywords),
+            'Category': category_name or '',
+            'Journal': journal_name or '',
+            'Publication Year': ref.publication_year,
+            'DOI': ref.doi or '',
+            'Team': team_name or '',
+            'Created At': ref.created_at,
+            'Has File': 'Yes' if ref.file_path and os.path.exists(ref.file_path) else 'No'
+        })
+
+    # 创建Excel文件
+    df = pd.DataFrame(excel_data)
+
+    # 生成文件名
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"references_export_{timestamp}.xlsx"
+
+    # 创建临时文件
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as temp_file:
+        df.to_excel(temp_file.name, index=False, engine='openpyxl')
+        temp_path = temp_file.name
+
+    return FileResponse(
+        temp_path,
+        filename=filename,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
     )

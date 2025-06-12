@@ -248,12 +248,25 @@ const handleDownload = async () => {
 
   downloading.value = true;
   try {
-    const fileName = getDownloadFileName(props.paper);
-    await downloadItem(props.paper.file_path, fileName);
-    showToast("文件下载完成", "success");
+    showToast("正在准备下载文件...", "info");
+
+    // 使用统一的下载服务
+    const response = await downloadItem(props.paper);
+
+    // 获取文件名
+    const fileName = getDownloadFileName(props.paper, response);
+
+    // 确定内容类型
+    const contentType =
+      response.headers["content-type"] || "application/octet-stream";
+
+    // 触发下载
+    triggerDownload(response.data, fileName, contentType);
+
+    showToast("文件下载成功", "success");
   } catch (error) {
     console.error("下载失败:", error);
-    showToast("文件下载失败，请稍后重试", "error");
+    showToast(error.message || "文件下载失败，请稍后重试", "error");
   } finally {
     downloading.value = false;
   }

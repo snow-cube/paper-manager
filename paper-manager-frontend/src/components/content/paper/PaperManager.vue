@@ -83,6 +83,15 @@
                 config.paperType === "literature" ? "文献" : "论文"
               }}
             </div>
+            <button
+              v-if="totalItems > 0"
+              @click="handleExportExcel"
+              class="btn btn-outline-primary export-btn"
+              :disabled="exportingExcel"
+            >
+              <span class="btn-icon">{{ exportingExcel ? "⏳" : "📊" }}</span>
+              {{ exportingExcel ? "导出中..." : "导出 Excel" }}
+            </button>
             <button @click="$emit('add-new')" class="btn btn-primary add-btn">
               <span class="btn-icon">✨</span>
               {{ config.addButtonText }}
@@ -255,7 +264,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, watch, ref } from "vue";
+import { computed, onMounted, watch, ref, toRaw } from "vue";
 import { RouterLink } from "vue-router";
 import { CategoryTree } from "../category";
 import { PaperCard, PaperSearchFilter, PaperListItem } from ".";
@@ -268,6 +277,12 @@ import { useCategoryEvents } from "../../../composables/useCategoryEvents";
 import { usePaperEvents } from "../../../composables/usePaperEvents";
 import { useJournals } from "../../../composables/useJournals";
 import { useConfirmDialog } from "../../../composables/useConfirmDialog";
+import { useToast } from "../../../composables/useToast";
+import {
+  exportToExcel,
+  generateExcelFileName,
+  triggerDownload,
+} from "../../../services/downloadService";
 
 const props = defineProps({
   config: {
@@ -281,6 +296,12 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["add-new", "edit", "view"]);
+
+// Toast 消息功能
+const { showToast } = useToast();
+
+// 导出状态
+const exportingExcel = ref(false);
 
 // 视图模式管理
 const viewMode = ref(localStorage.getItem("paper-view-mode") || "card");
@@ -433,7 +454,6 @@ const categoryMap = computed(() => {
 
 // 计算分类路径（面包屑导航）- 完全依赖客户端计算
 const categoryPath = computed(() => {
-  console.log("Calculating category path for:", selectedCategory.value);
   if (!selectedCategory.value) return [];
 
   // 手动构建从根到当前分类的路径，不依赖后端路径信息
@@ -479,6 +499,50 @@ const getVisiblePages = () => {
   }
 
   return pages;
+};
+
+// Excel导出功能
+const handleExportExcel = async () => {
+  if (exportingExcel.value) return;
+
+  exportingExcel.value = true;
+
+  try {
+    showToast("正在准备导出数据...", "info");
+
+    // 获取当前的搜索和筛选参数，直接使用 toRaw 解包响应式对象
+    const exportParams = toRaw(searchParams.value);
+
+    // 根据配置确定导出类型
+    const exportType = props.config.paperType || "papers";
+
+    // 调用导出API
+    const response = await exportToExcel(
+      exportType,
+      exportParams,
+      props.config.requireTeam || false,
+      currentTeam.value
+    );
+
+    // 生成文件名
+    const fileName = generateExcelFileName(exportType, currentTeam.value);
+
+    // 触发下载
+    triggerDownload(
+      response.data,
+      fileName,
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+
+    showToast("数据导出成功", "success");
+  } catch (error) {
+    console.error("导出失败:", error);
+    const errorMessage =
+      error.response?.data?.detail || error.message || "导出失败，请重试";
+    showToast(`导出失败：${errorMessage}`, "error");
+  } finally {
+    exportingExcel.value = false;
+  }
 };
 
 // 生命周期
@@ -621,7 +685,7 @@ defineExpose({
 }
 
 .content-header {
-  padding: var(--space-lg);
+  padding: var(--space-md);
   border-bottom: 1px solid var(--primary-100);
   background: linear-gradient(135deg, var(--white), var(--primary-25));
   display: flex;
@@ -769,6 +833,40 @@ defineExpose({
 
 .add-btn .btn-icon {
   font-size: 1.1em;
+}
+
+.export-btn {
+  background: var(--white);
+  color: var(--primary-600);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--border-radius-lg);
+  font-weight: 500;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-bounce);
+  border: 1px solid var(--primary-300);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-sm);
+}
+
+.export-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+  background: var(--primary-50);
+  border-color: var(--primary-400);
+  color: var(--primary-700);
+}
+
+.export-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.export-btn .btn-icon {
+  font-size: 1em;
 }
 
 .papers-container {

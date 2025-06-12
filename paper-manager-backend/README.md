@@ -863,10 +863,26 @@ client_secret: string (可选)
     "doi": "string",
     "category_id": "integer",
     "keyword_names": ["string"],
+    "author_names": ["string"],
+    "author_contribution_ratios": ["number"],
     "file_path": "string",
     "team_id": "integer"
 }
 ```
+
+**所有字段都是可选的：**
+
+- `title`: string - 论文标题
+- `abstract`: string - 论文摘要
+- `publication_date`: datetime - 发表日期
+- `journal_id`: integer - 期刊ID（设为0可清空期刊关联）
+- `doi`: string - DOI标识符
+- `category_id`: integer - 分类ID（设为0可清空分类关联）
+- `keyword_names`: array[string] - 关键词列表（完全替换现有关键词）
+- `author_names`: array[string] - 作者姓名列表（完全替换现有作者，按顺序排列）
+- `author_contribution_ratios`: array[number] - 作者贡献率列表（对应author_names的顺序，默认为1.0）
+- `file_path`: string - 文件路径
+- `team_id`: integer - 团队ID（不能设为0，必须是有效的团队ID）
 
 响应体：
 
@@ -1023,10 +1039,33 @@ client_secret: string (可选)
             "name": "string",
             "collaboration_count": "integer",
             "papers": ["string"]
-        }
-    ]
+        }    ]
 }
 ```
+
+##### GET `/api/papers/export/excel`
+
+导出论文列表为Excel格式
+
+查询参数：
+
+- title: string (可选) - 论文标题筛选
+- category_id: integer (可选) - 分类ID筛选
+- author_name: string (可选) - 作者名称筛选
+- keyword: string (可选) - 关键词筛选
+- journal_id: integer (可选) - 期刊ID筛选
+- start_date: datetime (可选) - 发表日期起始范围
+- end_date: datetime (可选) - 发表日期结束范围
+- team_id: integer (可选) - 团队ID筛选
+
+响应：Excel文件下载
+
+**说明：**
+
+- 支持与论文列表API相同的筛选条件
+- 导出的Excel包含以下列：ID、Title、Abstract、Authors、Keywords、Category、Journal、Publication Date、DOI、Team、Created At、Has File
+- 文件名格式：`papers_export_YYYYMMDD_HHMMSS.xlsx`
+- 返回Content-Type: `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
 
 ### 期刊相关 API
 
@@ -1628,6 +1667,29 @@ client_secret: string (可选)
 - team_id: integer (必填)
 
 响应：PDF文件下载
+
+##### GET `/api/references/export/excel`
+
+导出参考文献列表为Excel格式
+
+查询参数：
+
+- team_id: integer (可选) - 团队ID筛选
+- category_id: integer (可选) - 分类ID筛选
+- keyword: string (可选) - 关键词筛选
+- journal_id: integer (可选) - 期刊ID筛选
+- publication_year: integer (可选) - 发表年份筛选
+- title: string (可选) - 标题筛选
+
+响应：Excel文件下载
+
+**说明：**
+
+- 支持与参考文献列表API相同的筛选条件
+- 如果不指定team_id，导出用户有权访问的所有团队的参考文献
+- 导出的Excel包含以下列：ID、Title、Authors、Keywords、Category、Journal、Publication Year、DOI、Team、Created At、Has File
+- 文件名格式：`references_export_YYYYMMDD_HHMMSS.xlsx`
+- 返回Content-Type: `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
 
 #### 参考文献分类管理
 

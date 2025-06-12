@@ -287,18 +287,17 @@ const loadCategories = async () => {
         categoryTree.value = [];
         totalPapers.value = 0;
         return;
-      }
-      // 使用服务端统计
+      } // 使用服务端统计
       categories = await getReferenceCategories(props.teamId, {
         include_stats: true,
       });
     } else {
-      // 使用服务端统计，传递论文类型用于筛选
+      // 使用服务端统计
       categories = await getCategories({
         include_stats: true,
-        paper_type: props.paperType,
       });
-    } // 将扁平化列表转换为树形结构
+    }
+    // 将扁平化列表转换为树形结构
     categoryTree.value = buildCategoryTree(categories || []);
 
     // 设置服务端统计数据
@@ -348,15 +347,6 @@ const setServerStats = (categories) => {
     }
   });
 };
-
-// 监听 paperType 变化，重新加载统计
-watch(
-  () => props.paperType,
-  () => {
-    // 重新加载分类以获取正确的统计数据
-    loadCategories();
-  }
-);
 
 // 监听 teamId 和 categoryType 变化，重新加载分类
 watch(

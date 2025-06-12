@@ -126,6 +126,8 @@ class PaperUpdate(SQLModel):
     doi: Optional[str] = None
     category_id: Optional[int] = None  # Changed from category_ids to category_id
     keyword_names: Optional[List[str]] = None
+    author_names: Optional[List[str]] = None
+    author_contribution_ratios: Optional[List[float]] = None
     file_path: Optional[str] = None
     team_id: Optional[int] = None
 

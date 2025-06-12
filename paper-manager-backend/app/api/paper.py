@@ -4,6 +4,8 @@ from typing import List, Optional
 import os
 from datetime import datetime
 from fastapi.responses import FileResponse
+import tempfile
+import pandas as pd
 
 from app.core.database import get_session
 from app.models.paper import (
@@ -588,6 +590,37 @@ def update_paper(
     for key, value in update_data.items():
         setattr(paper, key, value)
 
+    # 更新作者
+    if paper_update.author_names is not None:
+        # 删除现有作者关联
+        session.exec(
+            delete(PaperAuthor).where(PaperAuthor.paper_id == paper_id)
+        )
+        # 添加新的作者关联
+        for i, name in enumerate(paper_update.author_names):
+            author = session.exec(
+                select(Author).where(Author.name == name)
+            ).first()
+            if not author:
+                author = Author(name=name)
+                session.add(author)
+                session.flush()
+
+            contribution_ratio = (
+                paper_update.author_contribution_ratios[i]
+                if paper_update.author_contribution_ratios
+                and i < len(paper_update.author_contribution_ratios)
+                else 1.0
+            )
+            paper_author = PaperAuthor(
+                paper_id=paper_id,
+                author_id=author.id,
+                contribution_ratio=contribution_ratio,
+                is_corresponding=False,  # 可以根据需要调整
+                author_order=i + 1
+            )
+            session.add(paper_author)
+
     # 更新关键词
     if paper_update.keyword_names is not None:
         # 删除现有关键词关联
@@ -876,3 +909,132 @@ def get_author_collaboration_network(
         "total_collaborators": len(sorted_collaborators),
         "collaborators": sorted_collaborators
     }
+
+@router.get("/export/excel")
+def export_papers_excel(
+    title: Optional[str] = None,
+    category_id: Optional[int] = None,
+    author_name: Optional[str] = None,
+    keyword: Optional[str] = None,
+    journal_id: Optional[int] = None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    team_id: Optional[int] = None,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    """导出论文列表为Excel格式"""
+    # 使用与read_papers相同的查询逻辑
+    query = select(Paper)
+
+    # 根据team_id进行过滤
+    if team_id is not None and team_id != 0:
+        team = session.get(Team, team_id)
+        if not team:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Team {team_id} not found"
+            )
+        query = query.where(Paper.team_id == team_id)
+
+    # 应用其他过滤条件
+    if title:
+        query = query.where(Paper.title.contains(title))
+    if category_id:
+        category_ids = get_category_and_subcategories(session, category_id)
+        query = query.where(Paper.category_id.in_(category_ids))
+    if author_name:
+        query = (
+            query
+            .join(PaperAuthor)
+            .join(Author)
+            .where(Author.name == author_name)
+        )
+    if keyword:
+        query = (
+            query
+            .join(PaperKeyword)
+            .join(Keyword)
+            .where(Keyword.name == keyword)
+        )
+    if journal_id:
+        query = query.where(Paper.journal_id == journal_id)
+    if start_date:
+        query = query.where(Paper.publication_date >= start_date)
+    if end_date:
+        query = query.where(Paper.publication_date <= end_date)
+
+    papers = session.exec(query).all()
+
+    # 准备Excel数据
+    excel_data = []
+    for paper in papers:
+        # 获取相关信息
+        keywords = [
+            kw.name for kw in session.exec(
+                select(Keyword)
+                .join(PaperKeyword)
+                .where(PaperKeyword.paper_id == paper.id)
+            ).all()
+        ]
+
+        authors = [
+            author.name for author in session.exec(
+                select(Author)
+                .join(PaperAuthor)
+                .where(PaperAuthor.paper_id == paper.id)
+                .order_by(PaperAuthor.author_order)
+            ).all()
+        ]
+
+        category_name = None
+        if paper.category_id:
+            category = session.get(Category, paper.category_id)
+            if category:
+                category_name = category.name
+
+        journal_name = None
+        if paper.journal_id:
+            journal = session.get(Journal, paper.journal_id)
+            if journal:
+                journal_name = journal.name
+
+        team_name = None
+        if paper.team_id:
+            team = session.get(Team, paper.team_id)
+            if team:
+                team_name = team.name
+
+        excel_data.append({
+            'ID': paper.id,
+            'Title': paper.title,
+            'Abstract': paper.abstract,
+            'Authors': '; '.join(authors),
+            'Keywords': '; '.join(keywords),
+            'Category': category_name or '',
+            'Journal': journal_name or '',
+            'Publication Date': paper.publication_date.strftime('%Y-%m-%d') if paper.publication_date else '',
+            'DOI': paper.doi or '',
+            'Team': team_name or '',
+            'Created At': paper.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'Has File': 'Yes' if paper.file_path and os.path.exists(paper.file_path) else 'No'
+        })
+
+    # 创建Excel文件
+    df = pd.DataFrame(excel_data)
+
+    # 生成文件名
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"papers_export_{timestamp}.xlsx"
+
+    # 创建临时文件
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as temp_file:
+        df.to_excel(temp_file.name, index=False, engine='openpyxl')
+        temp_path = temp_file.name
+
+    return FileResponse(
+        temp_path,
+        filename=filename,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )

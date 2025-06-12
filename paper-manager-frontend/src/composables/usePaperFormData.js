@@ -10,7 +10,10 @@ import {
 import { useToast } from "./useToast";
 import { useAuth } from "./useAuth";
 import { useTeam } from "./useTeam";
-import { handlePaperSubmissionError, handleFileUploadError } from "../utils/errorHandlers";
+import {
+  handlePaperSubmissionError,
+  handleFileUploadError,
+} from "../utils/errorHandlers";
 
 export function usePaperFormData(form, file, authorContributions) {
   const submitting = ref(false);
@@ -45,7 +48,7 @@ export function usePaperFormData(form, file, authorContributions) {
     }
     // 如果是空字符串或undefined，返回null
     return categoryId || null;
-  };  // 准备发表论文数据
+  }; // 准备发表论文数据
   const preparePaperData = (form, authorContributions) => {
     return {
       title: form.title,
@@ -88,7 +91,7 @@ export function usePaperFormData(form, file, authorContributions) {
         try {
           await uploadPaperFile(savedPaper.id, file);
         } catch (uploadError) {
-          const errorMessage = handleFileUploadError(uploadError, 'published');
+          const errorMessage = handleFileUploadError(uploadError, "published");
           console.error("文件上传失败:", uploadError);
           showToast(errorMessage, "warning");
           // 即使文件上传失败，论文创建成功，所以不抛出错误
@@ -96,7 +99,11 @@ export function usePaperFormData(form, file, authorContributions) {
       }
       return savedPaper;
     } catch (error) {
-      const errorMessage = handlePaperSubmissionError(error, 'create', 'published');
+      const errorMessage = handlePaperSubmissionError(
+        error,
+        "create",
+        "published"
+      );
       showToast(errorMessage, "error");
       throw error;
     }
@@ -110,7 +117,7 @@ export function usePaperFormData(form, file, authorContributions) {
         try {
           await uploadReference(savedReference.id, file);
         } catch (uploadError) {
-          const errorMessage = handleFileUploadError(uploadError, 'literature');
+          const errorMessage = handleFileUploadError(uploadError, "literature");
           console.error("文件上传失败:", uploadError);
           showToast(errorMessage, "warning");
           // 即使文件上传失败，文献创建成功，所以不抛出错误
@@ -118,7 +125,11 @@ export function usePaperFormData(form, file, authorContributions) {
       }
       return savedReference;
     } catch (error) {
-      const errorMessage = handlePaperSubmissionError(error, 'create', 'literature');
+      const errorMessage = handlePaperSubmissionError(
+        error,
+        "create",
+        "literature"
+      );
       showToast(errorMessage, "error");
       throw error;
     }
@@ -129,7 +140,11 @@ export function usePaperFormData(form, file, authorContributions) {
     try {
       return await updatePaper(paperId, paperData);
     } catch (error) {
-      const errorMessage = handlePaperSubmissionError(error, 'update', 'published');
+      const errorMessage = handlePaperSubmissionError(
+        error,
+        "update",
+        "published"
+      );
       showToast(errorMessage, "error");
       throw error;
     }
@@ -140,11 +155,15 @@ export function usePaperFormData(form, file, authorContributions) {
     try {
       return await updateReference(referenceId, referenceData);
     } catch (error) {
-      const errorMessage = handlePaperSubmissionError(error, 'update', 'literature');
+      const errorMessage = handlePaperSubmissionError(
+        error,
+        "update",
+        "literature"
+      );
       showToast(errorMessage, "error");
       throw error;
     }
-  };// 主要的提交处理函数
+  }; // 主要的提交处理函数
   const handleSubmit = async (props, isEdit) => {
     if (!form?.value) {
       showToast("表单数据不可用", "error");
@@ -168,7 +187,8 @@ export function usePaperFormData(form, file, authorContributions) {
         const paperData = preparePaperData(
           form.value,
           authorContributions?.value || []
-        );        if (isEdit && props.paper?.id) {
+        );
+        if (isEdit && props.paper?.id) {
           result = await updatePaperData(props.paper.id, paperData);
 
           // 如果有新文件需要上传，单独处理文件上传
@@ -177,9 +197,16 @@ export function usePaperFormData(form, file, authorContributions) {
               await uploadPaperFile(props.paper.id, file.value);
               showToast("论文更新成功，文件上传成功", "success");
             } catch (uploadError) {
-              const errorMessage = handleFileUploadError(uploadError, 'published');
+              const errorMessage = handleFileUploadError(
+                uploadError,
+                "published"
+              );
               console.error("文件上传失败:", uploadError);
-              showToast("论文更新成功，但" + errorMessage.replace("论文文件上传失败：", ""), "warning");
+              showToast(
+                "论文更新成功，但" +
+                  errorMessage.replace("论文文件上传失败：", ""),
+                "warning"
+              );
             }
           } else {
             showToast("论文更新成功", "success");
@@ -194,7 +221,8 @@ export function usePaperFormData(form, file, authorContributions) {
           form.value,
           currentTeam?.value,
           currentUser?.value
-        );        if (isEdit && props.paper?.id) {
+        );
+        if (isEdit && props.paper?.id) {
           result = await updateReferenceData(props.paper.id, referenceData);
 
           // 如果有新文件需要上传，单独处理文件上传
@@ -203,9 +231,16 @@ export function usePaperFormData(form, file, authorContributions) {
               await uploadReference(props.paper.id, file.value);
               showToast("文献更新成功，文件上传成功", "success");
             } catch (uploadError) {
-              const errorMessage = handleFileUploadError(uploadError, 'literature');
+              const errorMessage = handleFileUploadError(
+                uploadError,
+                "literature"
+              );
               console.error("文件上传失败:", uploadError);
-              showToast("文献更新成功，但" + errorMessage.replace("文献文件上传失败：", ""), "warning");
+              showToast(
+                "文献更新成功，但" +
+                  errorMessage.replace("文献文件上传失败：", ""),
+                "warning"
+              );
             }
           } else {
             showToast("文献更新成功", "success");
@@ -216,7 +251,8 @@ export function usePaperFormData(form, file, authorContributions) {
         }
       } else {
         throw new Error("请选择论文类型");
-      }      return result;
+      }
+      return result;
     } catch (error) {
       // 具体的错误信息已经在各个子函数中处理并显示了
       // 这里只记录错误日志，不重复显示错误信息
