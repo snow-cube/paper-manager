@@ -38,12 +38,11 @@
         @cancel="closeForm"
         @progress-update="handleProgressUpdate"
       />
-    </Modal>
-
-    <!-- 论文详情模态框 -->
+    </Modal>    <!-- 论文详情模态框 -->
     <Modal v-if="viewingPaper" @close="closeViewPaper">
       <PaperDetail
         :paper="viewingPaper"
+        :loadDetails="true"
         @edit="handleEditPaper"
         @close="closeViewPaper"
       />

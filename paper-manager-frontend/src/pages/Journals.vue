@@ -1,4 +1,5 @@
-<template>  <StandardPageLayout
+<template>
+  <StandardPageLayout
     title="期刊管理"
     icon="📚"
     description="管理学术期刊信息，支持搜索和分类浏览"
@@ -165,14 +166,19 @@
         @saved="handleJournalSaved"
         @cancel="closeModal"
       />
-    </Modal>    <!-- 期刊详情模态框 -->
+    </Modal>
+    <!-- 期刊详情模态框 -->
     <Modal
       v-if="viewingJournal"
       @close="viewingJournal = null"
       :title="viewingJournal.name"
       size="medium"
     >
-      <JournalDetail :journal="viewingJournal" />
+      <JournalDetail
+        :journal="viewingJournal"
+        @edit="handleEditFromDetail"
+        @delete="handleDeleteFromDetail"
+      />
     </Modal>
 
     <!-- 确认删除对话框 -->
@@ -211,12 +217,8 @@ const {
   fetchJournalGrades,
 } = useJournals();
 
-const {
-  dialogState,
-  confirmDelete,
-  confirmDialog,
-  cancelDialog,
-} = useConfirmDialog();
+const { dialogState, confirmDelete, confirmDialog, cancelDialog } =
+  useConfirmDialog();
 const { showToast } = useToast();
 
 // 响应式数据
@@ -232,7 +234,7 @@ let searchTimeout = null;
 
 // 获取等级标签
 const getGradeLabel = (grade) => {
-  const gradeOption = journalGrades.value.find(g => g.value === grade);
+  const gradeOption = journalGrades.value.find((g) => g.value === grade);
   return gradeOption ? gradeOption.label : grade;
 };
 
@@ -324,6 +326,18 @@ const closeModal = () => {
 const handleJournalSaved = () => {
   closeModal();
   loadJournals();
+};
+
+// 从期刊详情处理编辑
+const handleEditFromDetail = (journal) => {
+  viewingJournal.value = null; // 关闭详情模态框
+  editJournal(journal); // 调用编辑功能
+};
+
+// 从期刊详情处理删除
+const handleDeleteFromDetail = async (journal) => {
+  viewingJournal.value = null; // 关闭详情模态框
+  await confirmDeleteJournal(journal); // 调用删除确认功能
 };
 
 // 初始化
@@ -524,7 +538,7 @@ onMounted(async () => {
   opacity: 0;
   visibility: hidden;
   transform: translateX(15px) scale(0.9);
-  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 10;
 }
 
@@ -543,7 +557,7 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 14px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(12px);
@@ -552,13 +566,17 @@ onMounted(async () => {
 }
 
 .action-btn::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05));
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.2),
+    rgba(255, 255, 255, 0.05)
+  );
   border-radius: inherit;
   opacity: 0;
   transition: opacity 0.3s ease;
