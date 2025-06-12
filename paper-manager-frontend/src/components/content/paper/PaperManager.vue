@@ -71,6 +71,13 @@
             </div>
           </div>
           <div class="header-right">
+            <div class="view-controls">
+              <ModeSwitch
+                v-model="viewMode"
+                :options="viewModeOptions"
+                class="view-mode-switch"
+              />
+            </div>
             <div class="papers-count">
               共 {{ totalItems }} 篇{{
                 config.paperType === "literature" ? "文献" : "论文"
@@ -132,16 +139,35 @@
             </button>
           </div>
           <!-- 论文列表 -->
-          <div v-else class="papers-grid">
-            <PaperCard
-              v-for="paper in filteredPapers"
-              :key="paper.id"
-              :paper="paper"
-              :paper-type="config.paperType"
-              @edit="$emit('edit', paper)"
-              @delete="handleDeleteWithConfirm"
-              @view="$emit('view', paper)"
-            />
+          <div
+            v-else
+            :class="['papers-container-content', `view-mode-${viewMode}`]"
+          >
+            <!-- 卡片模式 -->
+            <div v-if="viewMode === 'card'" class="papers-grid">
+              <PaperCard
+                v-for="paper in filteredPapers"
+                :key="paper.id"
+                :paper="paper"
+                :paper-type="config.paperType"
+                @edit="$emit('edit', paper)"
+                @delete="handleDeleteWithConfirm"
+                @view="$emit('view', paper)"
+              />
+            </div>
+
+            <!-- 列表模式 -->
+            <div v-else class="papers-list">
+              <PaperListItem
+                v-for="paper in filteredPapers"
+                :key="paper.id"
+                :paper="paper"
+                :paper-type="config.paperType"
+                @edit="$emit('edit', paper)"
+                @delete="handleDeleteWithConfirm"
+                @view="$emit('view', paper)"
+              />
+            </div>
           </div>
         </div>
         <!-- 分页 -->
@@ -232,12 +258,12 @@
 import { computed, onMounted, watch, ref } from "vue";
 import { RouterLink } from "vue-router";
 import { CategoryTree } from "../category";
-import { PaperCard, PaperSearchFilter } from ".";
+import { PaperCard, PaperSearchFilter, PaperListItem } from ".";
 import { ConfirmDialog } from "../../base";
+import { ModeSwitch } from "../../forms/fields";
 import { usePapersAdvanced } from "../../../composables/usePapersAdvanced";
 import { useTeam } from "../../../composables/useTeam";
 import { useCategories } from "../../../composables/useCategories";
-import { useCategoryFiltering } from "../../../composables/useCategoryFiltering";
 import { useCategoryEvents } from "../../../composables/useCategoryEvents";
 import { usePaperEvents } from "../../../composables/usePaperEvents";
 import { useJournals } from "../../../composables/useJournals";
@@ -256,6 +282,18 @@ const props = defineProps({
 
 const emit = defineEmits(["add-new", "edit", "view"]);
 
+// 视图模式管理
+const viewMode = ref(localStorage.getItem("paper-view-mode") || "card");
+const viewModeOptions = [
+  { label: "卡片", value: "card" },
+  { label: "列表", value: "list" },
+];
+
+// 监听视图模式变化，保存到本地存储
+watch(viewMode, (newMode) => {
+  localStorage.setItem("paper-view-mode", newMode);
+});
+
 const { currentTeam, teams } = useTeam();
 
 // Get categories for the search filter
@@ -266,25 +304,6 @@ const { onCategoryUpdate } = useCategoryEvents();
 
 // 监听论文更新事件
 const { onPaperUpdate } = usePaperEvents();
-
-// Enhanced category filtering with server-side support
-const {
-  categoryTree: enhancedCategoryTree,
-  selectedCategory: enhancedSelectedCategory,
-  selectCategory: handleEnhancedCategorySelect,
-  getFilteredItems,
-  loading: categoryLoading,
-} = useCategoryFiltering({
-  categoryType: computed(
-    () =>
-      props.config.categoryType ||
-      (props.config.paperType === "literature" ? "references" : "papers")
-  ),
-  paperType: computed(() => props.config.paperType),
-  teamId: computed(() =>
-    props.config.requireTeam ? currentTeam.value?.id : null
-  ),
-});
 
 // Get journals for the search filter (needed for literature search)
 const { journals, fetchJournals } = useJournals();
@@ -382,23 +401,15 @@ const handleDeleteWithConfirm = async (paper) => {
   await handleDelete(paper, confirmDelete);
 };
 
-// Handle category selection - integrate both old and new systems
+// Handle category selection - simplified to use only papers advanced filtering
 const handleCategorySelect = (categoryId) => {
-  // Update the enhanced category filtering
-  handleEnhancedCategorySelect(categoryId);
-
   // Update the papers advanced filtering
   handlePapersAdvancedCategorySelect(categoryId);
 };
 
-// Get selected category for display - use enhanced category info when available
+// Get selected category for display - 使用客户端分类数据
 const selectedCategory = computed(() => {
-  // Prefer enhanced category info as it has better server-side support
-  if (enhancedSelectedCategory.value) {
-    return enhancedSelectedCategory.value;
-  }
-
-  // Fallback to original logic
+  // 使用客户端分类数据进行查找
   if (!selectedCategoryId.value || !categories.value) return null;
   return categories.value.find((cat) => cat.id === selectedCategoryId.value);
 });
@@ -420,19 +431,12 @@ const categoryMap = computed(() => {
   return map;
 });
 
-// 计算分类路径（面包屑导航）
+// 计算分类路径（面包屑导航）- 完全依赖客户端计算
 const categoryPath = computed(() => {
+  console.log("Calculating category path for:", selectedCategory.value);
   if (!selectedCategory.value) return [];
 
-  // 如果使用增强的分类选择，且有完整的路径信息
-  if (enhancedSelectedCategory.value && enhancedSelectedCategory.value.path) {
-    return enhancedSelectedCategory.value.path.map((pathItem) => ({
-      id: pathItem.id,
-      name: pathItem.name || pathItem.category_name,
-    }));
-  }
-
-  // 构建从根到当前分类的路径
+  // 手动构建从根到当前分类的路径，不依赖后端路径信息
   const path = [];
   let current = selectedCategory.value;
 
@@ -637,6 +641,12 @@ defineExpose({
   align-items: center;
   gap: var(--space-lg);
   flex-wrap: wrap;
+}
+
+.view-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
 }
 
 .search-section {
@@ -847,6 +857,17 @@ defineExpose({
   padding: 0;
 }
 
+.papers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+}
+
+.papers-container-content {
+  transition: all var(--transition-normal);
+}
+
 .pagination {
   display: flex;
   justify-content: center;
@@ -952,10 +973,15 @@ defineExpose({
   .header-right {
     width: 100%;
   }
-
   .header-right {
     flex-direction: column;
     align-items: stretch;
+    gap: var(--space-md);
+  }
+
+  .view-controls {
+    order: -1; /* 移动端时将视图控制器放在最前面 */
+    justify-content: center;
   }
 
   .search-bar {
@@ -964,6 +990,10 @@ defineExpose({
   .papers-grid {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: var(--space-md);
+    padding: var(--space-xs);
+  }
+
+  .papers-list {
     padding: var(--space-xs);
   }
 
@@ -979,12 +1009,21 @@ defineExpose({
     padding: 0;
   }
 
+  .papers-list {
+    padding: 0;
+    gap: var(--space-xs);
+  }
+
   .content-header {
     padding: var(--space-sm);
   }
 
   .papers-container {
     padding: var(--space-sm);
+  }
+
+  .view-controls {
+    margin-bottom: var(--space-sm);
   }
 }
 </style>

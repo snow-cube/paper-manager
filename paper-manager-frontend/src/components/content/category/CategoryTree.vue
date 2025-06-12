@@ -314,11 +314,16 @@ const loadCategories = async () => {
 
 // 从服务端统计数据计算总数量
 const calculateTotalFromStats = (categories) => {
-  return categories.reduce((total, category) => {
-    // 如果服务端返回了统计信息
+  if (!categories || categories.length === 0) return 0;
+
+  // 根分类的计数已经包含了其子分类的数量，只累加根级分类的计数
+  const rootCategories = categories.filter((category) => !category.parent_id);
+  const rootTotal = rootCategories.reduce((total, category) => {
     const count = category.paper_count || category.reference_count || 0;
     return total + count;
   }, 0);
+
+  return rootTotal;
 };
 
 // 递归设置分类统计数据（完全依赖服务端）

@@ -235,12 +235,22 @@ onCategoryUpdate(async () => {
 
 const authorsDisplay = computed(() => {
   if (!props.paper.authors) return "未知作者";
+
+  // 处理数组类型的作者信息
   if (Array.isArray(props.paper.authors)) {
+    if (props.paper.authors.length === 0) return "未知作者";
     return props.paper.authors
       .map((author) => (typeof author === "object" ? author.name : author))
       .join(", ");
   }
-  return props.paper.authors;
+
+  // 处理字符串类型的作者信息
+  if (typeof props.paper.authors === "string") {
+    return props.paper.authors;
+  }
+
+  // 其他类型转换为字符串
+  return String(props.paper.authors);
 });
 
 // 期刊显示
@@ -272,11 +282,8 @@ const yearDisplay = computed(() => {
   if (props.paper.year) {
     return props.paper.year;
   }
-  // 最后从创建时间提取年份
-  if (props.paper.created_at) {
-    return new Date(props.paper.created_at).getFullYear();
-  }
-  return "未知";
+  // 如果没有发表年份信息，显示"未知年份"而不是创建时间
+  return "未知年份";
 });
 
 const categoriesDisplay = computed(() => {

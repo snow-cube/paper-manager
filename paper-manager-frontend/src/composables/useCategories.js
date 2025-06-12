@@ -8,7 +8,11 @@ const lastLoadedType = ref(null);
 const lastLoadedTeamId = ref(null);
 
 export function useCategories() {
-  const loadCategories = async (categoryType = "papers", teamId = null, forceReload = false) => {
+  const loadCategories = async (
+    categoryType = "papers",
+    teamId = null,
+    forceReload = false
+  ) => {
     // 如果强制重新加载，或者未加载过相同类型的分类，则重新加载
     if (
       forceReload ||
