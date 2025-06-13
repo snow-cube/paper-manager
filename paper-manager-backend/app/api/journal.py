@@ -4,25 +4,32 @@ from typing import List, Optional
 from datetime import datetime
 
 from app.core.database import get_session
-from app.models.journal import Journal, JournalCreate, JournalRead, JournalUpdate, PaginatedJournalResponse
+from app.models.journal import (
+    Journal,
+    JournalCreate,
+    JournalRead,
+    JournalUpdate,
+    PaginatedJournalResponse,
+)
 from app.models.user import User
 from app.api.user import get_current_user
 
 router = APIRouter()
 
+
 def check_admin_permission(user: User):
     """检查用户是否为管理员"""
     if not user.is_superuser:
         raise HTTPException(
-            status_code=403,
-            detail="Only administrators can perform this operation"
+            status_code=403, detail="Only administrators can perform this operation"
         )
+
 
 @router.post("/", response_model=JournalRead)
 def create_journal(
     journal: JournalCreate,
     session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """创建期刊（仅管理员）"""
     check_admin_permission(current_user)
@@ -33,18 +40,18 @@ def create_journal(
     ).first()
     if existing_journal:
         raise HTTPException(
-            status_code=400,
-            detail="A journal with this name already exists"
+            status_code=400, detail="A journal with this name already exists"
         )
 
     db_journal = Journal(
-        name=journal.name,
-        grade=journal.grade,
-        description=journal.description
+        name=journal.name, grade=journal.grade, description=journal.description
     )
     session.add(db_journal)
     session.commit()
     session.refresh(db_journal)
+
+    if db_journal.id is None:
+        raise HTTPException(status_code=500, detail="Journal ID is missing")
 
     return JournalRead(
         id=db_journal.id,
@@ -52,8 +59,9 @@ def create_journal(
         grade=db_journal.grade,
         description=db_journal.description,
         created_at=db_journal.created_at,
-        updated_at=db_journal.updated_at
+        updated_at=db_journal.updated_at,
     )
+
 
 @router.get("/", response_model=PaginatedJournalResponse)
 def read_journals(
@@ -62,14 +70,14 @@ def read_journals(
     name: Optional[str] = None,
     grade: Optional[str] = None,
     session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """获取期刊列表（所有用户可访问）"""
     query = select(Journal)
 
     # 应用过滤条件
     if name:
-        query = query.where(Journal.name.contains(name))
+        query = query.where(Journal.name.contains(name))  # type: ignore
     if grade:
         query = query.where(Journal.grade == grade)
 
@@ -81,12 +89,12 @@ def read_journals(
 
     results = [
         JournalRead(
-            id=journal.id,
+            id=journal.id if journal.id is not None else 0,
             name=journal.name,
             grade=journal.grade,
             description=journal.description,
             created_at=journal.created_at,
-            updated_at=journal.updated_at
+            updated_at=journal.updated_at,
         )
         for journal in journals
     ]
@@ -100,63 +108,62 @@ def read_journals(
         total=total_count,
         page=current_page,
         size=limit,
-        pages=total_pages
+        pages=total_pages,
     )
+
 
 @router.get("/search")
 def search_journals(
     q: str,
     limit: int = 10,
     session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """搜索期刊（用于前端搜索框）"""
     if len(q.strip()) < 2:
         return {"items": []}
 
     journals = session.exec(
-        select(Journal)
-        .where(Journal.name.contains(q))
-        .limit(limit)
+        select(Journal).where(Journal.name.contains(q)).limit(limit)  # type: ignore
     ).all()
 
     return {
         "items": [
-            {
-                "id": journal.id,
-                "name": journal.name,
-                "grade": journal.grade
-            }
+            {"id": journal.id, "name": journal.name, "grade": journal.grade}
             for journal in journals
         ]
     }
+
 
 @router.get("/{journal_id}", response_model=JournalRead)
 def read_journal(
     journal_id: int,
     session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """获取单个期刊"""
     journal = session.get(Journal, journal_id)
     if not journal:
         raise HTTPException(status_code=404, detail="Journal not found")
 
+    if journal.id is None:
+        raise HTTPException(status_code=500, detail="Journal ID is missing")
     return JournalRead(
-        id=journal.id,
+        id=int(journal.id),
         name=journal.name,
         grade=journal.grade,
         description=journal.description,
         created_at=journal.created_at,
-        updated_at=journal.updated_at
+        updated_at=journal.updated_at,
     )
+
 
 @router.patch("/{journal_id}", response_model=JournalRead)
 def update_journal(
     journal_id: int,
     journal_update: JournalUpdate,
     session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """更新期刊（仅管理员）"""
     check_admin_permission(current_user)
@@ -172,8 +179,7 @@ def update_journal(
         ).first()
         if existing_journal:
             raise HTTPException(
-                status_code=400,
-                detail="A journal with this name already exists"
+                status_code=400, detail="A journal with this name already exists"
             )
 
     # 更新字段
@@ -185,20 +191,23 @@ def update_journal(
     session.commit()
     session.refresh(journal)
 
+    if journal.id is None:
+        raise HTTPException(status_code=500, detail="Journal ID is missing")
     return JournalRead(
-        id=journal.id,
+        id=int(journal.id),
         name=journal.name,
         grade=journal.grade,
         description=journal.description,
         created_at=journal.created_at,
-        updated_at=journal.updated_at
+        updated_at=journal.updated_at,
     )
+
 
 @router.delete("/{journal_id}")
 def delete_journal(
     journal_id: int,
     session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """删除期刊（仅管理员）"""
     check_admin_permission(current_user)
@@ -209,14 +218,14 @@ def delete_journal(
 
     # 检查是否有论文使用此期刊
     from app.models.paper import Paper
+
     papers_using_journal = session.exec(
         select(Paper).where(Paper.journal_id == journal_id)
     ).first()
 
     if papers_using_journal:
         raise HTTPException(
-            status_code=400,
-            detail="Cannot delete journal that is used by papers"
+            status_code=400, detail="Cannot delete journal that is used by papers"
         )
 
     session.delete(journal)
@@ -224,10 +233,9 @@ def delete_journal(
 
     return {"ok": True}
 
+
 @router.get("/grades/list")
-def get_journal_grades(
-    current_user: User = Depends(get_current_user)
-):
+def get_journal_grades(current_user: User = Depends(get_current_user)):
     """获取期刊等级列表"""
     return {
         "grades": [
@@ -236,6 +244,6 @@ def get_journal_grades(
             {"value": "SCI_Q3", "label": "SCI Q3"},
             {"value": "SCI_Q4", "label": "SCI Q4"},
             {"value": "EI", "label": "EI"},
-            {"value": "OTHER", "label": "其他"}
+            {"value": "OTHER", "label": "其他"},
         ]
     }

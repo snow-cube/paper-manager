@@ -2,6 +2,7 @@
 极简开发环境配置
 专为快速迭代设计，去除所有不必要的复杂性
 """
+
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Optional
@@ -15,6 +16,7 @@ load_dotenv()
 @dataclass
 class TokenData:
     """JWT Token 数据"""
+
     username: Optional[str] = None
 
 
@@ -70,11 +72,13 @@ ACCESS_TOKEN_EXPIRE_MINUTES = config.token_expire_minutes
 PAPERS_DIR = config.papers
 TEAMS_DIR = config.teams
 
+
 # 兼容性对象
 class Settings:
     SECRET_KEY = config.secret_key
     ALGORITHM = config.algorithm
     ACCESS_TOKEN_EXPIRE_MINUTES = config.token_expire_minutes
+
 
 settings = Settings()
 

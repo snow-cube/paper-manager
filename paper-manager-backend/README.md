@@ -169,6 +169,12 @@ paper-manager-backend/
 | description | String  | 分类描述 | Nullable                             |
 | parent_id   | Integer | 父分类ID | Foreign Key -> Category.id, Nullable |
 
+**特性说明：**
+
+- 支持层次化分类结构，通过 `parent_id` 实现父子关系
+- 全局分类，所有用户共享，仅管理员可管理
+- 支持统计功能，可查询每个分类下的论文数量
+
 ### ReferencePaper 参考文献表
 
 | 字段名           | 类型     | 说明       | 约束                                          |
@@ -195,6 +201,13 @@ paper-manager-backend/
 | description | String  | 分类描述 | Nullable                                      |
 | parent_id   | Integer | 父分类ID | Foreign Key -> ReferenceCategory.id, Nullable |
 | team_id     | Integer | 团队ID   | Foreign Key -> Team.id, Not Null              |
+
+**特性说明：**
+
+- 支持层次化分类结构，通过 `parent_id` 实现父子关系
+- 按团队隔离，每个团队拥有独立的分类体系
+- 仅团队管理员/拥有者可管理团队分类
+- 支持统计功能，可查询每个分类下的参考文献数量
 
 ### Keyword 关键词表
 
@@ -797,7 +810,8 @@ client_secret: string (可选)
             "doi": "string",
             "file_path": "string",
             "created_at": "datetime",
-            "updated_at": "datetime",            "keywords": ["string"],
+            "updated_at": "datetime",
+            "keywords": ["string"],
             "authors": ["string"],
             "category_id": "integer",
             "category_name": "string",
@@ -834,7 +848,8 @@ client_secret: string (可选)
     "doi": "string",
     "file_path": "string",
     "created_at": "datetime",
-    "updated_at": "datetime",    "keywords": ["string"],
+    "updated_at": "datetime",
+    "keywords": ["string"],
     "authors": ["string"],
     "category_id": "integer",
     "category_name": "string",
@@ -1304,8 +1319,7 @@ client_secret: string (可选)
     "id": "integer",
     "name": "string",
     "description": "string",
-    "parent_id": "integer",
-    "paper_count": "integer"
+    "parent_id": "integer"
 }
 ```
 
@@ -1318,7 +1332,6 @@ client_secret: string (可选)
 - `skip`: integer (默认: 0) - 跳过的记录数
 - `limit`: integer (默认: 100) - 限制返回的记录数
 - `include_stats`: boolean (默认: false) - 是否包含统计信息
-- `paper_type`: string (可选) - 论文类型过滤
 
 响应体：
 
@@ -1328,11 +1341,12 @@ client_secret: string (可选)
         "id": "integer",
         "name": "string",
         "description": "string",
-        "parent_id": "integer",
-        "paper_count": "integer"
+        "parent_id": "integer"
     }
 ]
 ```
+
+**注意：** 当 `include_stats=true` 时，响应会包含 `paper_count` 字段显示每个分类下的论文数量。
 
 ##### GET `/api/categories/{category_id}`
 
@@ -1349,8 +1363,7 @@ client_secret: string (可选)
     "id": "integer",
     "name": "string",
     "description": "string",
-    "parent_id": "integer",
-    "paper_count": "integer"
+    "parent_id": "integer"
 }
 ```
 
@@ -1385,8 +1398,7 @@ client_secret: string (可选)
     "id": "integer",
     "name": "string",
     "description": "string",
-    "parent_id": "integer",
-    "paper_count": "integer"
+    "parent_id": "integer"
 }
 ```
 
@@ -1396,7 +1408,7 @@ client_secret: string (可选)
 
 路径参数：
 
-- category_id: integer
+- `category_id`: integer - 分类ID
 
 响应体：
 
@@ -1726,8 +1738,7 @@ client_secret: string (可选)
     "name": "string",
     "description": "string",
     "parent_id": "integer",
-    "team_id": "integer",
-    "reference_count": "integer"
+    "team_id": "integer"
 }
 ```
 
@@ -1751,11 +1762,12 @@ client_secret: string (可选)
         "name": "string",
         "description": "string",
         "parent_id": "integer",
-        "team_id": "integer",
-        "reference_count": "integer"
+        "team_id": "integer"
     }
 ]
 ```
+
+**注意：** 当 `include_stats=true` 时，响应会包含 `reference_count` 字段显示每个分类下的参考文献数量。
 
 ##### GET `/api/reference-categories/{category_id}`
 
@@ -1773,8 +1785,7 @@ client_secret: string (可选)
     "name": "string",
     "description": "string",
     "parent_id": "integer",
-    "team_id": "integer",
-    "reference_count": "integer"
+    "team_id": "integer"
 }
 ```
 
@@ -1810,8 +1821,7 @@ client_secret: string (可选)
     "name": "string",
     "description": "string",
     "parent_id": "integer",
-    "team_id": "integer",
-    "reference_count": "integer"
+    "team_id": "integer"
 }
 ```
 

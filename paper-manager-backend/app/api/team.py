@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-from sqlmodel import Session, select, delete, func
+from sqlmodel import Session, col, select, delete, func
 from typing import List, Optional
 from app.models.keyword import Keyword
 from app.models.paper import Paper, PaperCreate, PaperRead, PaperUpdate, PaperAuthor, PaperKeyword
@@ -62,6 +62,7 @@ def create_team(
 ):
     """创建团队"""
     db_team = Team.from_orm(team)
+    assert current_user.id is not None, "Current user ID should not be None"
     db_team.creator_id = current_user.id
     session.add(db_team)
     session.flush()  # 获取团队ID
@@ -84,6 +85,8 @@ def create_team(
 
     session.commit()
     session.refresh(db_team)
+
+    assert db_team.id is not None, "Team ID should not be None"
 
     # 构建返回数据
     return TeamRead(
@@ -119,10 +122,11 @@ def read_teams(
     for team in teams:
         # 获取团队成员数量
         member_count = session.exec(
-            select(func.count(TeamUser.user_id))
+            select(func.count())
             .where(TeamUser.team_id == team.id)
         ).first()
-
+        if team.id is None:
+            raise HTTPException(status_code=500, detail="Team ID is missing")
         results.append(TeamRead(
             id=team.id,
             name=team.name,
@@ -150,10 +154,11 @@ def read_team(
     team = session.get(Team, team_id)
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
-
+    if team.id is None:
+        raise HTTPException(status_code=500, detail="Team ID is missing")
     # 获取团队成员数量
     member_count = session.exec(
-        select(func.count(TeamUser.user_id))
+        select(func.count())
         .where(TeamUser.team_id == team_id)
     ).first()
 
@@ -184,6 +189,8 @@ def update_team(
     db_team = session.get(Team, team_id)
     if not db_team:
         raise HTTPException(status_code=404, detail="Team not found")
+    if db_team.id is None:
+        raise HTTPException(status_code=500, detail="Team ID is missing")
 
     # 更新团队信息
     team_data = team_update.dict(exclude_unset=True)
@@ -196,7 +203,7 @@ def update_team(
 
     # 获取团队成员数量
     member_count = session.exec(
-        select(func.count(TeamUser.user_id))
+        select(func.count())
         .where(TeamUser.team_id == team_id)
     ).first()
 
@@ -233,18 +240,18 @@ def delete_team(
         raise HTTPException(status_code=404, detail="Team not found")
 
     # 删除团队成员关系
-    session.exec(
-        delete(TeamUser).where(TeamUser.team_id == team_id)
+    session.execute(
+        delete(TeamUser).where(col(TeamUser.team_id) == team_id)
     )
 
     # 删除团队的参考文献分类
-    session.exec(
-        delete(ReferenceCategory).where(ReferenceCategory.team_id == team_id)
+    session.execute(
+        delete(ReferenceCategory).where(col(ReferenceCategory.team_id) == team_id)
     )
 
     # 删除团队的参考文献
-    session.exec(
-        delete(ReferencePaper).where(ReferencePaper.team_id == team_id)
+    session.execute(
+        delete(ReferencePaper).where(col(ReferencePaper.team_id) == team_id)
     )
 
     # 删除团队
@@ -392,9 +399,9 @@ def get_team_members(
     check_team_member(team_id, current_user, session)
 
     # 获取团队成员
-    team_members = session.exec(
+    team_member_rows = session.exec(
         select(User, TeamUser)
-        .join(TeamUser, User.id == TeamUser.user_id)
+        .join(TeamUser)  # Implicit join based on foreign key relationship
         .where(TeamUser.team_id == team_id)
         .offset(skip)
         .limit(limit)
@@ -402,7 +409,9 @@ def get_team_members(
 
     # 构建返回数据
     results = []
-    for user, team_user in team_members:
+    for user, team_user in team_member_rows:
+        if user.id is None:
+            raise HTTPException(status_code=500, detail="User ID is missing")
         member = TeamMemberRead(
             id=user.id,
             username=user.username,

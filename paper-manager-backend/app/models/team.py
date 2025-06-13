@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 
 class TeamRole(str, Enum):
     """团队角色枚举"""
+
     OWNER = "OWNER"  # 创建者/拥有者
     ADMIN = "ADMIN"  # 管理员
     MEMBER = "MEMBER"  # 普通成员
@@ -23,6 +24,7 @@ class TeamRole(str, Enum):
 
 class TeamUser(SQLModel, table=True):
     """团队-用户关联表"""
+
     team_id: Optional[int] = Field(
         default=None, foreign_key="team.id", primary_key=True
     )
@@ -49,7 +51,8 @@ class TeamBase(SQLModel):
 
 class Team(TeamBase, table=True):
     """团队表"""
-    __tablename__ = "team"
+
+    __tablename__ = "team"  # type: ignore
 
     id: Optional[int] = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -64,16 +67,20 @@ class Team(TeamBase, table=True):
     references: List["ReferencePaper"] = Relationship(back_populates="team")
     creator: "User" = Relationship(back_populates="created_teams")
     papers: List["Paper"] = Relationship(back_populates="team")
-    reference_categories: List["ReferenceCategory"] = Relationship(back_populates="team")
+    reference_categories: List["ReferenceCategory"] = Relationship(
+        back_populates="team"
+    )
 
 
 class TeamCreate(TeamBase):
     """创建团队的请求模型"""
+
     pass
 
 
 class TeamRead(TeamBase):
     """团队信息返回模型"""
+
     id: int
     created_at: datetime
     updated_at: datetime
@@ -82,5 +89,6 @@ class TeamRead(TeamBase):
 
 class TeamUpdate(SQLModel):
     """更新团队的请求模型"""
+
     name: Optional[str] = None
     description: Optional[str] = None

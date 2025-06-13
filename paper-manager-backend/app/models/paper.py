@@ -2,6 +2,8 @@ from typing import Optional, List, TYPE_CHECKING, Dict, Any
 from sqlmodel import SQLModel, Field, Relationship
 from datetime import datetime
 
+from app.models.journal import Journal
+
 if TYPE_CHECKING:
     from .category import Category
     from .author import Author
@@ -9,17 +11,15 @@ if TYPE_CHECKING:
     from .team import Team
     from .user import User
 
+
 class PaperAuthor(SQLModel, table=True):
-    """论文-作者关联表"""
-    paper_id: Optional[int] = Field(
-        default=None, foreign_key="paper.id", primary_key=True
-    )
-    author_id: Optional[int] = Field(
-        default=None, foreign_key="author.id", primary_key=True
-    )
+    __tablename__ = "paper_author"  # type: ignore
+
+    paper_id: int = Field(foreign_key="paper.id", primary_key=True)
+    author_id: int = Field(foreign_key="author.id", primary_key=True)
     contribution_ratio: float = Field(default=1.0)
     is_corresponding: bool = Field(default=False)
-    author_order: int
+    author_order: int = Field()
 
     paper: "Paper" = Relationship(back_populates="author_links")
     author: "Author" = Relationship(back_populates="paper_links")
@@ -27,6 +27,7 @@ class PaperAuthor(SQLModel, table=True):
 
 class PaperKeyword(SQLModel, table=True):
     """论文-关键字关联表"""
+
     paper_id: Optional[int] = Field(
         default=None, foreign_key="paper.id", primary_key=True
     )
@@ -47,11 +48,13 @@ class PaperBase(SQLModel):
     file_path: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
-    category_id: Optional[int] = Field(default=None, foreign_key="category.id")  # Direct foreign key
+    category_id: Optional[int] = Field(
+        default=None, foreign_key="category.id"
+    )  # Direct foreign key
 
 
 class Paper(PaperBase, table=True):
-    __tablename__ = "paper"
+    __tablename__ = "paper"  # type: ignore
 
     id: Optional[int] = Field(default=None, primary_key=True)
     created_by_id: int = Field(foreign_key="user.id")
@@ -61,20 +64,14 @@ class Paper(PaperBase, table=True):
     category: Optional["Category"] = Relationship(back_populates="papers")
 
     authors: List["Author"] = Relationship(
-        back_populates="papers",
-        link_model=PaperAuthor
+        back_populates="papers", link_model=PaperAuthor
     )
-    author_links: List[PaperAuthor] = Relationship(
-        back_populates="paper"
-    )
+    author_links: List[PaperAuthor] = Relationship(back_populates="paper")
 
     keywords: List["Keyword"] = Relationship(
-        back_populates="papers",
-        link_model=PaperKeyword
+        back_populates="papers", link_model=PaperKeyword
     )
-    keyword_links: List[PaperKeyword] = Relationship(
-        back_populates="paper"
-    )
+    keyword_links: List[PaperKeyword] = Relationship(back_populates="paper")
 
     team: "Team" = Relationship(back_populates="papers")
     created_by: "User" = Relationship(back_populates="papers")
@@ -83,6 +80,7 @@ class Paper(PaperBase, table=True):
 
 class PaperCreate(SQLModel):
     """创建论文的请求模型"""
+
     title: str
     abstract: Optional[str] = None
     publication_date: Optional[datetime] = None
@@ -98,6 +96,7 @@ class PaperCreate(SQLModel):
 
 class PaperRead(SQLModel):
     """论文返回模型"""
+
     id: int
     title: str
     abstract: Optional[str] = None
@@ -119,6 +118,7 @@ class PaperRead(SQLModel):
 
 class PaperUpdate(SQLModel):
     """更新论文的请求模型"""
+
     title: Optional[str] = None
     abstract: Optional[str] = None
     publication_date: Optional[datetime] = None
@@ -134,6 +134,7 @@ class PaperUpdate(SQLModel):
 
 class PaginatedPaperResponse(SQLModel):
     """分页论文响应模型"""
+
     items: List[PaperRead]
     total: int
     page: int

@@ -10,7 +10,7 @@ from app.core.database import init_db, engine
 from app.api import api_router
 from app.models.user import User
 from app.services.utils import get_password_hash
-from app.utils.create_admin import create_admin_user_sync
+from scripts.create_admin import create_admin_user_sync
 
 # Initialize colorama for Windows
 init(autoreset=True)

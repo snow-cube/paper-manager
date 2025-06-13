@@ -22,14 +22,18 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     else:
         expire = datetime.utcnow() + timedelta(minutes=15)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    encoded_jwt = jwt.encode(
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+    )
     return encoded_jwt
 
 
 def verify_token(token: str) -> Optional[TokenData]:
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        username: str = payload.get("sub")
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
+        username: Optional[str] = payload.get("sub")
         if username is None:
             return None
         return TokenData(username=username)
@@ -37,7 +41,9 @@ def verify_token(token: str) -> Optional[TokenData]:
         return None
 
 
-def calculate_workload(contribution_ratio: float, journal_grade: str = "OTHER") -> float:
+def calculate_workload(
+    contribution_ratio: float, journal_grade: str = "OTHER"
+) -> float:
     """
     计算工作量
 
@@ -55,7 +61,7 @@ def calculate_workload(contribution_ratio: float, journal_grade: str = "OTHER") 
         "SCI_Q3": 6.0,
         "SCI_Q4": 4.0,
         "EI": 3.0,
-        "OTHER": 1.0
+        "OTHER": 1.0,
     }
 
     base_workload = base_workload_map.get(journal_grade, 1.0)

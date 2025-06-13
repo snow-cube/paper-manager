@@ -15,8 +15,7 @@ def check_superuser(user: User):
     """检查用户是否为管理员"""
     if not user.is_superuser:
         raise HTTPException(
-            status_code=403,
-            detail="Only administrators can perform this operation"
+            status_code=403, detail="Only administrators can perform this operation"
         )
 
 
@@ -24,7 +23,7 @@ def check_superuser(user: User):
 def create_category(
     category: CategoryCreate,
     session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """创建分类（仅管理员）"""
     # 检查管理员权限
@@ -36,7 +35,7 @@ def create_category(
         if not parent:
             raise HTTPException(
                 status_code=404,
-                detail=f"Parent category {category.parent_id} not found"
+                detail=f"Parent category {category.parent_id} not found",
             )
 
     db_category = Category.from_orm(category)
@@ -51,7 +50,7 @@ def read_categories(
     skip: int = 0,
     limit: int = 100,
     include_stats: bool = False,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
 ):
     """获取分类列表，可选择包含统计信息"""
     categories = session.exec(select(Category).offset(skip).limit(limit)).all()
@@ -59,15 +58,18 @@ def read_categories(
     result = []
     for category in categories:
         category_data = CategoryRead(
-            id=category.id,
+            id=category.id if category.id is not None else 0,
             name=category.name,
             description=category.description,
-            parent_id=category.parent_id
+            parent_id=category.parent_id,
         )
 
         # 如果需要统计信息，计算论文数量
         if include_stats:
-            paper_count = get_category_paper_count_recursive(session, category.id)
+            if category.id is not None:
+                paper_count = get_category_paper_count_recursive(session, category.id)
+            else:
+                paper_count = 0
             category_data.paper_count = paper_count
 
         result.append(category_data)
@@ -79,6 +81,7 @@ def get_category_paper_count_recursive(session: Session, category_id: int) -> in
     """递归获取分类及其所有子分类下的论文数量"""
     # 获取当前分类的论文数量
     from app.models.paper import Paper
+
     query = select(Paper).where(Paper.category_id == category_id)
     current_count = len(session.exec(query).all())
 
@@ -88,16 +91,14 @@ def get_category_paper_count_recursive(session: Session, category_id: int) -> in
     ).all()
 
     for child in children:
-        current_count += get_category_paper_count_recursive(session, child.id)
+        if child.id is not None:
+            current_count += get_category_paper_count_recursive(session, child.id)
 
     return current_count
 
 
 @router.get("/{category_id}", response_model=CategoryRead)
-def read_category(
-    category_id: int,
-    session: Session = Depends(get_session)
-):
+def read_category(category_id: int, session: Session = Depends(get_session)):
     category = session.get(Category, category_id)
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
@@ -109,7 +110,7 @@ def update_category(
     category_id: int,
     category: CategoryUpdate,
     session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """更新分类（仅管理员）"""
     # 检查管理员权限
@@ -126,14 +127,13 @@ def update_category(
             if not parent:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"Parent category {category.parent_id} not found"
+                    detail=f"Parent category {category.parent_id} not found",
                 )
 
         # 检查是否会创建循环依赖
         if category.parent_id == category_id:
             raise HTTPException(
-                status_code=400,
-                detail="Category cannot be its own parent"
+                status_code=400, detail="Category cannot be its own parent"
             )
 
     category_data = category.dict(exclude_unset=True)
@@ -150,7 +150,7 @@ def update_category(
 def delete_category(
     category_id: int,
     session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """删除分类（仅管理员）"""
     # 检查管理员权限
@@ -166,19 +166,16 @@ def delete_category(
     ).all()
     if children:
         raise HTTPException(
-            status_code=400,
-            detail="Cannot delete category with subcategories"
+            status_code=400, detail="Cannot delete category with subcategories"
         )
 
     # 检查是否有关联的论文（直接关系）
     from app.models.paper import Paper
-    papers = session.exec(
-        select(Paper).where(Paper.category_id == category_id)
-    ).all()
+
+    papers = session.exec(select(Paper).where(Paper.category_id == category_id)).all()
     if papers:
         raise HTTPException(
-            status_code=400,
-            detail="Cannot delete category with associated papers"
+            status_code=400, detail="Cannot delete category with associated papers"
         )
 
     session.delete(category)
