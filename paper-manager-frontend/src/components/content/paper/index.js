@@ -10,3 +10,4 @@ export { default as PaperListItem } from "./PaperListItem.vue";
 export { default as PaperManager } from "./PaperManager.vue";
 export { default as PaperSearchFilter } from "./PaperSearchFilter.vue";
 export { default as PdfViewer } from "./PdfViewer.vue";
+export { default as FilePreview } from "./FilePreview.vue";

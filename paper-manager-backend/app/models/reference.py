@@ -112,18 +112,28 @@ class ReferenceCreate(ReferencePaperBase):
     keyword_names: List[str]  # 使用关键字名称列表
 
 
-class ReferenceRead(ReferencePaperBase):
+class ReferenceRead(SQLModel):
     id: int
+    title: str
+    authors: str
+    doi: Optional[str] = None
+    journal_id: Optional[int] = None
+    publication_year: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+    team_id: Optional[int] = None
+    created_by_id: int
+    category_id: Optional[int] = None
     keywords: List[str] = []  # 返回关键字名称列表
     category: Optional[ReferenceCategoryRead] = None  # 使用 ReferenceCategoryRead 模型
     journal_name: Optional[str] = None  # 期刊名称
+    file_url: Optional[str] = None  # 添加文件预览URL字段
 
 
 class ReferenceUpdate(SQLModel):
     title: Optional[str] = None
     authors: Optional[str] = None
     doi: Optional[str] = None
-    file_path: Optional[str] = None
     journal_id: Optional[int] = None
     publication_year: Optional[int] = None
     category_id: Optional[int] = None

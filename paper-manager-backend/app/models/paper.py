@@ -104,7 +104,7 @@ class PaperRead(SQLModel):
     journal_id: Optional[int] = None
     journal_name: Optional[str] = None
     doi: Optional[str] = None
-    file_path: Optional[str] = None
+    file_url: Optional[str] = None  # 添加文件预览URL字段
     created_at: datetime
     updated_at: datetime
     keywords: List[str] = []
@@ -128,7 +128,6 @@ class PaperUpdate(SQLModel):
     keyword_names: Optional[List[str]] = None
     author_names: Optional[List[str]] = None
     author_contribution_ratios: Optional[List[float]] = None
-    file_path: Optional[str] = None
     team_id: Optional[int] = None
 
 

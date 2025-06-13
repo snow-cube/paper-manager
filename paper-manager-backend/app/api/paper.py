@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlmodel import Session, select, delete, col
 from typing import List, Optional
 import os
+import uuid
 from datetime import datetime
 from fastapi.responses import FileResponse
 import tempfile
@@ -25,7 +26,7 @@ from app.models.team import Team, TeamUser
 from app.api.user import get_current_user
 from app.api.team import check_team_member
 from app.services.utils import calculate_workload
-from app.core.config_dev import PAPERS_DIR
+from app.core.config_dev import PAPERS_DIR, build_file_url, convert_to_relative_path
 from app.models.journal import Journal
 
 router = APIRouter()
@@ -242,9 +243,7 @@ def create_paper(
     if db_paper.category_id:
         category = session.get(Category, db_paper.category_id)
         if category:
-            category_name = category.name
-
-    # 获取团队名称
+            category_name = category.name  # 获取团队名称
     team_name = None
     if paper.team_id:
         team = session.get(Team, paper.team_id)
@@ -266,7 +265,7 @@ def create_paper(
         journal_id=paper.journal_id,
         journal_name=journal_name,
         doi=db_paper.doi,
-        file_path=db_paper.file_path,
+        file_url=build_file_url(db_paper.file_path) if db_paper.file_path else None,
         created_at=db_paper.created_at,
         updated_at=db_paper.updated_at,
         keywords=keywords,
@@ -290,26 +289,46 @@ async def upload_paper_file(
     paper = check_paper_modify_permission(paper_id, current_user, session)
 
     # 如果论文已有文件，删除旧文件
-    if paper.file_path and os.path.exists(paper.file_path):
-        os.remove(paper.file_path)
-
-    # 生成唯一文件名
+    if paper.file_path:
+        # 构建完整路径以删除旧文件
+        old_full_path = (
+            os.path.join(UPLOAD_DIR, paper.file_path)
+            if not os.path.isabs(paper.file_path)
+            else paper.file_path
+        )
+        if os.path.exists(old_full_path):
+            os.remove(old_full_path)  # 生成唯一文件名（不保留原始文件名）
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"{paper_id}_{timestamp}_{file.filename}"
-    file_path = os.path.join(UPLOAD_DIR, filename)
+    # 获取文件扩展名
+    file_extension = ""
+    if file.filename:
+        file_extension = os.path.splitext(file.filename)[1].lower()
+
+    # 生成新的文件名：论文ID_时间戳_随机数.扩展名
+    random_suffix = str(uuid.uuid4())[:8]
+    filename = f"paper_{paper_id}_{timestamp}_{random_suffix}{file_extension}"
+
+    # 存储相对路径
+    relative_path = filename
+    full_path = os.path.join(UPLOAD_DIR, filename)
 
     # 保存文件
-    with open(file_path, "wb") as buffer:
+    with open(full_path, "wb") as buffer:
         content = await file.read()
         buffer.write(content)
 
-    # 更新论文的文件路径
-    paper.file_path = file_path
+    # 更新论文的文件路径（存储相对路径）
+    paper.file_path = relative_path
     paper.updated_at = datetime.utcnow()
     session.add(paper)
-    session.commit()
+    session.commit()  # 返回文件URL以支持预览
+    file_url = build_file_url(relative_path)
 
-    return {"paper_id": paper_id, "filename": filename, "file_path": file_path}
+    return {
+        "paper_id": paper_id,
+        "file_url": file_url,
+        "message": "File uploaded successfully",
+    }
 
 
 @router.get("/", response_model=PaginatedPaperResponse)
@@ -403,9 +422,7 @@ def read_papers(
         if paper.journal_id:
             journal = session.get(Journal, paper.journal_id)
             if journal:
-                journal_name = journal.name
-
-        # 获取团队名称
+                journal_name = journal.name  # 获取团队名称
         team_name = None
         if paper.team_id:
             team = session.get(Team, paper.team_id)
@@ -422,7 +439,7 @@ def read_papers(
                 journal_id=paper.journal_id,
                 journal_name=journal_name,
                 doi=paper.doi,
-                file_path=paper.file_path,
+                file_url=build_file_url(paper.file_path) if paper.file_path else None,
                 created_at=paper.created_at,
                 updated_at=paper.updated_at,
                 keywords=keywords,
@@ -487,9 +504,7 @@ def read_paper(
     if paper.journal_id:
         journal = session.get(Journal, paper.journal_id)
         if journal:
-            journal_name = journal.name
-
-    # 获取团队名称
+            journal_name = journal.name  # 获取团队名称
     team_name = None
     if paper.team_id:
         team = session.get(Team, paper.team_id)
@@ -504,7 +519,7 @@ def read_paper(
         journal_id=paper.journal_id,
         journal_name=journal_name,
         doi=paper.doi,
-        file_path=paper.file_path,
+        file_url=build_file_url(paper.file_path) if paper.file_path else None,
         created_at=paper.created_at,
         updated_at=paper.updated_at,
         keywords=keywords,
@@ -576,8 +591,7 @@ def update_paper(
         setattr(paper, key, value)
 
     # 更新作者
-    if paper_update.author_names is not None:
-        # 删除现有作者关联
+    if paper_update.author_names is not None:  # 删除现有作者关联
         session.execute(
             delete(PaperAuthor).where(col(PaperAuthor.paper_id) == paper_id)
         )
@@ -609,8 +623,7 @@ def update_paper(
             session.add(paper_author)
 
     # 更新关键词
-    if paper_update.keyword_names is not None:
-        # 删除现有关键词关联
+    if paper_update.keyword_names is not None:  # 删除现有关键词关联
         session.execute(
             delete(PaperKeyword).where(col(PaperKeyword.paper_id) == paper_id)
         )
@@ -642,10 +655,15 @@ def delete_paper(
     paper = check_paper_modify_permission(paper_id, current_user, session)
 
     # 删除文件（如果存在）
-    if paper.file_path and os.path.exists(paper.file_path):
-        os.remove(paper.file_path)
+    if paper.file_path:
+        # 构建完整文件路径
+        if os.path.isabs(paper.file_path):
+            full_path = paper.file_path
+        else:
+            full_path = os.path.join(UPLOAD_DIR, paper.file_path)
 
-    # 删除所有关联
+        if os.path.exists(full_path):
+            os.remove(full_path)  # 删除所有关联
     session.execute(delete(PaperAuthor).where(col(PaperAuthor.paper_id) == paper_id))
     session.execute(delete(PaperKeyword).where(col(PaperKeyword.paper_id) == paper_id))
 
@@ -770,15 +788,24 @@ async def download_paper_by_id(
     paper = check_paper_access(paper_id, current_user, session)
 
     # 检查文件是否存在
-    if not paper.file_path or not os.path.exists(paper.file_path):
+    if not paper.file_path:
+        raise HTTPException(
+            status_code=404, detail="No file associated with this paper"
+        )
+
+    # 构建完整文件路径
+    if os.path.isabs(paper.file_path):
+        full_path = paper.file_path
+    else:
+        full_path = os.path.join(UPLOAD_DIR, paper.file_path)
+
+    if not os.path.exists(full_path):
         raise HTTPException(status_code=404, detail="PDF file not found for this paper")
 
     # 构建文件名
     filename = f"{paper.title}.pdf"
 
-    return FileResponse(
-        paper.file_path, filename=filename, media_type="application/pdf"
-    )
+    return FileResponse(full_path, filename=filename, media_type="application/pdf")
 
 
 @router.get("/download/by-title")
@@ -806,18 +833,27 @@ async def download_paper_by_title(
     # 检查论文是否存在（所有论文都是公开的）
     # Now paper_from_title.id is known to be an int.
     # The variable 'paper' is used by the rest of the function.
-    paper = check_paper_access(paper_from_title.id, current_user, session)
+    paper = check_paper_access(
+        paper_from_title.id, current_user, session
+    )  # 检查文件是否存在
+    if not paper.file_path:
+        raise HTTPException(
+            status_code=404, detail="No file associated with this paper"
+        )
 
-    # 检查文件是否存在
-    if not paper.file_path or not os.path.exists(paper.file_path):
+    # 构建完整文件路径
+    if os.path.isabs(paper.file_path):
+        full_path = paper.file_path
+    else:
+        full_path = os.path.join(UPLOAD_DIR, paper.file_path)
+
+    if not os.path.exists(full_path):
         raise HTTPException(status_code=404, detail="PDF file not found for this paper")
 
     # 构建文件名
     filename = f"{paper.title}.pdf"
 
-    return FileResponse(
-        paper.file_path, filename=filename, media_type="application/pdf"
-    )
+    return FileResponse(full_path, filename=filename, media_type="application/pdf")
 
 
 @router.get("/authors/collaboration-network")

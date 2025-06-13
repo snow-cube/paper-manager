@@ -22,7 +22,7 @@
           <span class="action-icon">👁️</span>
         </button>
         <button
-          v-if="paper.file_path"
+          v-if="paper.file_url"
           @click="handleDownload"
           class="action-btn download-btn"
           title="下载文件"
@@ -141,11 +141,7 @@ import { computed, onMounted, ref, watch } from "vue";
 import { useCategories } from "../../../composables/useCategories";
 import { useCategoryEvents } from "../../../composables/useCategoryEvents";
 import { useTeam } from "../../../composables/useTeam";
-import {
-  downloadItem,
-  getDownloadFileName,
-  triggerDownload,
-} from "../../../services/downloadService";
+import { useFileDownload } from "../../../composables/useFileDownload";
 import { useToast } from "../../../composables/useToast";
 
 const props = defineProps({
@@ -161,9 +157,7 @@ const { getCategoryName, loadCategories } = useCategories();
 const { onCategoryUpdate } = useCategoryEvents();
 const { showToast } = useToast();
 const { currentTeam } = useTeam();
-
-// 下载状态
-const downloading = ref(false);
+const { downloading, downloadFile } = useFileDownload();
 
 // 计算团队名称
 const teamName = computed(() => {
@@ -359,37 +353,10 @@ const formatDate = (dateString) => {
 };
 
 // 处理下载
-const handleDownload = async () => {
-  if (!props.paper.file_path) {
-    showToast("没有可下载的文件", "warning");
-    return;
-  }
-
-  downloading.value = true;
-
-  try {
-    showToast("正在准备下载文件...", "info");
-
-    // 使用统一的下载服务
-    const response = await downloadItem(props.paper);
-
-    // 获取文件名
-    const fileName = getDownloadFileName(props.paper, response);
-
-    // 确定内容类型
-    const contentType =
-      response.headers["content-type"] || "application/octet-stream";
-
-    // 触发下载
-    triggerDownload(response.data, fileName, contentType);
-
-    showToast("文件下载成功", "success");
-  } catch (error) {
-    console.error("下载文件失败:", error);
-    showToast(error.message || "下载文件失败，请重试", "error");
-  } finally {
-    downloading.value = false;
-  }
+const handleDownload = () => {
+  downloadFile(props.paper, {
+    paperType: isLiteratureType.value ? "literature" : "papers",
+  });
 };
 </script>
 

@@ -161,9 +161,9 @@ export const downloadReference = async (referenceId) => {
 };
 
 // 通过参考文献标题下载文件
-export const downloadReferenceByTitle = async (title) => {
+export const downloadReferenceByTitle = async (title, teamId) => {
   const response = await api.get("/references/download/by-title", {
-    params: { title },
+    params: { title, team_id: teamId },
     responseType: "blob",
   });
   return response;

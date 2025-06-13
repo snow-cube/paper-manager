@@ -132,7 +132,7 @@ paper-manager-backend/
 | publication_date | DateTime | 发表日期 | Nullable                             |
 | journal_id       | Integer  | 期刊ID   | Foreign Key -> Journal.id, Nullable  |
 | doi              | String   | DOI      | Unique, Nullable                     |
-| file_path        | String   | 文件路径 | Nullable                             |
+| file_url         | String   | 文件URL  | Nullable                             |
 | category_id      | Integer  | 分类ID   | Foreign Key -> Category.id, Nullable |
 | created_at       | DateTime | 创建时间 | Default Now                          |
 | updated_at       | DateTime | 更新时间 | Default Now                          |
@@ -183,7 +183,7 @@ paper-manager-backend/
 | title            | String   | 标题       | Not Null, Index                               |
 | authors          | String   | 作者信息   | Not Null                                      |
 | doi              | String   | DOI        | Unique, Nullable                              |
-| file_path        | String   | 文件路径   | Nullable                                      |
+| file_url         | String   | 文件URL    | Nullable                                      |
 | journal_id       | Integer  | 期刊ID     | Foreign Key -> Journal.id, Nullable           |
 | publication_year | Integer  | 发表年份   | Index, Nullable                               |
 | category_id      | Integer  | 分类ID     | Foreign Key -> ReferenceCategory.id, Nullable |
@@ -766,7 +766,7 @@ client_secret: string (可选)
     "journal_id": "integer",
     "journal_name": "string",
     "doi": "string",
-    "file_path": "string",
+    "file_url": "string",
     "created_at": "datetime",
     "updated_at": "datetime",
     "keywords": ["string"],
@@ -808,7 +808,7 @@ client_secret: string (可选)
             "journal_id": "integer",
             "journal_name": "string",
             "doi": "string",
-            "file_path": "string",
+            "file_url": "string",
             "created_at": "datetime",
             "updated_at": "datetime",
             "keywords": ["string"],
@@ -846,7 +846,7 @@ client_secret: string (可选)
     "journal_id": "integer",
     "journal_name": "string",
     "doi": "string",
-    "file_path": "string",
+    "file_url": "string",
     "created_at": "datetime",
     "updated_at": "datetime",
     "keywords": ["string"],
@@ -875,12 +875,10 @@ client_secret: string (可选)
     "abstract": "string",
     "publication_date": "datetime",
     "journal_id": "integer",
-    "doi": "string",
-    "category_id": "integer",
+    "doi": "string",    "category_id": "integer",
     "keyword_names": ["string"],
     "author_names": ["string"],
     "author_contribution_ratios": ["number"],
-    "file_path": "string",
     "team_id": "integer"
 }
 ```
@@ -896,7 +894,6 @@ client_secret: string (可选)
 - `keyword_names`: array[string] - 关键词列表（完全替换现有关键词）
 - `author_names`: array[string] - 作者姓名列表（完全替换现有作者，按顺序排列）
 - `author_contribution_ratios`: array[number] - 作者贡献率列表（对应author_names的顺序，默认为1.0）
-- `file_path`: string - 文件路径
 - `team_id`: integer - 团队ID（不能设为0，必须是有效的团队ID）
 
 响应体：
@@ -910,7 +907,7 @@ client_secret: string (可选)
     "journal_id": "integer",
     "journal_name": "string",
     "doi": "string",
-    "file_path": "string",
+    "file_url": "string",
     "created_at": "datetime",
     "updated_at": "datetime",
     "keywords": ["string"],
@@ -943,6 +940,24 @@ client_secret: string (可选)
 
 上传论文文件
 
+**功能描述：**
+
+- 为指定论文上传PDF文件
+- 自动生成唯一文件名（格式：`{论文ID}_{时间戳}_{原文件名}`）
+- 支持文件替换（删除旧文件，上传新文件）
+- 返回文件预览URL
+
+**权限要求：**
+
+- 需要登录认证
+- 仅论文创建者或超级管理员可上传文件
+
+**存储位置：**
+
+```text
+data/uploads/papers/paper_{paper_id}_{timestamp}_{uuid}.pdf
+```
+
 路径参数：
 
 - paper_id: integer
@@ -955,14 +970,27 @@ client_secret: string (可选)
 
 ```json
 {
-    "message": "string",
-    "filename": "string"
+    "paper_id": "integer",
+    "file_url": "string",
+    "message": "File uploaded successfully"
 }
 ```
+
+**文件预览：**
+
+- 上传成功后，可通过返回的 `file_url` 直接在浏览器中预览PDF
+- 预览URL格式：`http://localhost:8000/media/papers/paper_{paper_id}_{timestamp}_{uuid}.pdf`
 
 ##### GET `/api/papers/{paper_id}/download`
 
 下载论文文件
+
+**功能描述：**
+
+- 直接通过论文ID获取文件
+- 所有已登录用户均可访问（论文是公开的）
+- 返回标准文件下载响应
+- 自动设置友好的文件名
 
 路径参数：
 
@@ -970,15 +998,37 @@ client_secret: string (可选)
 
 响应：PDF文件下载
 
+**示例请求：**
+
+```bash
+curl -X GET "http://localhost:8000/api/papers/1/download" \
+     -H "Authorization: Bearer {token}" \
+     -o "downloaded_paper.pdf"
+```
+
 ##### GET `/api/papers/download/by-title`
 
 通过标题下载论文文件
 
+**功能描述：**
+
+- 通过精确的论文标题查找文件
+- 支持中英文标题搜索
+- 自动生成友好的下载文件名
+
 查询参数：
 
-- title: string (必填)
+- title: string (必填) - 论文标题（需精确匹配）
 
 响应：PDF文件下载
+
+**示例请求：**
+
+```bash
+curl -X GET "http://localhost:8000/api/papers/download/by-title?title=深度学习研究" \
+     -H "Authorization: Bearer {token}" \
+     -o "research_paper.pdf"
+```
 
 ##### GET `/api/papers/{paper_id}/workload`
 
@@ -1433,7 +1483,7 @@ client_secret: string (可选)
     "title": "string",
     "authors": "string",
     "doi": "string",
-    "file_path": "string",
+    "file_url": "string",
     "journal_id": "integer",
     "publication_year": "integer",
     "created_at": "datetime",
@@ -1454,7 +1504,7 @@ client_secret: string (可选)
 **可选字段：**
 
 - `doi`: string - DOI标识符
-- `file_path`: string - 文件路径
+- `file_url`: string - 文件URL
 - `journal_id`: integer - 期刊ID
 - `publication_year`: integer - 发表年份
 - `team_id`: integer - 团队ID
@@ -1467,7 +1517,7 @@ client_secret: string (可选)
     "title": "string",
     "authors": "string",
     "doi": "string",
-    "file_path": "string",
+    "file_url": "string",
     "journal_id": "integer",
     "journal_name": "string",
     "publication_year": "integer",
@@ -1508,7 +1558,7 @@ client_secret: string (可选)
             "title": "string",
             "authors": "string",
             "doi": "string",
-            "file_path": "string",
+            "file_url": "string",
             "journal_id": "integer",
             "journal_name": "string",
             "publication_year": "integer",
@@ -1546,11 +1596,10 @@ client_secret: string (可选)
 响应体：
 
 ```json
-{
-    "title": "string",
+{    "title": "string",
     "authors": "string",
     "doi": "string",
-    "file_path": "string",
+    "file_url": "string",
     "journal_id": "integer",
     "journal_name": "string",
     "publication_year": "integer",
@@ -1582,11 +1631,9 @@ client_secret: string (可选)
 请求体：
 
 ```json
-{
-    "title": "string",
+{    "title": "string",
     "authors": "string",
     "doi": "string",
-    "file_path": "string",
     "journal_id": "integer",
     "publication_year": "integer",
     "category_id": "integer",
@@ -1597,11 +1644,10 @@ client_secret: string (可选)
 响应体：
 
 ```json
-{
-    "title": "string",
+{    "title": "string",
     "authors": "string",
     "doi": "string",
-    "file_path": "string",
+    "file_url": "string",
     "journal_id": "integer",
     "journal_name": "string",
     "publication_year": "integer",
@@ -1642,6 +1688,25 @@ client_secret: string (可选)
 
 上传参考文献的PDF文件
 
+**功能描述：**
+
+- 为指定参考文献上传PDF文件
+- 基于团队的访问控制
+- 文件存储在团队专属目录中
+- 支持文件替换功能
+- 返回文件预览URL
+
+**权限要求：**
+
+- 需要登录认证
+- 必须是参考文献所属团队的成员
+
+**存储位置：**
+
+```text
+data/uploads/teams/{team_id}/references/ref_{reference_id}_{timestamp}_{uuid}.pdf
+```
+
 路径参数：
 
 - reference_id: integer
@@ -1654,14 +1719,26 @@ client_secret: string (可选)
 
 ```json
 {
-    "message": "string",
-    "filename": "string"
+    "file_url": "string",
+    "message": "File uploaded successfully"
 }
 ```
+
+**文件预览：**
+
+- 上传成功后，可通过返回的 `file_url` 直接在浏览器中预览PDF
+- 预览URL格式：`http://localhost:8000/media/teams/{team_id}/references/ref_{reference_id}_{timestamp}_{uuid}.pdf`
 
 ##### GET `/api/references/{reference_id}/download`
 
 通过ID下载参考文献PDF文件
+
+**功能描述：**
+
+- 直接通过参考文献ID获取文件
+- 需要团队成员权限
+- 返回标准文件下载响应
+- 自动设置友好的文件名
 
 路径参数：
 
@@ -1669,16 +1746,38 @@ client_secret: string (可选)
 
 响应：PDF文件下载
 
+**示例请求：**
+
+```bash
+curl -X GET "http://localhost:8000/api/references/1/download" \
+     -H "Authorization: Bearer {token}" \
+     -o "reference.pdf"
+```
+
 ##### GET `/api/references/download/by-title`
 
 通过标题下载参考文献PDF文件
 
+**功能描述：**
+
+- 通过精确的参考文献标题查找文件
+- 需要指定团队ID以确保权限控制
+- 支持中英文标题搜索
+
 查询参数：
 
-- title: string (必填)
-- team_id: integer (必填)
+- title: string (必填) - 参考文献标题（需精确匹配）
+- team_id: integer (必填) - 团队ID
 
 响应：PDF文件下载
+
+**示例请求：**
+
+```bash
+curl -X GET "http://localhost:8000/api/references/download/by-title?title=相关研究&team_id=1" \
+     -H "Authorization: Bearer {token}" \
+     -o "reference.pdf"
+```
 
 ##### GET `/api/references/export/excel`
 
@@ -1917,7 +2016,7 @@ client_secret: string (可选)
 - **ADMIN**: 团队管理员，可以管理成员和资源
 - **MEMBER**: 团队成员，可以查看和操作团队资源
 
-## 8. 文件上传说明
+## 8. 文件管理系统
 
 ### 支持的文件格式
 
@@ -1926,14 +2025,95 @@ client_secret: string (可选)
 
 ### 文件大小限制
 
-- 单个文件最大支持: 50MB
+- 单个文件最大支持: 50MB（取决于服务器配置）
 - 文件名要求: 支持中英文，避免特殊字符
 
-### 上传流程
+### 文件存储结构
+
+```text
+data/
+├── uploads/
+│   ├── papers/                 # 论文文件存储
+│   │   └── paper_{id}_{timestamp}_{uuid}.pdf
+│   └── teams/                  # 团队文件存储
+│       └── {team_id}/
+│           └── references/     # 参考文献存储
+│               └── ref_{id}_{timestamp}_{uuid}.pdf
+```
+
+### 文件上传流程
 
 1. 先创建论文/参考文献记录
 2. 使用返回的ID上传对应的PDF文件
 3. 文件会自动保存到服务器指定目录
+4. 系统返回文件预览URL
+
+### 文件访问权限
+
+#### 论文文件权限
+
+- **上传/修改**: 仅论文创建者或超级管理员
+- **下载/预览**: 所有已登录用户（论文是公开的）
+
+#### 参考文献文件权限
+
+- **上传/修改**: 团队成员
+- **下载/预览**: 团队成员
+- **团队隔离**: 严格的团队级别数据隔离
+
+### 文件预览功能
+
+- **预览URL格式**:  - 论文: `http://localhost:8000/media/papers/paper_{paper_id}_{timestamp}_{uuid}.pdf`
+  - 参考文献: `http://localhost:8000/media/teams/{team_id}/references/ref_{reference_id}_{timestamp}_{uuid}.pdf`
+- **访问方式**: 直接HTTP访问，无需特殊认证
+- **支持格式**: PDF文件的浏览器内嵌预览
+
+### 安全机制
+
+1. **文件类型验证**: 仅允许PDF格式文件
+2. **唯一文件名**: 防止文件名冲突和路径遍历攻击
+3. **路径规范化**: 防止目录遍历攻击
+4. **权限控制**: 基于JWT的身份认证
+
+### 文件操作示例
+
+#### 论文文件操作
+
+```bash
+# 上传论文文件
+curl -X POST "http://localhost:8000/api/papers/1/upload" \
+  -H "Authorization: Bearer your_token" \
+  -F "file=@paper.pdf"
+
+# 下载论文文件
+curl -X GET "http://localhost:8000/api/papers/1/download" \
+  -H "Authorization: Bearer your_token" \
+  -o "downloaded_paper.pdf"
+
+# 通过标题下载
+curl -X GET "http://localhost:8000/api/papers/download/by-title?title=论文标题" \
+  -H "Authorization: Bearer your_token" \
+  -o "paper.pdf"
+```
+
+#### 参考文献文件操作
+
+```bash
+# 上传参考文献文件
+curl -X POST "http://localhost:8000/api/references/1/upload" \
+  -H "Authorization: Bearer your_token" \
+  -F "file=@reference.pdf"
+
+# 下载参考文献文件
+curl -X GET "http://localhost:8000/api/references/1/download" \
+  -H "Authorization: Bearer your_token" \
+  -o "reference.pdf"
+
+# 通过标题下载（需要指定团队ID）
+curl -X GET "http://localhost:8000/api/references/download/by-title?title=参考文献标题&team_id=1" \
+  -H "Authorization: Bearer your_token" \
+  -o "reference.pdf"
+```
 
 ## 9. 分页说明
 
@@ -1979,13 +2159,20 @@ curl -X POST "http://localhost:8000/api/papers/" \
   }'
 ```
 
-### 上传论文文件
+### 创建团队
 
 ```bash
-curl -X POST "http://localhost:8000/api/papers/1/upload" \
+curl -X POST "http://localhost:8000/api/teams/" \
   -H "Authorization: Bearer your_token" \
-  -F "file=@paper.pdf"
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "研究团队",
+    "description": "我们的研究团队",
+    "creator_id": 1
+  }'
 ```
+
+**注意**: 文件上传和下载的详细示例请参考上面的"文件管理系统"章节。
 
 ## 11. 数据库设计
 
@@ -2007,6 +2194,7 @@ curl -X POST "http://localhost:8000/api/papers/1/upload" \
 
 ### 相关文档
 
+- [文件管理指南](docs/FILE_MANAGEMENT_GUIDE.md) - 详细的文件上传、下载和预览功能说明
 - [管理员工具指南](docs/ADMIN_TOOLS_GUIDE.md)
 - [SQLite 迁移说明](docs/MIGRATION_TO_SQLITE.md)
 - [极简配置成功指南](docs/EXTREME_SIMPLE_CONFIG_SUCCESS.md)

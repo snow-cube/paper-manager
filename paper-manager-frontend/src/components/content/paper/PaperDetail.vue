@@ -231,9 +231,8 @@
               </div>
             </div>
           </div>
-
           <!-- 文件卡片 -->
-          <div v-if="displayData.file_path" class="content-card">
+          <div v-if="displayData.file_url" class="content-card">
             <div class="card-header">
               <span class="card-icon">📁</span>
               <h3 class="card-title">附件文件</h3>
@@ -244,11 +243,19 @@
                   <div class="file-icon">📄</div>
                   <div class="file-details">
                     <div class="file-name">
-                      {{ getFileName(displayData.file_path) }}
+                      {{ getFileName(displayData.file_url) }}
                     </div>
                     <div class="file-meta">
-                      {{ getFileSize(displayData.file_path) }} ·
-                      {{ getFileType(displayData.file_path) }}
+                      <span class="file-size-loading" v-if="!fileMetadata">
+                        正在获取文件信息...
+                      </span>
+                      <template v-else>
+                        {{ formatFileSize(fileMetadata.size) }} ·
+                        {{ getFileType(displayData.file_url) }}
+                        <span v-if="fileMetadata.lastModified">
+                          · {{ formatDate(fileMetadata.lastModified) }}
+                        </span>
+                      </template>
                     </div>
                   </div>
                 </div>
@@ -256,11 +263,16 @@
                   <button
                     @click="previewFile"
                     class="btn btn-small btn-preview"
+                    :class="{ 'preview-supported': canPreviewFile }"
+                    :title="
+                      canPreviewFile ? '点击预览文件' : '此文件类型不支持预览'
+                    "
                   >
-                    <span class="btn-icon">👁️</span> 预览
+                    <span class="btn-icon">👁️</span>
+                    {{ canPreviewFile ? "预览" : "查看" }}
                   </button>
                   <button
-                    @click="downloadFile"
+                    @click="handleDownload"
                     class="btn btn-small btn-download"
                   >
                     <span class="btn-icon">⬇️</span> 下载
@@ -268,34 +280,18 @@
                 </div>
               </div>
               <div v-if="showPreview" class="file-preview">
-                <div class="preview-header">
-                  <h4>文件预览</h4>
-                  <button @click="closePreview" class="preview-close">×</button>
-                </div>
-                <div class="preview-content">
-                  <template v-if="isPreviewable">
-                    <PdfViewer v-if="isPdf" :url="previewUrl" />
-                    <img
-                      v-else-if="isImage"
-                      :src="previewUrl"
-                      class="image-preview"
-                    />
-                    <div v-else class="preview-not-available">
-                      <div class="preview-icon">🔎</div>
-                      <p>暂不支持此类型文件的预览</p>
-                      <button @click="downloadFile" class="btn btn-primary">
-                        <span class="btn-icon">⬇️</span> 下载文件
-                      </button>
-                    </div>
-                  </template>
-                  <div v-else class="preview-not-available">
-                    <div class="preview-icon">🔎</div>
-                    <p>该文件类型不支持在线预览</p>
-                    <button @click="downloadFile" class="btn btn-primary">
-                      <span class="btn-icon">⬇️</span> 下载文件
-                    </button>
-                  </div>
-                </div>
+                <FilePreview
+                  :file-url="previewUrl"
+                  :file-name="getFileName(displayData.file_url)"
+                  :file-size="fileMetadata?.size || displayData.file_size"
+                  :last-modified="
+                    fileMetadata?.lastModified || displayData.file_modified_at
+                  "
+                  @close="closePreview"
+                  @download="handlePreviewDownload"
+                  @load="handlePreviewLoad"
+                  @error="handlePreviewError"
+                />
               </div>
             </div>
           </div>
@@ -413,8 +409,8 @@
       <div class="action-bar">
         <div class="action-group primary-actions">
           <button
-            v-if="displayData.file_path"
-            @click="downloadFile"
+            v-if="displayData.file_url"
+            @click="handleDownload"
             class="btn btn-download-main"
             :disabled="downloading"
           >
@@ -442,15 +438,25 @@ import { computed, ref, onMounted, watch } from "vue";
 import { useCategories } from "../../../composables/useCategories.js";
 import { useCategoryEvents } from "../../../composables/useCategoryEvents.js";
 import {
-  downloadPaper,
-  downloadReference,
   getPaper,
   getReference,
   getPaperWorkload,
 } from "../../../services/api.js";
+import {
+  formatFileSize,
+  getFileName,
+  getFileType,
+  getFileExtension,
+} from "../../../utils/fileUtils.js";
+import {
+  getFileMetadata,
+  getFilePreviewInfo,
+  getValidFileUrl,
+} from "../../../services/downloadService.js";
 import { useToast } from "../../../composables/useToast.js";
 import { useTeam } from "../../../composables/useTeam.js";
-import { PdfViewer } from ".";
+import { useFileDownload } from "../../../composables/useFileDownload.js";
+import { PdfViewer, FilePreview } from ".";
 
 const props = defineProps({
   paper: {
@@ -475,16 +481,17 @@ const { getCategoryName, loadCategories } = useCategories();
 const { showToast } = useToast();
 const { currentTeam } = useTeam();
 const { onCategoryUpdate } = useCategoryEvents();
+const { downloading, downloadFile } = useFileDownload();
 
 const showPreview = ref(false);
 const previewUrl = ref("");
-const downloading = ref(false);
 const workloads = ref([]);
 const isLoadingWorkload = ref(false);
 const workloadError = ref(null);
 const detailData = ref(null);
 const isLoadingDetails = ref(false);
 const detailsError = ref(null);
+const fileMetadata = ref(null);
 
 // 获取实际显示的数据（详细数据优先，否则使用传入的基本数据）
 const displayData = computed(() => detailData.value || props.paper);
@@ -658,58 +665,60 @@ const formatPublicationDate = (dateString) => {
   });
 };
 
-const getFileName = (fileUrl) => {
-  if (!fileUrl) return "";
-  return fileUrl.split("/").pop() || "paper-file";
-};
+const getFileSize = async (filePath) => {
+  if (!filePath) return "未知大小";
 
-const getFileSize = (filePath) => {
-  // 模拟文件大小信息，实际应该从API获取
+  try {
+    const metadata = await getFileMetadata(filePath);
+    if (metadata.size) {
+      return formatFileSize(metadata.size);
+    }
+  } catch (error) {
+    console.warn("Failed to get file size:", error);
+  }
   return "未知大小";
 };
 
-const getFileType = (filePath) => {
-  if (!filePath) return "未知类型";
-  const extension = filePath.split(".").pop()?.toLowerCase();
-  const typeMap = {
-    pdf: "PDF文档",
-    doc: "Word文档",
-    docx: "Word文档",
-    xls: "Excel表格",
-    xlsx: "Excel表格",
-    ppt: "PowerPoint演示",
-    pptx: "PowerPoint演示",
-    txt: "文本文件",
-    jpg: "图片文件",
-    jpeg: "图片文件",
-    png: "图片文件",
-    gif: "图片文件",
-  };
-  return typeMap[extension] || "其他文件";
+// 计算文件是否可预览
+const canPreviewFile = computed(() => {
+  const fileUrl = getValidFileUrl(displayData.value);
+  if (!fileUrl) return false;
+  const previewInfo = getFilePreviewInfo(fileUrl);
+  return previewInfo.canPreview;
+});
+
+// 获取文件元数据
+const loadFileMetadata = async () => {
+  const fileUrl = getValidFileUrl(displayData.value);
+  if (!fileUrl) return;
+
+  try {
+    // 优先使用API数据中的文件信息
+    if (displayData.value.file_size || displayData.value.file_modified_at) {
+      fileMetadata.value = {
+        size: displayData.value.file_size || null,
+        type: displayData.value.file_type || null,
+        lastModified: displayData.value.file_modified_at
+          ? new Date(displayData.value.file_modified_at)
+          : null,
+        exists: true,
+      };
+      return;
+    }
+
+    // 从URL获取文件元数据
+    const metadata = await getFileMetadata(fileUrl);
+    fileMetadata.value = metadata;
+  } catch (error) {
+    console.warn("Failed to load file metadata:", error);
+    fileMetadata.value = {
+      size: null,
+      type: null,
+      lastModified: null,
+      exists: false,
+    };
+  }
 };
-
-const getFileExtension = (fileUrl) => {
-  if (!fileUrl) return "";
-  const fileName = getFileName(fileUrl);
-  return fileName.split(".").pop().toLowerCase();
-};
-
-const isPreviewable = computed(() => {
-  const extension = getFileExtension(displayData.value.file_path);
-  // 支持预览的文件类型
-  return ["pdf", "jpg", "jpeg", "png", "gif"].includes(extension);
-});
-
-const isPdf = computed(() => {
-  return getFileExtension(displayData.value.file_path) === "pdf";
-});
-
-const isImage = computed(() => {
-  const extension = getFileExtension(displayData.value.file_path);
-  return ["jpg", "jpeg", "png", "gif"].includes(extension);
-});
-
-// 获取详细数据
 const fetchDetailData = async () => {
   if (!props.loadDetails || !displayData.value.id) return;
 
@@ -735,22 +744,21 @@ const fetchDetailData = async () => {
   }
 };
 
-const previewFile = () => {
-  if (!displayData.value.file_path) {
+const previewFile = async () => {
+  // 使用统一的URL获取方法
+  const fileUrl = getValidFileUrl(displayData.value);
+
+  if (!fileUrl) {
     showToast("没有可预览的文件", "warning");
     return;
   }
 
-  if (!isPreviewable.value) {
-    showToast("该文件类型不支持在线预览，请下载后查看", "warning");
-    return;
-  }
-
   try {
-    // 在实际环境中，这里可能需要通过API获取预览URL
-    // 这里简单地使用file_path作为预览地址
-    previewUrl.value = displayData.value.file_path;
+    // 使用转换后的HTTP URL进行预览
+    previewUrl.value = fileUrl;
     showPreview.value = true;
+
+    showToast("正在加载文件预览...", "info");
   } catch (error) {
     console.error("预览文件失败:", error);
     showToast("预览文件失败，请尝试下载查看", "error");
@@ -762,62 +770,25 @@ const closePreview = () => {
   previewUrl.value = "";
 };
 
-const downloadFile = async () => {
-  if (!displayData.value.file_path) {
-    showToast("没有可下载的文件", "warning");
-    return;
-  }
+const handlePreviewDownload = (data) => {
+  showToast(`文件 "${data.fileName}" 下载成功`, "success");
+};
 
-  downloading.value = true;
+const handlePreviewLoad = (data) => {
+  showToast("文件预览加载成功", "success");
+  console.log("Preview loaded:", data);
+};
 
-  try {
-    showToast("正在准备下载文件...", "info");
+const handlePreviewError = (error) => {
+  console.error("Preview error:", error);
+  showToast(`预览失败: ${error.message || "未知错误"}`, "error");
+};
 
-    // 根据项目类型选择不同的下载API
-    let response;
-    if (isLiteratureType.value) {
-      // 参考文献：使用references API
-      response = await downloadReference(displayData.value.id);
-    } else {
-      // 论文：使用papers API
-      response = await downloadPaper(displayData.value.id);
-    }
-
-    // 从Content-Disposition头部提取文件名，如果有的话
-    const contentDisposition = response.headers["content-disposition"];
-    let fileName = getFileName(displayData.value.file_path);
-
-    if (contentDisposition) {
-      const filenameMatch = contentDisposition.match(
-        /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
-      );
-      if (filenameMatch && filenameMatch[1]) {
-        fileName = filenameMatch[1].replace(/['"]/g, "");
-      }
-    }
-
-    // 确定内容类型
-    const contentType =
-      response.headers["content-type"] || "application/octet-stream";
-
-    // 创建下载链接
-    const blob = new Blob([response.data], { type: contentType });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-
-    showToast("文件下载成功", "success");
-  } catch (error) {
-    console.error("下载文件失败:", error);
-    showToast("下载文件失败，请重试", "error");
-  } finally {
-    downloading.value = false;
-  }
+// 使用统一的下载函数
+const handleDownload = () => {
+  downloadFile(displayData.value, {
+    paperType: isLiteratureType.value ? "literature" : "papers",
+  });
 };
 
 const fetchWorkload = async () => {
@@ -858,6 +829,7 @@ onMounted(() => {
   fetchDetailData();
   fetchWorkload();
   loadAppropriateCategories();
+  loadFileMetadata();
 
   // Listen for category updates
   onCategoryUpdate(() => {
@@ -871,6 +843,7 @@ watch(
     fetchDetailData();
     fetchWorkload();
     loadAppropriateCategories();
+    loadFileMetadata();
   },
   { deep: true }
 );
@@ -1730,6 +1703,24 @@ watch(
   box-shadow: var(--shadow-sm);
 }
 
+.btn-preview.preview-supported {
+  background: linear-gradient(135deg, var(--primary-50), var(--primary-100));
+  color: var(--primary-700);
+  border-color: var(--primary-300);
+}
+
+.btn-preview.preview-supported:hover {
+  background: linear-gradient(135deg, var(--primary-100), var(--primary-200));
+  color: var(--primary-800);
+  border-color: var(--primary-400);
+}
+
+.file-size-loading {
+  color: var(--gray-400);
+  font-style: italic;
+  font-size: var(--text-xs);
+}
+
 /* 加载和错误状态 */
 .loading-state,
 .error-state {
@@ -1831,87 +1822,11 @@ watch(
 /* 文件预览 */
 .file-preview {
   margin-top: var(--space-lg);
-  border: 1px solid var(--gray-200);
   border-radius: var(--border-radius-lg);
   overflow: hidden;
   background: white;
-}
-
-.preview-header {
-  padding: var(--space-lg);
-  background: linear-gradient(
-    135deg,
-    var(--gray-50) 0%,
-    rgba(255, 255, 255, 0.8) 100%
-  );
-  border-bottom: 1px solid var(--gray-200);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.preview-header h4 {
-  margin: 0;
-  font-size: var(--text-lg);
-  font-weight: 600;
-  color: var(--gray-800);
-}
-
-.preview-close {
-  background: none;
-  border: none;
-  font-size: var(--text-2xl);
-  cursor: pointer;
-  color: var(--gray-500);
-  width: 2rem;
-  height: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--border-radius);
-  transition: all 0.2s ease;
-}
-
-.preview-close:hover {
-  background: var(--gray-100);
-  color: var(--gray-700);
-  transform: scale(1.1);
-}
-
-.preview-content {
-  min-height: 400px;
-  max-height: 600px;
-  overflow: hidden;
-}
-
-.image-preview {
-  max-width: 100%;
-  max-height: 600px;
-  display: block;
-  margin: 0 auto;
-  object-fit: contain;
-}
-
-.preview-not-available {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-lg);
-  padding: var(--space-3xl);
-  text-align: center;
-  color: var(--gray-600);
-}
-
-.preview-icon {
-  font-size: var(--space-3xl);
-  opacity: 0.6;
-  margin-bottom: var(--space-md);
-}
-
-.preview-not-available p {
-  margin: 0;
-  font-size: var(--text-base);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  max-height: 80vh;
 }
 
 /* 响应式设计 */
