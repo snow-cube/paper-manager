@@ -10,7 +10,7 @@ from app.core.database import init_db, engine
 from app.api import api_router
 from app.models.user import User
 from app.services.utils import get_password_hash
-from app.utils.create_admin import create_admin_user_sync
+from scripts.create_admin import create_admin_user_sync
 
 # Initialize colorama for Windows
 init(autoreset=True)
@@ -26,6 +26,12 @@ app = FastAPI(
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 os.makedirs(static_dir, exist_ok=True)
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+# Configure media files directory for file preview
+from app.core.config_dev import config
+
+media_dir = str(config.uploads)
+app.mount("/media", StaticFiles(directory=media_dir), name="media")
 
 # CORS middleware configuration
 app.add_middleware(

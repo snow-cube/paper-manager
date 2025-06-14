@@ -1,16 +1,29 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from fastapi.responses import FileResponse
-from sqlmodel import Session, select, delete
+from sqlmodel import Session, col, select, delete
 from typing import List, Optional
 from datetime import datetime
 import os
 import shutil
+import tempfile
+import pandas as pd
+import uuid
 
 from app.core.database import get_session
-from app.core.config_dev import get_team_upload_dir
+from app.core.config_dev import (
+    get_team_upload_dir,
+    build_file_url,
+    convert_to_relative_path,
+)
 from app.models.reference import (
-    ReferencePaper, ReferenceCreate, ReferenceRead, ReferenceUpdate,
-    ReferenceCategory, ReferenceKeyword, ReferenceCategoryRead, PaginatedReferenceResponse
+    ReferencePaper,
+    ReferenceCreate,
+    ReferenceRead,
+    ReferenceUpdate,
+    ReferenceCategory,
+    ReferenceKeyword,
+    ReferenceCategoryRead,
+    PaginatedReferenceResponse,
 )
 from app.models.keyword import Keyword
 from app.models.user import User
@@ -28,9 +41,7 @@ def get_or_create_keywords(session: Session, keyword_names: List[str]) -> List[K
     keywords = []
     for name in keyword_names:
         # 查找现有关键字
-        keyword = session.exec(
-            select(Keyword).where(Keyword.name == name)
-        ).first()
+        keyword = session.exec(select(Keyword).where(Keyword.name == name)).first()
 
         # 如果不存在则创建
         if not keyword:
@@ -42,27 +53,23 @@ def get_or_create_keywords(session: Session, keyword_names: List[str]) -> List[K
     return keywords
 
 
-def check_team_member(team_id: int, user: User, session: Session):
-    """检查用户是否为团队成员"""
-    if team_id == 0:  # 0 表示公开，不需要检查
-        return True
+# def check_team_member(team_id: int, user: User, session: Session):
+#     """检查用户是否为团队成员"""
+#     if team_id == 0:  # 0 表示公开，不需要检查
+#         return True
 
-    team_user = session.exec(
-        select(TeamUser).where(
-            TeamUser.team_id == team_id,
-            TeamUser.user_id == user.id
-        )
-    ).first()
+#     team_user = session.exec(
+#         select(TeamUser).where(TeamUser.team_id == team_id, TeamUser.user_id == user.id)
+#     ).first()
 
-    if not team_user:
-        raise HTTPException(
-            status_code=403,
-            detail="Not a member of this team"
-        )
-    return True
+#     if not team_user:
+#         raise HTTPException(status_code=403, detail="Not a member of this team")
+#     return True
 
 
-def get_reference_category_and_subcategories(session: Session, category_id: int) -> List[int]:
+def get_reference_category_and_subcategories(
+    session: Session, category_id: int
+) -> List[int]:
     """递归获取参考文献分类及其所有子分类的ID列表"""
     from app.models.reference import ReferenceCategory
 
@@ -72,6 +79,7 @@ def get_reference_category_and_subcategories(session: Session, category_id: int)
     ).all()
 
     for child in children:
+        assert child.id is not None, "Child category ID should not be None"
         result.extend(get_reference_category_and_subcategories(session, child.id))
 
     return result
@@ -81,22 +89,23 @@ def get_reference_category_and_subcategories(session: Session, category_id: int)
 def create_reference(
     reference: ReferenceCreate,
     session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """创建参考文献"""
+    assert reference.team_id is not None, "Team ID should not be None"
     # 检查用户是否为团队成员
-    check_team_member(reference.team_id, current_user, session)    # 如果指定了分类，检查分类是否存在且属于同一团队
+    check_team_member(
+        reference.team_id, current_user, session
+    )  # 如果指定了分类，检查分类是否存在且属于同一团队
     if reference.category_id:
         category = session.get(ReferenceCategory, reference.category_id)
         if not category:
             raise HTTPException(
-                status_code=404,
-                detail=f"Category {reference.category_id} not found"
+                status_code=404, detail=f"Category {reference.category_id} not found"
             )
         if category.team_id != reference.team_id:
             raise HTTPException(
-                status_code=400,
-                detail="Category must belong to the same team"
+                status_code=400, detail="Category must belong to the same team"
             )
 
     # 如果指定了期刊，检查期刊是否存在
@@ -104,8 +113,7 @@ def create_reference(
         journal = session.get(Journal, reference.journal_id)
         if not journal:
             raise HTTPException(
-                status_code=404,
-                detail=f"Journal {reference.journal_id} not found"
+                status_code=404, detail=f"Journal {reference.journal_id} not found"
             )
 
     # 检查DOI是否已存在
@@ -115,21 +123,19 @@ def create_reference(
         ).first()
         if existing_reference:
             raise HTTPException(
-                status_code=400,
-                detail="Reference with this DOI already exists"
+                status_code=400, detail="Reference with this DOI already exists"
             )
 
     # 创建参考文献
     db_reference = ReferencePaper.from_orm(reference)
+    assert current_user.id is not None, "Current user ID should not be None"
     db_reference.created_by_id = current_user.id
     session.add(db_reference)
 
     # 处理关键词
     for name in reference.keyword_names:
         # 查找或创建关键词
-        keyword = session.exec(
-            select(Keyword).where(Keyword.name == name)
-        ).first()
+        keyword = session.exec(select(Keyword).where(Keyword.name == name)).first()
         if not keyword:
             keyword = Keyword(name=name)
             session.add(keyword)
@@ -137,8 +143,7 @@ def create_reference(
 
         # 创建参考文献-关键词关联
         reference_keyword = ReferenceKeyword(
-            reference_id=db_reference.id,
-            keyword_id=keyword.id
+            reference_id=db_reference.id, keyword_id=keyword.id
         )
         session.add(reference_keyword)
 
@@ -160,7 +165,7 @@ def read_references(
     publication_year: Optional[int] = None,
     title: Optional[str] = None,
     session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """获取参考文献列表"""
     # 基础查询
@@ -176,21 +181,18 @@ def read_references(
             select(TeamUser).where(TeamUser.user_id == current_user.id)
         ).all()
         team_ids = [0] + [tu.team_id for tu in user_teams]  # 包括公开的参考文献
-        query = query.where(ReferencePaper.team_id.in_(team_ids))
+        query = query.where(ReferencePaper.team_id.in_(team_ids))  # type: ignore
 
     # 应用其他过滤条件
     if title:
-        query = query.where(ReferencePaper.title.contains(title))
+        query = query.where(ReferencePaper.title.contains(title))  # type: ignore
     if category_id:
         # 获取指定分类及其所有子分类的ID列表
         category_ids = get_reference_category_and_subcategories(session, category_id)
-        query = query.where(ReferencePaper.category_id.in_(category_ids))
+        query = query.where(ReferencePaper.category_id.in_(category_ids))  # type: ignore
     if keyword:
         query = (
-            query
-            .join(ReferenceKeyword)
-            .join(Keyword)
-            .where(Keyword.name == keyword)
+            query.join(ReferenceKeyword).join(Keyword).where(Keyword.name == keyword)
         )
     if journal_id:
         query = query.where(ReferencePaper.journal_id == journal_id)
@@ -216,7 +218,7 @@ def read_references(
         total=total_count,
         page=current_page,
         size=limit,
-        pages=total_pages
+        pages=total_pages,
     )
 
 
@@ -224,12 +226,16 @@ def read_references(
 def read_reference(
     reference_id: int,
     session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """获取单个参考文献"""
     reference = session.get(ReferencePaper, reference_id)
     if not reference:
         raise HTTPException(status_code=404, detail="Reference not found")
+
+    # 检查参考文献是否属于团队
+    if reference.team_id is None:
+        raise HTTPException(status_code=400, detail="Reference has no associated team")
 
     # 检查用户是否有权限访问
     check_team_member(reference.team_id, current_user, session)
@@ -242,41 +248,44 @@ def update_reference(
     reference_id: int,
     reference_update: ReferenceUpdate,
     session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """更新参考文献"""
     db_reference = session.get(ReferencePaper, reference_id)
     if not db_reference:
         raise HTTPException(status_code=404, detail="Reference not found")
+    # 检查参考文献是否属于团队
+    if db_reference.team_id is None:
+        raise HTTPException(status_code=400, detail="Reference has no associated team")
 
     # 检查用户是否有权限修改
     check_team_member(db_reference.team_id, current_user, session)
     team_user = session.exec(
         select(TeamUser).where(
             TeamUser.team_id == db_reference.team_id,
-            TeamUser.user_id == current_user.id
+            TeamUser.user_id == current_user.id,
         )
     ).first()
 
     # 只有创建者和团队管理员可以修改
-    if (db_reference.created_by_id != current_user.id and
-        not (team_user and team_user.role in [TeamRole.OWNER, TeamRole.ADMIN])):
+    if db_reference.created_by_id != current_user.id and not (
+        team_user and team_user.role in [TeamRole.OWNER, TeamRole.ADMIN]
+    ):
         raise HTTPException(
             status_code=403,
-            detail="Only the creator or team administrators can modify this reference"
-        )    # 如果要更新分类，检查分类是否存在且属于同一团队
+            detail="Only the creator or team administrators can modify this reference",
+        )  # 如果要更新分类，检查分类是否存在且属于同一团队
     if reference_update.category_id is not None:
         if reference_update.category_id != 0:  # 0 表示无分类
             category = session.get(ReferenceCategory, reference_update.category_id)
             if not category:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"Category {reference_update.category_id} not found"
+                    detail=f"Category {reference_update.category_id} not found",
                 )
             if category.team_id != db_reference.team_id:
                 raise HTTPException(
-                    status_code=400,
-                    detail="Category must belong to the same team"
+                    status_code=400, detail="Category must belong to the same team"
                 )
 
     # 如果要更新期刊，检查期刊是否存在
@@ -286,7 +295,7 @@ def update_reference(
             if not journal:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"Journal {reference_update.journal_id} not found"
+                    detail=f"Journal {reference_update.journal_id} not found",
                 )
 
     # 更新基本信息
@@ -298,23 +307,22 @@ def update_reference(
     # 如果提供了关键词，更新关键词
     if reference_update.keyword_names is not None:
         # 删除现有关键词关联
-        session.exec(
-            delete(ReferenceKeyword).where(ReferenceKeyword.reference_id == reference_id)
+        session.execute(
+            delete(ReferenceKeyword).where(
+                col(ReferenceKeyword.reference_id) == reference_id
+            )
         )
 
         # 添加新的关键词
         for name in reference_update.keyword_names:
-            keyword = session.exec(
-                select(Keyword).where(Keyword.name == name)
-            ).first()
+            keyword = session.exec(select(Keyword).where(Keyword.name == name)).first()
             if not keyword:
                 keyword = Keyword(name=name)
                 session.add(keyword)
                 session.flush()
 
             reference_keyword = ReferenceKeyword(
-                reference_id=reference_id,
-                keyword_id=keyword.id
+                reference_id=reference_id, keyword_id=keyword.id
             )
             session.add(reference_keyword)
 
@@ -329,33 +337,54 @@ def update_reference(
 def delete_reference(
     reference_id: int,
     session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """删除参考文献"""
     reference = session.get(ReferencePaper, reference_id)
     if not reference:
         raise HTTPException(status_code=404, detail="Reference not found")
 
+    # 检查参考文献是否属于团队
+    if reference.team_id is None:
+        raise HTTPException(status_code=400, detail="Reference has no associated team")
+
     # 检查用户是否有权限删除
     check_team_member(reference.team_id, current_user, session)
     team_user = session.exec(
         select(TeamUser).where(
-            TeamUser.team_id == reference.team_id,
-            TeamUser.user_id == current_user.id
+            TeamUser.team_id == reference.team_id, TeamUser.user_id == current_user.id
         )
     ).first()
 
     # 只有创建者和团队管理员可以删除
-    if (reference.created_by_id != current_user.id and
-        not (team_user and team_user.role in [TeamRole.OWNER, TeamRole.ADMIN])):
+    if reference.created_by_id != current_user.id and not (
+        team_user and team_user.role in [TeamRole.OWNER, TeamRole.ADMIN]
+    ):
         raise HTTPException(
             status_code=403,
-            detail="Only the creator or team administrators can delete this reference"
+            detail="Only the creator or team administrators can delete this reference",
         )
 
+    # 删除文件（如果存在）
+    if reference.file_path:
+        # 构建完整文件路径
+        if os.path.isabs(reference.file_path):
+            full_path = reference.file_path
+        else:
+            # 相对路径需要构建完整路径
+            full_path = (
+                get_team_upload_dir(reference.team_id)
+                / reference.file_path.split("/")[-1]
+            )
+
+        if os.path.exists(full_path):
+            os.remove(full_path)
+
     # 删除关联的关键词
-    session.exec(
-        delete(ReferenceKeyword).where(ReferenceKeyword.reference_id == reference_id)
+    session.execute(
+        delete(ReferenceKeyword).where(
+            col(ReferenceKeyword.reference_id) == reference_id
+        )
     )
 
     session.delete(reference)
@@ -365,16 +394,18 @@ def delete_reference(
 
 def get_reference_read(reference: ReferencePaper, session: Session) -> ReferenceRead:
     """构建参考文献返回数据"""
+    if reference.id is None:
+        raise HTTPException(status_code=500, detail="Reference ID is missing")
+
     # 获取关键词
     keywords = [
-        kw.name for kw in session.exec(
+        kw.name
+        for kw in session.exec(
             select(Keyword)
             .join(ReferenceKeyword)
             .where(ReferenceKeyword.reference_id == reference.id)
         ).all()
-    ]
-
-    # 获取分类信息
+    ]  # 获取分类信息
     category_info = None
     if reference.category_id:
         category = session.get(ReferenceCategory, reference.category_id)
@@ -393,7 +424,7 @@ def get_reference_read(reference: ReferencePaper, session: Session) -> Reference
         title=reference.title,
         authors=reference.authors,
         doi=reference.doi,
-        file_path=reference.file_path,
+        file_url=build_file_url(reference.file_path) if reference.file_path else None,
         journal_id=reference.journal_id,
         journal_name=journal_name,
         publication_year=reference.publication_year,
@@ -403,7 +434,7 @@ def get_reference_read(reference: ReferencePaper, session: Session) -> Reference
         created_by_id=reference.created_by_id,
         category_id=reference.category_id,
         keywords=keywords,
-        category=category_info
+        category=category_info,
     )
 
 
@@ -412,80 +443,118 @@ async def upload_file(
     reference_id: int,
     file: UploadFile = File(...),
     session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """上传参考文献的PDF文件"""
     db_reference = session.get(ReferencePaper, reference_id)
     if not db_reference:
         raise HTTPException(status_code=404, detail="Reference paper not found")
-      # 检查用户是否为团队成员
+    # 检查用户是否为团队成员
     if db_reference.team_id is None:
         raise HTTPException(status_code=400, detail="Reference has no associated team")
     check_team_member(db_reference.team_id, current_user, session)
 
     # 检查文件类型
-    if not file.filename or not file.filename.lower().endswith('.pdf'):
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(
-            status_code=400,
-            detail="Only PDF files are allowed"
-        )      # 创建存储目录
+            status_code=400, detail="Only PDF files are allowed"
+        )  # 创建存储目录
     upload_dir = get_team_upload_dir(db_reference.team_id)
-    upload_dir.mkdir(parents=True, exist_ok=True)
+    upload_dir.mkdir(parents=True, exist_ok=True)  # 生成文件路径（不保留原始文件名）
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    # 获取文件扩展名
+    file_extension = ""
+    if file.filename:
+        file_extension = os.path.splitext(file.filename)[1].lower()
 
-    # 生成文件路径
-    file_path = upload_dir / f"{reference_id}_{file.filename}"
+    # 生成新的文件名：参考文献ID_时间戳_随机数.扩展名
+    random_suffix = str(uuid.uuid4())[:8]
+    filename = f"ref_{reference_id}_{timestamp}_{random_suffix}{file_extension}"
+    file_path = upload_dir / filename
 
     # 如果已存在文件，先删除
-    if db_reference.file_path and os.path.exists(db_reference.file_path):
-        os.remove(db_reference.file_path)
-      # 保存新文件
+    if db_reference.file_path:
+        # 构建完整路径以删除旧文件
+        if os.path.isabs(db_reference.file_path):
+            old_full_path = db_reference.file_path
+        else:
+            # 相对路径需要构建完整路径
+            old_full_path = (
+                get_team_upload_dir(db_reference.team_id) / db_reference.file_path
+            )
+        if os.path.exists(old_full_path):
+            os.remove(old_full_path)
+
+    # 保存新文件
     try:
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to save file: {str(e)}"
-        )
-      # 更新数据库中的文件路径
-    db_reference.file_path = str(file_path)
+        raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
+
+    # 构建相对路径用于存储
+    relative_path = f"teams/{db_reference.team_id}/references/{filename}"
+
+    # 更新数据库中的文件路径（存储相对路径）
+    db_reference.file_path = relative_path
     db_reference.updated_at = datetime.utcnow()
     session.add(db_reference)
-    session.commit()
+    session.commit()  # 构建文件URL以支持预览
+    file_url = build_file_url(relative_path)
 
-    return {"filename": file.filename, "file_path": str(file_path)}
+    return {
+        "reference_id": reference_id,
+        "file_url": file_url,
+        "message": "File uploaded successfully",
+    }
 
 
 @router.get("/{reference_id}/download")
 async def download_reference_by_id(
     reference_id: int,
     session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """通过ID下载参考文献PDF文件"""
     db_reference = session.get(ReferencePaper, reference_id)
     if not db_reference:
-        raise HTTPException(status_code=404, detail="Reference paper not found")
-      # 检查用户是否为团队成员
+        raise HTTPException(
+            status_code=404, detail="Reference paper not found"
+        )  # 检查用户是否为团队成员
     if db_reference.team_id is None:
         raise HTTPException(status_code=400, detail="Reference has no associated team")
     check_team_member(db_reference.team_id, current_user, session)
 
     # 检查文件是否存在
-    if not db_reference.file_path or not os.path.exists(db_reference.file_path):
+    if not db_reference.file_path:
         raise HTTPException(
-            status_code=404,
-            detail="PDF file not found for this reference"
+            status_code=404, detail="No file associated with this reference"
+        )
+
+    # 构建完整文件路径
+    if os.path.isabs(db_reference.file_path):
+        full_path = db_reference.file_path
+    else:
+        # 相对路径需要构建完整路径
+        if db_reference.team_id:
+            full_path = (
+                get_team_upload_dir(db_reference.team_id)
+                / db_reference.file_path.split("/")[-1]
+            )
+        else:
+            raise HTTPException(
+                status_code=400, detail="Reference has no associated team"
+            )
+
+    if not os.path.exists(full_path):
+        raise HTTPException(
+            status_code=404, detail="PDF file not found for this reference"
         )
 
     # 构建文件名
     filename = f"{db_reference.title}.pdf"
 
-    return FileResponse(
-        db_reference.file_path,
-        filename=filename,
-        media_type="application/pdf"
-    )
+    return FileResponse(str(full_path), filename=filename, media_type="application/pdf")
 
 
 @router.get("/download/by-title")
@@ -493,7 +562,7 @@ async def download_reference_by_title(
     title: str,
     team_id: int,
     session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """通过标题下载参考文献PDF文件"""
     # 检查用户是否为团队成员
@@ -508,22 +577,139 @@ async def download_reference_by_title(
 
     if not db_reference:
         raise HTTPException(
-            status_code=404,
-            detail="Reference paper not found with the specified title"
+            status_code=404, detail="Reference paper not found with the specified title"
+        )  # 检查文件是否存在
+    if not db_reference.file_path:
+        raise HTTPException(
+            status_code=404, detail="No file associated with this reference"
         )
 
-    # 检查文件是否存在
-    if not db_reference.file_path or not os.path.exists(db_reference.file_path):
+    # 构建完整文件路径
+    if os.path.isabs(db_reference.file_path):
+        full_path = db_reference.file_path
+    else:
+        # 相对路径需要构建完整路径
+        full_path = get_team_upload_dir(team_id) / db_reference.file_path.split("/")[-1]
+
+    if not os.path.exists(full_path):
         raise HTTPException(
-            status_code=404,
-            detail="PDF file not found for this reference"
+            status_code=404, detail="PDF file not found for this reference"
         )
 
     # 构建文件名
     filename = f"{db_reference.title}.pdf"
 
+    return FileResponse(str(full_path), filename=filename, media_type="application/pdf")
+
+
+@router.get("/export/excel")
+def export_references_excel(
+    team_id: Optional[int] = None,
+    category_id: Optional[int] = None,
+    keyword: Optional[str] = None,
+    journal_id: Optional[int] = None,
+    publication_year: Optional[int] = None,
+    title: Optional[str] = None,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """导出参考文献列表为Excel格式"""
+    # 使用与read_references相同的查询逻辑
+    query = select(ReferencePaper)
+
+    # 如果指定了团队，检查用户是否为团队成员
+    if team_id is not None:
+        check_team_member(team_id, current_user, session)
+        query = query.where(ReferencePaper.team_id == team_id)
+    else:
+        # 获取用户所在的所有团队ID
+        user_teams = session.exec(
+            select(TeamUser).where(TeamUser.user_id == current_user.id)
+        ).all()
+        team_ids = [0] + [tu.team_id for tu in user_teams]  # 包括公开的参考文献
+        query = query.where(ReferencePaper.team_id.in_(team_ids))  # type: ignore
+
+    # 应用其他过滤条件
+    if title:
+        query = query.where(ReferencePaper.title.contains(title))  # type: ignore
+    if category_id:
+        category_ids = get_reference_category_and_subcategories(session, category_id)
+        query = query.where(ReferencePaper.category_id.in_(category_ids))  # type: ignore
+    if keyword:
+        query = (
+            query.join(ReferenceKeyword).join(Keyword).where(Keyword.name == keyword)
+        )
+    if journal_id:
+        query = query.where(ReferencePaper.journal_id == journal_id)
+    if publication_year:
+        query = query.where(ReferencePaper.publication_year == publication_year)
+
+    references = session.exec(query).all()
+
+    # 准备Excel数据
+    excel_data = []
+    for ref in references:
+        # 获取相关信息
+        keywords = [
+            kw.name
+            for kw in session.exec(
+                select(Keyword)
+                .join(ReferenceKeyword)
+                .where(ReferenceKeyword.reference_id == ref.id)
+            ).all()
+        ]
+
+        category_name = None
+        if ref.category_id:
+            category = session.get(ReferenceCategory, ref.category_id)
+            if category:
+                category_name = category.name
+
+        journal_name = None
+        if ref.journal_id:
+            journal = session.get(Journal, ref.journal_id)
+            if journal:
+                journal_name = journal.name
+
+        team_name = None
+        if ref.team_id:
+            team = session.get(Team, ref.team_id)
+            if team:
+                team_name = team.name
+
+        excel_data.append(
+            {
+                "ID": ref.id,
+                "Title": ref.title,
+                "Authors": ref.authors or "",
+                "Keywords": "; ".join(keywords),
+                "Category": category_name or "",
+                "Journal": journal_name or "",
+                "Publication Year": ref.publication_year,
+                "DOI": ref.doi or "",
+                "Team": team_name or "",
+                "Created At": ref.created_at,
+                "Has File": (
+                    "Yes" if ref.file_path and os.path.exists(ref.file_path) else "No"
+                ),
+            }
+        )
+
+    # 创建Excel文件
+    df = pd.DataFrame(excel_data)
+
+    # 生成文件名
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"references_export_{timestamp}.xlsx"
+
+    # 创建临时文件
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as temp_file:
+        df.to_excel(temp_file.name, index=False, engine="openpyxl")
+        temp_path = temp_file.name
+
     return FileResponse(
-        db_reference.file_path,
+        temp_path,
         filename=filename,
-        media_type="application/pdf"
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
     )

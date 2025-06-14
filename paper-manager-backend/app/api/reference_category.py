@@ -4,9 +4,11 @@ from typing import List
 
 from app.core.database import get_session
 from app.models.reference import (
-    ReferenceCategory, ReferenceCategoryCreate,
-    ReferenceCategoryRead, ReferenceCategoryUpdate,
-    ReferencePaper
+    ReferenceCategory,
+    ReferenceCategoryCreate,
+    ReferenceCategoryRead,
+    ReferenceCategoryUpdate,
+    ReferencePaper,
 )
 from app.models.user import User
 from app.api.user import get_current_user
@@ -18,25 +20,24 @@ router = APIRouter()
 def check_team_admin(user: User, team_id: int, session: Session):
     """检查用户是否为团队管理员"""
     team_user = session.exec(
-        select(TeamUser).where(
-            TeamUser.team_id == team_id,
-            TeamUser.user_id == user.id
-        )
+        select(TeamUser).where(TeamUser.team_id == team_id, TeamUser.user_id == user.id)
     ).first()
 
     if not team_user or team_user.role not in [TeamRole.OWNER, TeamRole.ADMIN]:
         raise HTTPException(
             status_code=403,
-            detail="Only team administrators can perform this operation"
+            detail="Only team administrators can perform this operation",
         )
 
 
 def get_reference_category_count_recursive(session: Session, category_id: int) -> int:
     """递归获取参考文献分类及其所有子分类下的参考文献数量"""
     # 获取当前分类的参考文献数量
-    current_count = len(session.exec(
-        select(ReferencePaper).where(ReferencePaper.category_id == category_id)
-    ).all())
+    current_count = len(
+        session.exec(
+            select(ReferencePaper).where(ReferencePaper.category_id == category_id)
+        ).all()
+    )
 
     # 获取子分类的参考文献数量
     children = session.exec(
@@ -44,6 +45,8 @@ def get_reference_category_count_recursive(session: Session, category_id: int) -
     ).all()
 
     for child in children:
+        assert child.id is not None, "Child category ID should not be None"
+
         current_count += get_reference_category_count_recursive(session, child.id)
 
     return current_count
@@ -53,7 +56,7 @@ def get_reference_category_count_recursive(session: Session, category_id: int) -
 def create_reference_category(
     category: ReferenceCategoryCreate,
     session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """创建参考文献分类（仅团队管理员）"""
     # 检查团队管理员权限
@@ -65,12 +68,11 @@ def create_reference_category(
         if not parent:
             raise HTTPException(
                 status_code=404,
-                detail=f"Parent category {category.parent_id} not found"
+                detail=f"Parent category {category.parent_id} not found",
             )
         if parent.team_id != category.team_id:
             raise HTTPException(
-                status_code=400,
-                detail="Parent category must belong to the same team"
+                status_code=400, detail="Parent category must belong to the same team"
             )
 
     db_category = ReferenceCategory.from_orm(category)
@@ -87,22 +89,18 @@ def read_reference_categories(
     limit: int = 100,
     include_stats: bool = False,
     session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """获取团队的参考文献分类列表，可选择包含统计信息"""
     # 检查用户是否为团队成员
     team_user = session.exec(
         select(TeamUser).where(
-            TeamUser.team_id == team_id,
-            TeamUser.user_id == current_user.id
+            TeamUser.team_id == team_id, TeamUser.user_id == current_user.id
         )
     ).first()
 
     if not team_user:
-        raise HTTPException(
-            status_code=403,
-            detail="Not a member of this team"
-        )
+        raise HTTPException(status_code=403, detail="Not a member of this team")
 
     categories = session.exec(
         select(ReferenceCategory)
@@ -113,17 +111,21 @@ def read_reference_categories(
 
     result = []
     for category in categories:
+        assert category.id is not None, "Category ID should not be None"
+
         category_data = ReferenceCategoryRead(
             id=category.id,
             name=category.name,
             description=category.description,
             parent_id=category.parent_id,
-            team_id=category.team_id
+            team_id=category.team_id,
         )
 
         # 如果需要统计信息，计算参考文献数量
         if include_stats:
-            reference_count = get_reference_category_count_recursive(session, category.id)
+            reference_count = get_reference_category_count_recursive(
+                session, category.id
+            )
             category_data.reference_count = reference_count
 
         result.append(category_data)
@@ -135,7 +137,7 @@ def read_reference_categories(
 def read_reference_category(
     category_id: int,
     session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """获取参考文献分类详情"""
     category = session.get(ReferenceCategory, category_id)
@@ -145,16 +147,12 @@ def read_reference_category(
     # 检查用户是否为团队成员
     team_user = session.exec(
         select(TeamUser).where(
-            TeamUser.team_id == category.team_id,
-            TeamUser.user_id == current_user.id
+            TeamUser.team_id == category.team_id, TeamUser.user_id == current_user.id
         )
     ).first()
 
     if not team_user:
-        raise HTTPException(
-            status_code=403,
-            detail="Not a member of this team"
-        )
+        raise HTTPException(status_code=403, detail="Not a member of this team")
 
     return category
 
@@ -164,7 +162,7 @@ def update_reference_category(
     category_id: int,
     category: ReferenceCategoryUpdate,
     session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """更新参考文献分类（仅团队管理员）"""
     db_category = session.get(ReferenceCategory, category_id)
@@ -181,19 +179,18 @@ def update_reference_category(
             if not parent:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"Parent category {category.parent_id} not found"
+                    detail=f"Parent category {category.parent_id} not found",
                 )
             if parent.team_id != db_category.team_id:
                 raise HTTPException(
                     status_code=400,
-                    detail="Parent category must belong to the same team"
+                    detail="Parent category must belong to the same team",
                 )
 
         # 检查是否会创建循环依赖
         if category.parent_id == category_id:
             raise HTTPException(
-                status_code=400,
-                detail="Category cannot be its own parent"
+                status_code=400, detail="Category cannot be its own parent"
             )
 
     category_data = category.dict(exclude_unset=True)
@@ -210,7 +207,7 @@ def update_reference_category(
 def delete_reference_category(
     category_id: int,
     session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """删除参考文献分类（仅团队管理员）"""
     category = session.get(ReferenceCategory, category_id)
@@ -226,8 +223,7 @@ def delete_reference_category(
     ).all()
     if children:
         raise HTTPException(
-            status_code=400,
-            detail="Cannot delete category with subcategories"
+            status_code=400, detail="Cannot delete category with subcategories"
         )
 
     # 检查是否有关联的参考文献
@@ -236,8 +232,7 @@ def delete_reference_category(
     ).all()
     if references:
         raise HTTPException(
-            status_code=400,
-            detail="Cannot delete category with associated references"
+            status_code=400, detail="Cannot delete category with associated references"
         )
 
     session.delete(category)

@@ -56,7 +56,8 @@
           <div class="info-label">更新时间</div>
           <div class="info-value">{{ formatDateTime(journal.updated_at) }}</div>
         </div>
-      </div>    </div>
+      </div>
+    </div>
 
     <!-- 操作按钮 -->
     <div v-if="isAdmin" class="journal-actions">
@@ -76,8 +77,6 @@
 <script setup>
 import { computed } from "vue";
 import { useJournals } from "../../../composables/useJournals";
-import { useConfirmDialog } from "../../../composables/useConfirmDialog";
-import { useToast } from "../../../composables/useToast";
 
 const props = defineProps({
   journal: {
@@ -88,9 +87,7 @@ const props = defineProps({
 
 const emit = defineEmits(["edit", "delete"]);
 
-const { isAdmin, deleteJournal: deleteJournalApi } = useJournals();
-const { confirm } = useConfirmDialog();
-const { showToast } = useToast();
+const { isAdmin } = useJournals();
 
 // 期刊等级标签映射
 const gradeLabels = {
@@ -124,20 +121,7 @@ const editJournal = () => {
 
 // 删除期刊
 const deleteJournal = async () => {
-  const confirmed = await confirm(
-    "确认删除期刊",
-    `确定要删除期刊"${props.journal.name}"吗？此操作无法撤销。`,
-    "danger"
-  );
-
-  if (confirmed) {
-    try {
-      await deleteJournalApi(props.journal.id);
-      emit("delete", props.journal);
-      showToast("期刊删除成功", "success");
-    } catch (error) {
-      showToast("删除期刊失败", "error");
-    }  }
+  emit("delete", props.journal);
 };
 </script>
 
@@ -299,13 +283,17 @@ const deleteJournal = async () => {
 }
 
 .btn-secondary::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(99, 102, 241, 0.05));
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.1),
+    rgba(99, 102, 241, 0.05)
+  );
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -336,13 +324,17 @@ const deleteJournal = async () => {
 }
 
 .btn-danger::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05));
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.2),
+    rgba(255, 255, 255, 0.05)
+  );
   opacity: 0;
   transition: opacity 0.3s ease;
 }

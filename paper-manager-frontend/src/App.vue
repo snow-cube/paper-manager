@@ -1,7 +1,9 @@
 <template>
   <div id="app">
-    <template v-if="$route.name === 'Auth'">
-      <!-- 认证页面：全屏显示，不显示导航栏和页脚 -->
+    <template
+      v-if="$route.name === 'Auth' || $route.name === 'FilePreviewPage'"
+    >
+      <!-- 认证页面和文件预览页面：全屏显示，不显示导航栏和页脚 -->
       <ErrorBoundary @retry="handleRetry">
         <RouterView />
       </ErrorBoundary>

@@ -85,7 +85,9 @@ export const handlers = [
         { error: "标题和作者为必填字段" },
         { status: 400 }
       );
-    }
+    }    // 模拟文件上传后的路径和URL
+    const filename = `${nextPaperId}_${Date.now()}_paper.pdf`;
+    const fileUrl = `http://localhost:8000/media/papers/${filename}`;
 
     const newPaper = {
       id: nextPaperId++,
@@ -96,7 +98,7 @@ export const handlers = [
       publication_date: publicationDate || null,
       publication_info: publicationInfo || "",
       doi: doi || "",
-      file_path: `/files/paper${nextPaperId - 1}.pdf`,
+      file_url: fileUrl,
       category_id: categoryId ? parseInt(categoryId) : null,
       created_at: now(),
       updated_at: now(),
@@ -306,10 +308,9 @@ export const handlers = [
 
     return HttpResponse.json(users);
   }),
-
-  // 下载文件（模拟）
+  // 论文文件下载
   http.get(
-    "http://localhost:8000/api/paper/:id/download",
+    "http://localhost:8000/api/papers/:id/download",
     async ({ params }) => {
       await delay(1000); // 下载需要更长时间
 
@@ -321,9 +322,7 @@ export const handlers = [
 
       if (!paper) {
         return HttpResponse.json({ error: "论文未找到" }, { status: 404 });
-      }
-
-      if (!paper.file_path) {
+      }      if (!paper.file_url) {
         return HttpResponse.json({ error: "该论文暂无文件" }, { status: 404 });
       }
 
@@ -338,4 +337,94 @@ export const handlers = [
       });
     }
   ),
+
+  // 参考文献文件下载
+  http.get(
+    "http://localhost:8000/api/references/:id/download",
+    async ({ params }) => {
+      await delay(1000);
+
+      const errorResponse = simulateError(0.1);
+      if (errorResponse) return errorResponse;      const referenceId = parseInt(params.id);
+      // 模拟参考文献下载（这里简化处理）
+      const mockReference = {
+        id: referenceId,
+        title: `参考文献${referenceId}`,
+        file_url: `http://localhost:8000/media/teams/1/references/${referenceId}_reference.pdf`
+      };
+
+      // 模拟PDF文件下载
+      const pdfContent = `%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/Contents 4 0 R\n>>\nendobj\n4 0 obj\n<<\n/Length 44\n>>\nstream\nBT\n/F1 12 Tf\n100 700 Td\n(${mockReference.title}) Tj\nET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \n0000000174 00000 n \ntrailer\n<<\n/Size 5\n/Root 1 0 R\n>>\nstartxref\n275\n%%EOF`;
+
+      return new HttpResponse(pdfContent, {
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="${mockReference.title}.pdf"`,
+        },
+      });
+    }
+  ),
+
+  // 论文文件上传
+  http.post("http://localhost:8000/api/papers/:id/upload", async ({ params, request }) => {
+    await delay(800);
+
+    const errorResponse = simulateError(0.1);
+    if (errorResponse) return errorResponse;
+
+    const paperId = parseInt(params.id);
+    const paper = papers.find(p => p.id === paperId);
+
+    if (!paper) {
+      return HttpResponse.json({ error: "论文未找到" }, { status: 404 });
+    }
+
+    const formData = await request.formData();
+    const file = formData.get("file");
+
+    if (!file) {
+      return HttpResponse.json({ error: "未选择文件" }, { status: 400 });
+    }    // 模拟文件上传响应
+    const timestamp = Date.now();
+    const filename = `${paperId}_${timestamp}_${file.name}`;
+    const fileUrl = `http://localhost:8000/media/papers/${filename}`;
+
+    // 更新论文的文件信息
+    paper.file_url = fileUrl;
+    paper.updated_at = now();
+
+    return HttpResponse.json({
+      paper_id: paperId,
+      filename: filename,
+      file_url: fileUrl,
+      message: "File uploaded successfully"
+    });
+  }),
+
+  // 参考文献文件上传
+  http.post("http://localhost:8000/api/references/:id/upload", async ({ params, request }) => {
+    await delay(800);
+
+    const errorResponse = simulateError(0.1);
+    if (errorResponse) return errorResponse;
+
+    const referenceId = parseInt(params.id);
+    // 这里假设references数组存在，实际项目中需要确保存在
+    // const reference = references.find(r => r.id === referenceId);
+
+    const formData = await request.formData();
+    const file = formData.get("file");
+
+    if (!file) {
+      return HttpResponse.json({ error: "未选择文件" }, { status: 400 });
+    }    // 模拟文件上传响应
+    const filename = `${referenceId}_${file.name}`;
+    const fileUrl = `http://localhost:8000/media/teams/1/references/${filename}`;
+
+    return HttpResponse.json({
+      filename: file.name,
+      file_url: fileUrl,
+      message: "File uploaded successfully"
+    });
+  }),
 ];

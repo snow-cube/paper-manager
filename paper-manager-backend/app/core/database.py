@@ -5,7 +5,7 @@ from .config_dev import DATABASE_URL
 engine = create_engine(
     DATABASE_URL,
     echo=True,  # Set to False in production
-    connect_args={"check_same_thread": False}  # SQLite 需要这个配置
+    connect_args={"check_same_thread": False},  # SQLite 需要这个配置
 )
 
 
