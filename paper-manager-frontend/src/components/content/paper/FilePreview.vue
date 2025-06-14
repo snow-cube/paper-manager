@@ -19,6 +19,14 @@
       </div>
       <div class="preview-actions">
         <button
+          @click="openInNewWindow"
+          class="action-btn new-window-btn"
+          title="在新标签页中打开预览"
+        >
+          <span class="btn-icon">🔗</span>
+          新标签页
+        </button>
+        <button
           @click="downloadFile"
           class="action-btn download-btn"
           :disabled="downloading"
@@ -130,6 +138,9 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import PdfViewer from "./PdfViewer.vue";
+import { useFilePreview } from "@/composables/useFilePreview.js";
+
+const { smartOpenPreview } = useFilePreview();
 
 const props = defineProps({
   fileUrl: {
@@ -150,7 +161,13 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["close", "download", "load", "error"]);
+const emit = defineEmits([
+  "close",
+  "download",
+  "load",
+  "error",
+  "new-window-opened",
+]);
 
 // 基础状态
 const downloading = ref(false);
@@ -169,22 +186,7 @@ const fileType = computed(() => {
 });
 
 const isText = computed(() => {
-  return [
-    "txt",
-    "md",
-    "json",
-    "xml",
-    "csv",
-    "log",
-    "js",
-    "css",
-    "html",
-    "py",
-    "java",
-    "cpp",
-    "c",
-    "ts",
-  ].includes(fileType.value);
+  return ["txt", "md"].includes(fileType.value);
 });
 
 const isOffice = computed(() => {
@@ -203,40 +205,6 @@ const getFileIcon = (type) => {
     pptx: "📽️",
     txt: "📝",
     md: "📋",
-    jpg: "🖼️",
-    jpeg: "🖼️",
-    png: "🖼️",
-    gif: "🖼️",
-    bmp: "🖼️",
-    webp: "🖼️",
-    svg: "🖼️",
-    mp4: "🎬",
-    avi: "🎬",
-    mov: "🎬",
-    wmv: "🎬",
-    flv: "🎬",
-    webm: "🎬",
-    mkv: "🎬",
-    mp3: "🎵",
-    wav: "🎵",
-    ogg: "🎵",
-    aac: "🎵",
-    flac: "🎵",
-    m4a: "🎵",
-    zip: "📦",
-    rar: "📦",
-    "7z": "📦",
-    json: "⚙️",
-    xml: "⚙️",
-    csv: "📊",
-    js: "🟨",
-    ts: "🔷",
-    css: "🎨",
-    html: "🌐",
-    py: "🐍",
-    java: "☕",
-    cpp: "⚡",
-    c: "⚡",
   };
   return iconMap[type] || "📎";
 };
@@ -252,40 +220,6 @@ const getFileTypeText = (type) => {
     pptx: "PowerPoint演示",
     txt: "文本文件",
     md: "Markdown文档",
-    jpg: "JPEG图片",
-    jpeg: "JPEG图片",
-    png: "PNG图片",
-    gif: "GIF图片",
-    bmp: "BMP图片",
-    webp: "WebP图片",
-    svg: "SVG图片",
-    mp4: "MP4视频",
-    avi: "AVI视频",
-    mov: "MOV视频",
-    wmv: "WMV视频",
-    flv: "FLV视频",
-    webm: "WebM视频",
-    mkv: "MKV视频",
-    mp3: "MP3音频",
-    wav: "WAV音频",
-    ogg: "OGG音频",
-    aac: "AAC音频",
-    flac: "FLAC音频",
-    m4a: "M4A音频",
-    zip: "ZIP压缩包",
-    rar: "RAR压缩包",
-    "7z": "7Z压缩包",
-    json: "JSON数据",
-    xml: "XML文档",
-    csv: "CSV表格",
-    js: "JavaScript",
-    ts: "TypeScript",
-    css: "CSS样式",
-    html: "HTML网页",
-    py: "Python脚本",
-    java: "Java源码",
-    cpp: "C++源码",
-    c: "C源码",
   };
   return typeMap[type] || "未知格式";
 };
@@ -325,9 +259,8 @@ const getViewingSuggestions = (type) => {
     xlsx: ["Microsoft Excel", "WPS表格", "LibreOffice Calc"],
     ppt: ["Microsoft PowerPoint", "WPS演示", "LibreOffice Impress"],
     pptx: ["Microsoft PowerPoint", "WPS演示", "LibreOffice Impress"],
-    zip: ["WinRAR", "7-Zip", "系统自带解压工具"],
-    rar: ["WinRAR", "7-Zip"],
-    "7z": ["7-Zip", "WinRAR"],
+    txt: ["记事本", "Notepad++", "Visual Studio Code"],
+    md: ["Typora", "Mark Text", "Visual Studio Code"],
   };
   return suggestions[type] || ["下载后使用相应的软件打开"];
 };
@@ -426,6 +359,40 @@ const downloadFile = async () => {
   }
 };
 
+const openInNewWindow = () => {
+  try {
+    const fileInfo = {
+      fileUrl: props.fileUrl,
+      fileName: props.fileName,
+      fileSize: props.fileSize,
+      lastModified: props.lastModified,
+    };
+
+    const newWindow = smartOpenPreview(fileInfo);
+    if (newWindow) {
+      emit("new-window-opened", {
+        windowRef: newWindow,
+        fileUrl: props.fileUrl,
+        fileName: props.fileName,
+      });
+    } else {
+      // 文件已在另一个标签页中打开，已自动聚焦
+      emit("new-window-opened", {
+        windowRef: null,
+        fileUrl: props.fileUrl,
+        fileName: props.fileName,
+        alreadyOpen: true,
+      });
+    }
+  } catch (error) {
+    console.error("打开新标签页失败:", error);
+    emit("error", {
+      type: "new-window",
+      message: error.message || "无法打开新标签页",
+    });
+  }
+};
+
 // 生命周期
 onMounted(() => {
   if (isText.value) {
@@ -485,7 +452,7 @@ onUnmounted(() => {
   );
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--gray-200);
-  padding: var(--space-lg);
+  padding: var(--space-md);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -560,6 +527,16 @@ onUnmounted(() => {
 .download-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.new-window-btn {
+  background: linear-gradient(135deg, var(--primary-400), var(--primary-500));
+  color: white;
+}
+
+.new-window-btn:hover {
+  background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+  transform: translateY(-1px);
 }
 
 .close-btn {
@@ -945,11 +922,17 @@ onUnmounted(() => {
   .preview-actions {
     width: 100%;
     justify-content: center;
+    flex-wrap: wrap;
   }
 
   .action-btn {
     flex: 1;
     justify-content: center;
+    min-width: 0;
+  }
+  /* 在小屏幕上隐藏新标签页按钮 */
+  .new-window-btn {
+    display: none;
   }
 
   .image-controls,

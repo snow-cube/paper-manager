@@ -23,6 +23,14 @@
         </button>
         <button
           v-if="paper.file_url"
+          @click="handlePreviewInNewTab"
+          class="action-btn preview-btn"
+          title="在新标签页中预览文件"
+        >
+          <span class="action-icon">🔗</span>
+        </button>
+        <button
+          v-if="paper.file_url"
           @click="handleDownload"
           class="action-btn download-btn"
           title="下载文件"
@@ -142,7 +150,10 @@ import { useCategories } from "../../../composables/useCategories";
 import { useCategoryEvents } from "../../../composables/useCategoryEvents";
 import { useTeam } from "../../../composables/useTeam";
 import { useFileDownload } from "../../../composables/useFileDownload";
+import { useFilePreview } from "../../../composables/useFilePreview";
 import { useToast } from "../../../composables/useToast";
+import { getFileName } from "../../../utils/fileUtils";
+import { getValidFileUrl } from "../../../services/downloadService";
 
 const props = defineProps({
   paper: {
@@ -158,6 +169,7 @@ const { onCategoryUpdate } = useCategoryEvents();
 const { showToast } = useToast();
 const { currentTeam } = useTeam();
 const { downloading, downloadFile } = useFileDownload();
+const { smartOpenPreview } = useFilePreview();
 
 // 计算团队名称
 const teamName = computed(() => {
@@ -358,6 +370,41 @@ const handleDownload = () => {
     paperType: isLiteratureType.value ? "literature" : "papers",
   });
 };
+
+// 处理新标签页预览
+const handlePreviewInNewTab = () => {
+  try {
+    // 使用与 PaperDetail 相同的方法获取文件信息
+    const fileUrl = getValidFileUrl(props.paper);
+
+    if (!fileUrl) {
+      showToast("没有可预览的文件", "warning");
+      return;
+    }
+
+    const fileInfo = {
+      fileUrl: fileUrl,
+      // 优先使用从文件URL中提取的实际文件名（包含扩展名）
+      fileName:
+        getFileName(fileUrl) ||
+        props.paper.original_filename ||
+        props.paper.title ||
+        "未知文件",
+      fileSize: props.paper.file_size || null,
+      lastModified: props.paper.updated_at || props.paper.created_at || null,
+    };
+
+    const newWindow = smartOpenPreview(fileInfo);
+    if (newWindow) {
+      showToast("文件预览已在新标签页中打开", "success");
+    } else {
+      showToast("文件已在其他标签页中打开，已自动切换", "info");
+    }
+  } catch (error) {
+    console.error("打开新标签页预览失败:", error);
+    showToast("无法打开新标签页预览：" + error.message, "error");
+  }
+};
 </script>
 
 <style scoped>
@@ -552,6 +599,11 @@ const handleDownload = () => {
 .view-btn:hover {
   background: var(--primary-100);
   border-color: var(--primary-400);
+}
+
+.preview-btn:hover {
+  background: var(--info-100);
+  border-color: var(--info-400);
 }
 
 .download-btn:hover {

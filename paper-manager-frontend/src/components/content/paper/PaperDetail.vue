@@ -272,6 +272,15 @@
                     {{ canPreviewFile ? "预览" : "查看" }}
                   </button>
                   <button
+                    v-if="canPreviewFile"
+                    @click="previewInNewTab"
+                    class="btn btn-small btn-preview-tab"
+                    title="在新标签页中预览文件"
+                  >
+                    <span class="btn-icon">🔗</span>
+                    新标签页
+                  </button>
+                  <button
                     @click="handleDownload"
                     class="btn btn-small btn-download"
                   >
@@ -291,6 +300,7 @@
                   @download="handlePreviewDownload"
                   @load="handlePreviewLoad"
                   @error="handlePreviewError"
+                  @new-window-opened="handleNewWindowOpened"
                 />
               </div>
             </div>
@@ -456,6 +466,7 @@ import {
 import { useToast } from "../../../composables/useToast.js";
 import { useTeam } from "../../../composables/useTeam.js";
 import { useFileDownload } from "../../../composables/useFileDownload.js";
+import { useFilePreview } from "../../../composables/useFilePreview.js";
 import { PdfViewer, FilePreview } from ".";
 
 const props = defineProps({
@@ -482,6 +493,7 @@ const { showToast } = useToast();
 const { currentTeam } = useTeam();
 const { onCategoryUpdate } = useCategoryEvents();
 const { downloading, downloadFile } = useFileDownload();
+const { smartOpenPreview } = useFilePreview();
 
 const showPreview = ref(false);
 const previewUrl = ref("");
@@ -765,6 +777,36 @@ const previewFile = async () => {
   }
 };
 
+// 新标签页预览
+const previewInNewTab = async () => {
+  const fileUrl = getValidFileUrl(displayData.value);
+
+  if (!fileUrl) {
+    showToast("没有可预览的文件", "warning");
+    return;
+  }
+
+  try {
+    const fileInfo = {
+      fileUrl: fileUrl,
+      fileName: getFileName(displayData.value.file_url),
+      fileSize: fileMetadata.value?.size || displayData.value.file_size,
+      lastModified:
+        fileMetadata.value?.lastModified || displayData.value.file_modified_at,
+    };
+
+    const newWindow = smartOpenPreview(fileInfo);
+    if (newWindow) {
+      showToast("文件预览已在新标签页中打开", "success");
+    } else {
+      showToast("文件已在其他标签页中打开，已自动切换", "info");
+    }
+  } catch (error) {
+    console.error("打开新标签页预览失败:", error);
+    showToast("无法打开新标签页预览：" + error.message, "error");
+  }
+};
+
 const closePreview = () => {
   showPreview.value = false;
   previewUrl.value = "";
@@ -782,6 +824,21 @@ const handlePreviewLoad = (data) => {
 const handlePreviewError = (error) => {
   console.error("Preview error:", error);
   showToast(`预览失败: ${error.message || "未知错误"}`, "error");
+};
+
+const handleNewWindowOpened = (data) => {
+  console.log("Preview opened in new tab:", data);
+
+  if (data.alreadyOpen) {
+    showToast(`文件预览已在另一个标签页中打开`, "info");
+  } else if (data.windowRef) {
+    showToast(`已在新标签页中打开 ${data.fileName}`, "success");
+  } else {
+    showToast("新标签页预览开启成功", "success");
+  }
+
+  // 可选择关闭当前预览
+  // closePreview();
 };
 
 // 使用统一的下载函数
@@ -1713,6 +1770,21 @@ watch(
   background: linear-gradient(135deg, var(--primary-100), var(--primary-200));
   color: var(--primary-800);
   border-color: var(--primary-400);
+}
+
+.btn-preview-tab {
+  background: linear-gradient(135deg, var(--info-50), var(--info-100));
+  color: var(--info-700);
+  border: 1px solid var(--info-200);
+  box-shadow: var(--shadow-xs);
+}
+
+.btn-preview-tab:hover {
+  background: linear-gradient(135deg, var(--info-100), var(--info-200));
+  color: var(--info-800);
+  border-color: var(--info-300);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .file-size-loading {

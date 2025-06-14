@@ -225,11 +225,10 @@
             @blur="markTouched('abstract')"
             @input="validateFieldRealtime('abstract', $event)"
           />
-
           <FileUpload
             v-model="file"
             label="论文文件"
-            accept=".pdf,.doc,.docx"
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.md"
             :error="getFieldError('file')"
             @change="validateFieldRealtime('file', $event)"
           />
@@ -330,7 +329,11 @@ const {
   getFieldError,
   hasFieldError,
   resetValidation,
-} = usePaperFormValidation(form);
+} = usePaperFormValidation(form, {
+  // 使用扩展配置，支持更多文件格式
+  fileConfig: "EXTENDED",
+  paperType: "published", // 可以根据需要动态设置
+});
 const { submitting, handleSubmit: submitForm } = usePaperFormData(
   form,
   file,

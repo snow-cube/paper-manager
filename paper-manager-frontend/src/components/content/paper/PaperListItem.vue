@@ -62,6 +62,14 @@
         </button>
         <button
           v-if="paper.file_url"
+          @click="handlePreviewInNewTab"
+          class="action-btn preview-btn"
+          title="在新标签页中预览文件"
+        >
+          🔗
+        </button>
+        <button
+          v-if="paper.file_url"
           @click="handleDownload"
           class="action-btn download-btn"
           title="下载文件"
@@ -94,7 +102,10 @@ import { useCategories } from "../../../composables/useCategories";
 import { useCategoryEvents } from "../../../composables/useCategoryEvents";
 import { useTeam } from "../../../composables/useTeam";
 import { useFileDownload } from "../../../composables/useFileDownload";
+import { useFilePreview } from "../../../composables/useFilePreview";
 import { useToast } from "../../../composables/useToast";
+import { getFileName } from "../../../utils/fileUtils";
+import { getValidFileUrl } from "../../../services/downloadService";
 
 const props = defineProps({
   paper: { type: Object, required: true },
@@ -108,6 +119,7 @@ const { getCategoryName, loadCategories } = useCategories();
 const { onCategoryUpdate } = useCategoryEvents();
 const { showToast } = useToast();
 const { downloading, downloadFile } = useFileDownload();
+const { smartOpenPreview } = useFilePreview();
 
 // 计算属性
 const isLiteratureType = computed(() => props.paperType === "literature");
@@ -242,6 +254,41 @@ const handleDownload = () => {
   downloadFile(props.paper, {
     paperType: isLiteratureType.value ? "literature" : "papers",
   });
+};
+
+// 在新标签页中预览文件
+const handlePreviewInNewTab = () => {
+  try {
+    // 使用与 PaperDetail 相同的方法获取文件信息
+    const fileUrl = getValidFileUrl(props.paper);
+
+    if (!fileUrl) {
+      showToast("没有可预览的文件", "warning");
+      return;
+    }
+
+    const fileInfo = {
+      fileUrl: fileUrl,
+      // 优先使用从文件URL中提取的实际文件名（包含扩展名）
+      fileName:
+        getFileName(fileUrl) ||
+        props.paper.original_filename ||
+        props.paper.title ||
+        "未知文件",
+      fileSize: props.paper.file_size || null,
+      lastModified: props.paper.updated_at || props.paper.created_at || null,
+    };
+
+    const newWindow = smartOpenPreview(fileInfo);
+    if (newWindow) {
+      showToast("文件预览已在新标签页中打开", "success");
+    } else {
+      showToast("文件已在其他标签页中打开，已自动切换", "info");
+    }
+  } catch (error) {
+    console.error("打开新标签页预览失败:", error);
+    showToast("无法打开新标签页预览：" + error.message, "error");
+  }
 };
 
 // 加载适当的分类数据
@@ -478,6 +525,16 @@ onCategoryUpdate(async () => {
 
 .view-btn:hover {
   background: var(--info-200);
+  transform: scale(1.05);
+}
+
+.preview-btn {
+  background: var(--primary-100);
+  color: var(--primary-600);
+}
+
+.preview-btn:hover {
+  background: var(--primary-200);
   transform: scale(1.05);
 }
 
