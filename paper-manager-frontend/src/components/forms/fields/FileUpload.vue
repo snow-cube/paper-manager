@@ -15,12 +15,14 @@
           {{ file ? file.name : placeholder }}
         </span>
       </label>
-
       <div v-if="file" class="file-info">
         <span class="file-size">{{ formatFileSize(file.size) }}</span>
-        <button type="button" class="file-remove" @click="removeFile">
-          ×
-        </button>
+        <button type="button" class="file-remove" @click="removeFile">×</button>
+      </div>
+      <div v-if="!hint && !file" class="supported-formats">
+        <small class="format-text">
+          支持格式：PDF、Office文档（Word、Excel、PowerPoint）、文本文件
+        </small>
       </div>
     </div>
 
@@ -30,58 +32,61 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch } from "vue";
 
 const props = defineProps({
   id: {
     type: String,
-    default: 'file-input'
+    default: "file-input",
   },
   label: String,
   placeholder: {
     type: String,
-    default: '选择文件或拖拽到此处'
+    default: "选择文件或拖拽到此处（支持PDF、Office文档、文本文件）",
   },
   accept: {
     type: String,
-    default: '.pdf,.doc,.docx'
+    default: ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.md",
   },
   hint: String,
   error: String,
-  modelValue: File
-})
+  modelValue: File,
+});
 
-const emit = defineEmits(['update:modelValue', 'change'])
+const emit = defineEmits(["update:modelValue", "change"]);
 
-const file = ref(props.modelValue)
+const file = ref(props.modelValue);
 
-watch(() => props.modelValue, (newValue) => {
-  file.value = newValue
-})
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    file.value = newValue;
+  }
+);
 
 const handleFileChange = (event) => {
-  const selectedFile = event.target.files[0]
-  file.value = selectedFile
-  emit('update:modelValue', selectedFile)
-  emit('change', selectedFile)
-}
+  const selectedFile = event.target.files[0];
+  file.value = selectedFile;
+  emit("update:modelValue", selectedFile);
+  emit("change", selectedFile);
+};
 
 const removeFile = () => {
-  file.value = null
-  emit('update:modelValue', null)
+  file.value = null;
+  emit("update:modelValue", null);
 
   // 清空文件输入框
-  const fileInput = document.getElementById(props.id)
-  if (fileInput) fileInput.value = ''
-}
+  const fileInput = document.getElementById(props.id);
+  if (fileInput) fileInput.value = "";
+};
 
 const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 Bytes'
-  const k = 1024
-  const sizes = ['Bytes', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-}
+  if (bytes === 0) return "0 Bytes";
+  const k = 1024;
+  const sizes = ["Bytes", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+};
 </script>
 
 <style scoped>
@@ -156,6 +161,17 @@ const formatFileSize = (bytes) => {
 
 .file-remove:hover {
   background: var(--error-100);
+}
+
+.supported-formats {
+  margin-top: var(--space-sm);
+  text-align: center;
+}
+
+.format-text {
+  color: var(--color-text-light);
+  font-size: var(--text-xs);
+  font-style: italic;
 }
 
 .form-error {

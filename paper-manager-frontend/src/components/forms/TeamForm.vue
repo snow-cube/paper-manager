@@ -54,6 +54,7 @@ import { ref, reactive, watch } from "vue";
 import { createTeam, updateTeam } from "../../services/api.js";
 import { useToast } from "../../composables/useToast.js";
 import { useAuth } from "../../composables/useAuth.js";
+import { useTeamEvents } from "../../composables/useTeamEvents.js";
 
 const props = defineProps({
   team: {
@@ -66,6 +67,7 @@ const emit = defineEmits(["saved", "cancel"]);
 
 const { showToast } = useToast();
 const { currentUser } = useAuth();
+const { triggerTeamUpdate } = useTeamEvents();
 const loading = ref(false);
 const error = ref("");
 
@@ -104,13 +106,13 @@ const handleSubmit = async () => {
 
   loading.value = true;
   error.value = "";
-
   try {
     let result;
     if (props.team) {
       // 编辑团队
       result = await updateTeam(props.team.id, formData);
       showToast("团队信息更新成功！", "success");
+      triggerTeamUpdate('edit', result);
     } else {
       // 创建团队 - 添加creator_id字段
       const teamCreateData = {
@@ -125,6 +127,7 @@ const handleSubmit = async () => {
 
       result = await createTeam(teamCreateData);
       showToast("团队创建成功！", "success");
+      triggerTeamUpdate('add', result);
     }
 
     emit("saved", result);
@@ -164,12 +167,14 @@ const handleSubmit = async () => {
 
 .form-control {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.5rem;
   border: 2px solid var(--color-border);
   border-radius: var(--border-radius);
   font-size: var(--text-base);
   transition: border-color var(--transition-normal);
   font-family: inherit;
+  height: var(--form-input-height);
+  box-sizing: border-box;
 }
 
 .form-control:focus {
@@ -181,6 +186,7 @@ const handleSubmit = async () => {
 textarea.form-control {
   resize: vertical;
   min-height: 100px;
+  height: auto;
 }
 
 .error-message {

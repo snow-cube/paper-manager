@@ -1,5 +1,5 @@
 <template>  <div class="modal-overlay" @click="handleOverlayClick">
-    <div class="modal-content" ref="modalContent">
+    <div class="modal-content" :class="`modal-${size}`" ref="modalContent">
       <!-- 可选的进度条 - 固定在modal顶部 -->
       <div v-if="showProgress" class="modal-progress">
         <div class="progress-bar">
@@ -38,6 +38,11 @@ const props = defineProps({
     type: Number,
     default: 0,
     validator: (value) => value >= 0 && value <= 100
+  },
+  size: {
+    type: String,
+    default: "large",
+    validator: (value) => ["small", "medium", "large"].includes(value)
   }
 });
 
@@ -80,26 +85,43 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(125, 108, 192, 0.15);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: var(--space-md);
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(8px);
   animation: fadeIn var(--transition-normal);
 }
 
 .modal-content {
-  background: transparent;
+  background: var(--white);
   border-radius: var(--border-radius-lg);
   position: relative;
-  width: 900px;
+  width: 1200px;
   max-width: 90vw;
   max-height: 90vh;
   overflow: auto;
   animation: modalEnter 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   outline: none;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+}
+
+/* 模态框尺寸变体 */
+.modal-small {
+  width: 400px;
+  max-width: 85vw;
+}
+
+.modal-medium {
+  width: 600px;
+  max-width: 85vw;
+}
+
+.modal-large {
+  width: 1200px;
+  max-width: 90vw;
 }
 
 .modal-progress {
@@ -234,11 +256,15 @@ onUnmounted(() => {
   .modal-overlay {
     padding: var(--space-sm);
   }
-  .modal-content {
+
+  .modal-content,
+  .modal-small,
+  .modal-medium,
+  .modal-large {
     width: auto;
     max-width: 95vw;
     max-height: 95vh;
-  }  .modal-close {
+  }.modal-close {
     top: var(--space-md);
     margin-right: var(--space-md);
     margin-top: var(--space-md);

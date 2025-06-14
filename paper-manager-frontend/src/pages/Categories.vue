@@ -148,7 +148,7 @@ watch(activeTab, () => {
   align-items: center;
   justify-content: center;
   gap: var(--space-sm);
-  padding: var(--space-lg) var(--space-xl);
+  padding: var(--space-md) var(--space-lg);
   border: none;
   border-radius: var(--border-radius);
   background: transparent;

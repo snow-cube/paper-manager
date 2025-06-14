@@ -18,43 +18,80 @@
           @select="handleCategorySelect"
         />
       </div>
-
       <!-- 右侧内容 -->
       <div class="main-content">
+        <!-- 搜索和筛选区域 -->
+        <div class="search-filter-section">
+          <PaperSearchFilter
+            :paper-type="config.paperType"
+            :require-team="config.requireTeam || false"
+            :categories="categories"
+            :teams="teams"
+            :journals="journals"
+            :search-stats="searchStats"
+            @search="handleSearch"
+            @clear="clearSearch"
+            ref="searchFilterRef"
+          />
+        </div>
         <!-- 内容头部 -->
         <div class="content-header">
           <div class="header-left">
-            <div class="search-section">
-              <div class="search-bar">
-                <div class="search-input-wrapper">
-                  <span class="search-icon">🔍</span>
-                  <input
-                    v-model="searchQuery"
-                    type="text"
-                    class="search-input"
-                    :placeholder="`搜索${config.searchPlaceholder}...`"
-                  />
-                  <button
-                    v-if="searchQuery"
-                    @click="clearSearch"
-                    class="clear-search-btn"
-                    title="清空搜索"
+            <!-- 分类路径显示 -->
+            <div v-if="selectedCategory" class="selected-category">
+              <div class="category-breadcrumb">
+                <span
+                  v-for="(pathItem, index) in categoryPath"
+                  :key="pathItem.id"
+                  class="breadcrumb-item"
+                >
+                  <span class="breadcrumb-text">{{ pathItem.name }}</span>
+                  <span
+                    v-if="index < categoryPath.length - 1"
+                    class="breadcrumb-arrow"
                   >
-                    ✕
-                  </button>
-                </div>
-              </div>
-              <div v-if="searchQuery" class="search-stats">
-                找到 {{ totalItems }} 个结果
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="currentColor"
+                    >
+                      <path
+                        d="M4.5 2l4 4-4 4"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        fill="none"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </span>
+                </span>
               </div>
             </div>
           </div>
           <div class="header-right">
+            <div class="view-controls">
+              <ModeSwitch
+                v-model="viewMode"
+                :options="viewModeOptions"
+                class="view-mode-switch"
+              />
+            </div>
             <div class="papers-count">
-              共 {{ papers.length }} 篇{{
+              共 {{ totalItems }} 篇{{
                 config.paperType === "literature" ? "文献" : "论文"
               }}
             </div>
+            <button
+              v-if="totalItems > 0"
+              @click="handleExportExcel"
+              class="btn btn-outline-primary export-btn"
+              :disabled="exportingExcel"
+            >
+              <span class="btn-icon">{{ exportingExcel ? "⏳" : "📊" }}</span>
+              {{ exportingExcel ? "导出中..." : "导出 Excel" }}
+            </button>
             <button @click="$emit('add-new')" class="btn btn-primary add-btn">
               <span class="btn-icon">✨</span>
               {{ config.addButtonText }}
@@ -79,20 +116,30 @@
               重新加载
             </button>
           </div>
-
           <!-- 空状态 -->
           <div v-else-if="filteredPapers.length === 0" class="empty-state">
             <div class="empty-icon">{{ config.emptyIcon }}</div>
-            <h3>{{ searchQuery ? "未找到匹配的结果" : config.emptyTitle }}</h3>
+            <h3>
+              {{
+                searchParams.keyword ||
+                Object.keys(searchParams).some((key) => searchParams[key])
+                  ? "未找到匹配的结果"
+                  : config.emptyTitle
+              }}
+            </h3>
             <p>
               {{
-                searchQuery
+                searchParams.keyword ||
+                Object.keys(searchParams).some((key) => searchParams[key])
                   ? "试试调整搜索关键词或选择其他分类"
                   : config.emptyDescription
               }}
             </p>
             <button
-              v-if="!searchQuery"
+              v-if="
+                !searchParams.keyword &&
+                !Object.keys(searchParams).some((key) => searchParams[key])
+              "
               @click="$emit('add-new')"
               class="btn btn-outline-purple"
             >
@@ -100,18 +147,36 @@
               {{ config.addButtonText }}
             </button>
           </div>
-
           <!-- 论文列表 -->
-          <div v-else class="papers-grid">
-            <PaperCard
-              v-for="paper in filteredPapers"
-              :key="paper.id"
-              :paper="paper"
-              :paper-type="config.paperType"
-              @edit="$emit('edit', paper)"
-              @delete="handleDelete"
-              @view="$emit('view', paper)"
-            />
+          <div
+            v-else
+            :class="['papers-container-content', `view-mode-${viewMode}`]"
+          >
+            <!-- 卡片模式 -->
+            <div v-if="viewMode === 'card'" class="papers-grid">
+              <PaperCard
+                v-for="paper in filteredPapers"
+                :key="paper.id"
+                :paper="paper"
+                :paper-type="config.paperType"
+                @edit="$emit('edit', paper)"
+                @delete="handleDeleteWithConfirm"
+                @view="$emit('view', paper)"
+              />
+            </div>
+
+            <!-- 列表模式 -->
+            <div v-else class="papers-list">
+              <PaperListItem
+                v-for="paper in filteredPapers"
+                :key="paper.id"
+                :paper="paper"
+                :paper-type="config.paperType"
+                @edit="$emit('edit', paper)"
+                @delete="handleDeleteWithConfirm"
+                @view="$emit('view', paper)"
+              />
+            </div>
           </div>
         </div>
         <!-- 分页 -->
@@ -182,16 +247,42 @@
         </div>
       </div>
     </div>
+
+    <!-- 确认删除对话框 -->
+    <ConfirmDialog
+      :visible="dialogState.visible"
+      :title="dialogState.title"
+      :message="dialogState.message"
+      :confirmText="dialogState.confirmText"
+      :cancelText="dialogState.cancelText"
+      :loading="dialogState.loading"
+      @confirm="confirmDialog"
+      @cancel="cancelDialog"
+      @close="cancelDialog"
+    />
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, watch } from "vue";
+import { computed, onMounted, watch, ref, toRaw } from "vue";
 import { RouterLink } from "vue-router";
 import { CategoryTree } from "../category";
-import { PaperCard } from ".";
-import { usePapers } from "../../../composables/usePapers";
+import { PaperCard, PaperSearchFilter, PaperListItem } from ".";
+import { ConfirmDialog } from "../../base";
+import { ModeSwitch } from "../../forms/fields";
+import { usePapersAdvanced } from "../../../composables/usePapersAdvanced";
 import { useTeam } from "../../../composables/useTeam";
+import { useCategories } from "../../../composables/useCategories";
+import { useCategoryEvents } from "../../../composables/useCategoryEvents";
+import { usePaperEvents } from "../../../composables/usePaperEvents";
+import { useJournals } from "../../../composables/useJournals";
+import { useConfirmDialog } from "../../../composables/useConfirmDialog";
+import { useToast } from "../../../composables/useToast";
+import {
+  exportToExcel,
+  generateExcelFileName,
+  triggerDownload,
+} from "../../../services/downloadService";
 
 const props = defineProps({
   config: {
@@ -206,30 +297,184 @@ const props = defineProps({
 
 const emit = defineEmits(["add-new", "edit", "view"]);
 
-const { currentTeam } = useTeam();
+// Toast 消息功能
+const { showToast } = useToast();
 
-// 使用通用的论文管理逻辑
+// 导出状态
+const exportingExcel = ref(false);
+
+// 视图模式管理
+const viewMode = ref(localStorage.getItem("paper-view-mode") || "card");
+const viewModeOptions = [
+  { label: "卡片", value: "card" },
+  { label: "列表", value: "list" },
+];
+
+// 监听视图模式变化，保存到本地存储
+watch(viewMode, (newMode) => {
+  localStorage.setItem("paper-view-mode", newMode);
+});
+
+const { currentTeam, teams } = useTeam();
+
+// Get categories for the search filter
+const { categories, loadCategories, refreshCategories } = useCategories();
+
+// 监听分类更新事件
+const { onCategoryUpdate } = useCategoryEvents();
+
+// 监听论文更新事件
+const { onPaperUpdate } = usePaperEvents();
+
+// Get journals for the search filter (needed for literature search)
+const { journals, fetchJournals } = useJournals();
+
+// Function to load journals based on team requirements
+const loadJournalsForSearch = async () => {
+  try {
+    if (props.config.requireTeam && currentTeam.value?.id) {
+      // For team-based searches, we might want to filter journals by team
+      // However, based on the API, journals don't seem to be team-specific
+      // So we load all journals regardless
+      await fetchJournals();
+    } else if (!props.config.requireTeam) {
+      // Load all journals for non-team searches
+      await fetchJournals();
+    }
+  } catch (error) {
+    console.error("Failed to load journals:", error);
+  }
+};
+
+// Load categories when component mounts or when relevant props change
+const categoryType = computed(
+  () =>
+    props.config.categoryType ||
+    (props.config.paperType === "literature" ? "references" : "papers")
+);
+
+const teamId = computed(() =>
+  props.config.requireTeam ? currentTeam.value?.id : null
+);
+
+// Load categories when needed
+watch(
+  [categoryType, teamId],
+  () => {
+    loadCategories(categoryType.value, teamId.value);
+  },
+  { immediate: true }
+);
+
+// 监听分类更新事件，自动刷新分类数据
+onCategoryUpdate(async () => {
+  await refreshCategories(categoryType.value, teamId.value);
+});
+
+// 监听论文更新事件，自动刷新论文数据
+onPaperUpdate(async () => {
+  await loadPapers();
+});
+
+// Load journals when needed (especially for literature search)
+watch(
+  [teamId],
+  () => {
+    loadJournalsForSearch();
+  },
+  { immediate: true }
+);
+
+// 使用高级的论文管理逻辑
 const {
   papers,
   loading,
   error,
-  searchQuery,
+  searchParams,
   selectedCategoryId,
   currentPage,
   totalItems,
   totalPages,
   filteredPapers,
+  searchStats,
   loadPapers,
   handleDelete,
-  handleCategorySelect,
+  handleCategorySelect: handlePapersAdvancedCategorySelect,
   handleSearch,
   clearSearch,
   changePage,
-} = usePapers({
+} = usePapersAdvanced({
   type: props.config.type || "papers",
   requireTeam: computed(() => props.config.requireTeam || false),
   loadData: props.config.loadData,
   deleteData: props.config.deleteData,
+});
+
+// Reference to the search filter component
+const searchFilterRef = ref(null);
+
+// 确认删除对话框
+const { dialogState, confirmDialog, cancelDialog, confirmDelete } =
+  useConfirmDialog();
+
+// 包装删除函数以使用确认对话框
+const handleDeleteWithConfirm = async (paper) => {
+  await handleDelete(paper, confirmDelete);
+};
+
+// Handle category selection - simplified to use only papers advanced filtering
+const handleCategorySelect = (categoryId) => {
+  // Update the papers advanced filtering
+  handlePapersAdvancedCategorySelect(categoryId);
+};
+
+// Get selected category for display - 使用客户端分类数据
+const selectedCategory = computed(() => {
+  // 使用客户端分类数据进行查找
+  if (!selectedCategoryId.value || !categories.value) return null;
+  return categories.value.find((cat) => cat.id === selectedCategoryId.value);
+});
+
+// 构建分类映射用于查找父分类
+const categoryMap = computed(() => {
+  const map = new Map();
+  if (categories.value) {
+    const addToMap = (cats) => {
+      cats.forEach((category) => {
+        map.set(category.id, category);
+        if (category.children && category.children.length > 0) {
+          addToMap(category.children);
+        }
+      });
+    };
+    addToMap(categories.value);
+  }
+  return map;
+});
+
+// 计算分类路径（面包屑导航）- 完全依赖客户端计算
+const categoryPath = computed(() => {
+  if (!selectedCategory.value) return [];
+
+  // 手动构建从根到当前分类的路径，不依赖后端路径信息
+  const path = [];
+  let current = selectedCategory.value;
+
+  while (current) {
+    path.unshift({
+      id: current.id,
+      name: current.name || current.category_name,
+    });
+
+    // 查找父分类
+    if (current.parent_id) {
+      current = categoryMap.value.get(current.parent_id);
+    } else {
+      current = null;
+    }
+  }
+
+  return path;
 });
 
 // 动态描述
@@ -256,9 +501,56 @@ const getVisiblePages = () => {
   return pages;
 };
 
+// Excel导出功能
+const handleExportExcel = async () => {
+  if (exportingExcel.value) return;
+
+  exportingExcel.value = true;
+
+  try {
+    showToast("正在准备导出数据...", "info");
+
+    // 获取当前的搜索和筛选参数，直接使用 toRaw 解包响应式对象
+    const exportParams = toRaw(searchParams.value);
+
+    // 根据配置确定导出类型
+    const exportType = props.config.paperType || "papers";
+
+    // 调用导出API
+    const response = await exportToExcel(
+      exportType,
+      exportParams,
+      props.config.requireTeam || false,
+      currentTeam.value
+    );
+
+    // 生成文件名
+    const fileName = generateExcelFileName(exportType, currentTeam.value);
+
+    // 触发下载
+    triggerDownload(
+      response.data,
+      fileName,
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+
+    showToast("数据导出成功", "success");
+  } catch (error) {
+    console.error("导出失败:", error);
+    const errorMessage =
+      error.response?.data?.detail || error.message || "导出失败，请重试";
+    showToast(`导出失败：${errorMessage}`, "error");
+  } finally {
+    exportingExcel.value = false;
+  }
+};
+
 // 生命周期
 onMounted(() => {
   loadPapers();
+
+  // Load journals for search functionality
+  loadJournalsForSearch();
 });
 
 // 暴露给父组件的方法
@@ -277,7 +569,7 @@ defineExpose({
 
 .content-layout {
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: 380px 1fr;
   gap: var(--space-md);
   align-items: start;
 }
@@ -326,8 +618,74 @@ defineExpose({
   backdrop-filter: blur(10px);
 }
 
-.content-header {
+.search-filter-section {
   padding: var(--space-lg);
+  border-bottom: 1px solid var(--primary-100);
+  background: linear-gradient(135deg, var(--white), var(--primary-25));
+}
+
+.selected-category {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: var(--primary-100);
+  color: var(--primary-700);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--border-radius-lg);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  border: 1px solid var(--primary-200);
+}
+
+.selected-category::before {
+  content: "📁";
+  font-size: 1.1em;
+}
+
+/* 面包屑导航样式 */
+.category-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.breadcrumb-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.breadcrumb-text {
+  color: var(--primary-700);
+  font-weight: 600;
+  font-size: var(--text-sm);
+  transition: color var(--transition-normal);
+}
+
+.breadcrumb-text:hover {
+  color: var(--primary-800);
+}
+
+.breadcrumb-arrow {
+  display: flex;
+  align-items: center;
+  color: var(--primary-500);
+  opacity: 0.7;
+  transition: opacity var(--transition-normal);
+}
+
+.breadcrumb-arrow:hover {
+  opacity: 1;
+}
+
+.breadcrumb-arrow svg {
+  fill: none;
+  stroke: currentColor;
+}
+
+.content-header {
+  padding: var(--space-md);
   border-bottom: 1px solid var(--primary-100);
   background: linear-gradient(135deg, var(--white), var(--primary-25));
   display: flex;
@@ -347,6 +705,12 @@ defineExpose({
   align-items: center;
   gap: var(--space-lg);
   flex-wrap: wrap;
+}
+
+.view-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
 }
 
 .search-section {
@@ -471,6 +835,40 @@ defineExpose({
   font-size: 1.1em;
 }
 
+.export-btn {
+  background: var(--white);
+  color: var(--primary-600);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--border-radius-lg);
+  font-weight: 500;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-bounce);
+  border: 1px solid var(--primary-300);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-sm);
+}
+
+.export-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+  background: var(--primary-50);
+  border-color: var(--primary-400);
+  color: var(--primary-700);
+}
+
+.export-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.export-btn .btn-icon {
+  font-size: 1em;
+}
+
 .papers-container {
   min-height: 500px;
   padding: var(--space-lg);
@@ -555,6 +953,17 @@ defineExpose({
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: var(--space-md);
   padding: 0;
+}
+
+.papers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+}
+
+.papers-container-content {
+  transition: all var(--transition-normal);
 }
 
 .pagination {
@@ -662,10 +1071,15 @@ defineExpose({
   .header-right {
     width: 100%;
   }
-
   .header-right {
     flex-direction: column;
     align-items: stretch;
+    gap: var(--space-md);
+  }
+
+  .view-controls {
+    order: -1; /* 移动端时将视图控制器放在最前面 */
+    justify-content: center;
   }
 
   .search-bar {
@@ -674,6 +1088,10 @@ defineExpose({
   .papers-grid {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: var(--space-md);
+    padding: var(--space-xs);
+  }
+
+  .papers-list {
     padding: var(--space-xs);
   }
 
@@ -689,12 +1107,21 @@ defineExpose({
     padding: 0;
   }
 
+  .papers-list {
+    padding: 0;
+    gap: var(--space-xs);
+  }
+
   .content-header {
     padding: var(--space-sm);
   }
 
   .papers-container {
     padding: var(--space-sm);
+  }
+
+  .view-controls {
+    margin-bottom: var(--space-sm);
   }
 }
 </style>

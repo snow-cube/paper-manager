@@ -1,5 +1,6 @@
 import { ref, computed } from "vue";
 import { useToast } from "./useToast.js";
+import { useTeamEvents } from "./useTeamEvents.js";
 import { getTeams } from "../services/api.js"; // Add this import
 
 // 全局当前团队状态
@@ -36,6 +37,39 @@ const initializeTeams = async () => {
     console.error("Failed to initialize teams:", error);
     const { showToast } = useToast();
     showToast("加载团队信息失败", "error");
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// 刷新团队列表
+const refreshTeams = async () => {
+  try {
+    isLoading.value = true;
+    const teams = await getTeams();
+    const currentTeamId = currentTeam.value?.id;
+
+    userTeams.value = teams;
+
+    // 如果当前选中的团队还存在，保持选中状态
+    if (currentTeamId) {
+      const existingTeam = teams.find(team => team.id === currentTeamId);
+      if (existingTeam) {
+        currentTeam.value = existingTeam;
+      } else {
+        // 如果当前团队不存在了，切换到第一个可用团队
+        if (teams.length > 0) {
+          switchTeam(teams[0]);
+        } else {
+          currentTeam.value = null;
+          localStorage.removeItem("currentTeamId");
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Failed to refresh teams:", error);
+    const { showToast } = useToast();
+    showToast("刷新团队信息失败", "error");
   } finally {
     isLoading.value = false;
   }
@@ -84,15 +118,19 @@ const removeTeamFromList = (teamId) => {
 };
 
 export function useTeam() {
+  const { onTeamUpdate } = useTeamEvents();
+
   return {
     currentTeam: computed(() => currentTeam.value),
     userTeams: computed(() => userTeams.value),
     isLoading: computed(() => isLoading.value),
     hasTeams: computed(() => userTeams.value.length > 0),
     initializeTeams,
+    refreshTeams,
     switchTeam,
     clearTeamState,
     addTeamToList,
     removeTeamFromList,
+    onTeamUpdate,
   };
 }

@@ -16,7 +16,7 @@ import argparse
 from colorama import init, Fore, Back, Style
 
 # Add project root directory to Python path
-project_root = Path(__file__).parent.parent.parent
+project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # Initialize colorama for Windows

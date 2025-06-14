@@ -1,7 +1,9 @@
 <template>
   <div id="app">
-    <template v-if="$route.name === 'Auth'">
-      <!-- 认证页面：全屏显示，不显示导航栏和页脚 -->
+    <template
+      v-if="$route.name === 'Auth' || $route.name === 'FilePreviewPage'"
+    >
+      <!-- 认证页面和文件预览页面：全屏显示，不显示导航栏和页脚 -->
       <ErrorBoundary @retry="handleRetry">
         <RouterView />
       </ErrorBoundary>
@@ -35,14 +37,70 @@
                     <span class="nav-icon">👥</span>
                     <span class="nav-text">团队管理</span>
                   </RouterLink>
-                  <RouterLink to="/categories" class="nav-link">
-                    <span class="nav-icon">🏷️</span>
-                    <span class="nav-text">分类管理</span>
-                  </RouterLink>
                   <RouterLink to="/collaboration" class="nav-link">
                     <span class="nav-icon">🔗</span>
                     <span class="nav-text">合作网络</span>
                   </RouterLink>
+                  <!-- 管理功能下拉菜单 -->
+                  <div
+                    class="nav-dropdown"
+                    :class="{ open: isManagementDropdownOpen }"
+                    @mouseenter="showManagementDropdown"
+                    @mouseleave="hideManagementDropdown"
+                  >
+                    <button
+                      class="nav-link dropdown-trigger"
+                      @click.stop="toggleManagementDropdown"
+                    >
+                      <span class="nav-icon">⚙️</span>
+                      <span class="nav-text">管理</span>
+                      <span
+                        class="dropdown-arrow"
+                        :class="{ rotated: isManagementDropdownOpen }"
+                      >
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 12 12"
+                          fill="currentColor"
+                        >
+                          <path
+                            d="M2.5 4.5L6 8L9.5 4.5"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            fill="none"
+                          />
+                        </svg>
+                      </span>
+                    </button>
+
+                    <transition name="nav-dropdown">
+                      <div
+                        v-if="isManagementDropdownOpen"
+                        class="nav-dropdown-menu"
+                        @click.stop
+                      >
+                        <RouterLink
+                          to="/categories"
+                          class="nav-dropdown-item"
+                          @click="closeManagementDropdown"
+                        >
+                          <span class="item-icon">🏷️</span>
+                          <span class="item-text">分类管理</span>
+                        </RouterLink>
+                        <RouterLink
+                          to="/journals"
+                          class="nav-dropdown-item"
+                          @click="closeManagementDropdown"
+                        >
+                          <span class="item-icon">📖</span>
+                          <span class="item-text">期刊管理</span>
+                        </RouterLink>
+                      </div>
+                    </transition>
+                  </div>
                 </template>
               </nav>
             </div>
@@ -245,17 +303,22 @@
 </template>
 
 <script setup>
-import { RouterLink, RouterView } from "vue-router";
+import { RouterLink, RouterView, useRouter } from "vue-router";
 import { ref, onMounted, onUnmounted } from "vue";
 import { ToastContainer, ErrorBoundary, TeamSelector } from "@/components";
 import { useAuth } from "./composables/useAuth";
 import { useTeam } from "./composables/useTeam";
 
+const router = useRouter();
 const { currentUser, isAuthenticated, isLoading, logout } = useAuth();
 const { hasTeams } = useTeam();
 
 // 用户下拉菜单状态
 const isUserDropdownOpen = ref(false);
+
+// 管理功能下拉菜单状态
+const isManagementDropdownOpen = ref(false);
+let managementDropdownTimer = null;
 
 const handleRetry = () => {
   // 这里可以添加重试逻辑，比如重新加载数据
@@ -270,9 +333,32 @@ const closeUserDropdown = () => {
   isUserDropdownOpen.value = false;
 };
 
+// 管理功能下拉菜单方法
+const toggleManagementDropdown = () => {
+  isManagementDropdownOpen.value = !isManagementDropdownOpen.value;
+};
+
+const showManagementDropdown = () => {
+  clearTimeout(managementDropdownTimer);
+  isManagementDropdownOpen.value = true;
+};
+
+const hideManagementDropdown = () => {
+  clearTimeout(managementDropdownTimer);
+  managementDropdownTimer = setTimeout(() => {
+    isManagementDropdownOpen.value = false;
+  }, 150);
+};
+
+const closeManagementDropdown = () => {
+  isManagementDropdownOpen.value = false;
+};
+
 const handleLogout = async () => {
   closeUserDropdown();
   await logout();
+  // 跳转到登录页面
+  router.push("/login");
 };
 
 const handleUserProfile = () => {
@@ -313,6 +399,9 @@ const handleClickOutside = (event) => {
   if (!event.target.closest(".user-dropdown")) {
     closeUserDropdown();
   }
+  if (!event.target.closest(".nav-dropdown")) {
+    closeManagementDropdown();
+  }
 };
 
 onMounted(() => {
@@ -333,6 +422,7 @@ onUnmounted(() => {
   top: 0;
   z-index: 100;
   backdrop-filter: blur(10px);
+  overflow: visible;
 }
 
 .container {
@@ -349,6 +439,7 @@ onUnmounted(() => {
   gap: 2rem;
   width: 100%;
   min-height: 60px;
+  overflow: visible;
 }
 
 /* 左侧区域 */
@@ -358,6 +449,7 @@ onUnmounted(() => {
   gap: 2rem;
   flex: 1;
   min-width: 0;
+  overflow: visible;
 }
 
 .logo {
@@ -390,7 +482,7 @@ onUnmounted(() => {
   align-items: center;
   flex: 1;
   justify-content: flex-start;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .nav-link {
@@ -455,6 +547,127 @@ onUnmounted(() => {
 
 .nav-link.router-link-active::before {
   display: none;
+}
+
+/* 导航下拉菜单样式 */
+.nav-dropdown {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.dropdown-trigger {
+  cursor: pointer;
+  background: none !important;
+  border: none !important;
+  color: var(--color-text) !important;
+  transition: var(--transition-normal);
+  border-radius: var(--border-radius);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.dropdown-trigger:hover {
+  background: var(--primary-50) !important;
+  color: var(--color-primary) !important;
+}
+
+.dropdown-trigger:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.dropdown-arrow {
+  font-size: 0.75rem;
+  transition: var(--transition-normal);
+  margin-left: var(--space-xs);
+  display: flex;
+  align-items: center;
+}
+
+.dropdown-arrow.rotated {
+  transform: rotate(180deg);
+}
+
+.nav-dropdown-menu {
+  position: absolute;
+  top: calc(100% + var(--space-sm));
+  left: 0;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-sm);
+  z-index: 9999;
+  min-width: 180px;
+  /* 确保不被裁剪 */
+  overflow: visible;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(8px);
+}
+
+.nav-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--border-radius);
+  text-decoration: none;
+  color: var(--color-text);
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: var(--transition-normal);
+  white-space: nowrap;
+}
+
+.nav-dropdown-item:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.nav-dropdown-item:hover {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.nav-dropdown-item.router-link-active {
+  background: var(--color-primary);
+  color: var(--white);
+}
+
+.nav-dropdown-item .item-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-dropdown-item .item-text {
+  flex: 1;
+  font-weight: 500;
+}
+
+/* 下拉菜单动画 */
+.nav-dropdown-enter-active,
+.nav-dropdown-leave-active {
+  transition: var(--transition-normal);
+}
+
+.nav-dropdown-enter-from,
+.nav-dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.nav-dropdown-enter-to,
+.nav-dropdown-leave-from {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* 右侧区域 */
@@ -768,6 +981,13 @@ onUnmounted(() => {
   color: var(--primary-700);
 }
 
+.user-dropdown-item:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
 .user-dropdown-item.logout-item {
   color: #dc2626;
   margin-top: var(--space-xs);
@@ -781,11 +1001,16 @@ onUnmounted(() => {
 .user-dropdown-item .item-icon {
   font-size: 1rem;
   flex-shrink: 0;
-  width: 16px;
-  height: 16px;
+  width: 1.25rem;
+  height: 1.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.nav-dropdown-item .item-text {
+  flex: 1;
+  font-weight: 500;
 }
 
 .dropdown-divider {
@@ -879,7 +1104,7 @@ onUnmounted(() => {
 }
 
 /* 响应式设计 */
-@media (max-width: 1400px) {
+@media (max-width: 1800px) {
   .container {
     padding: 0 1.25rem;
   }
@@ -901,7 +1126,7 @@ onUnmounted(() => {
   }
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1600px) {
   .container {
     padding: 0 1rem;
   }

@@ -224,7 +224,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from "vue";
+import { ref, reactive, computed, watch } from "vue";
 import { register } from "../../services/api.js";
 import { useToast } from "../../composables/useToast.js";
 
@@ -243,6 +243,13 @@ const formData = reactive({
   email: "",
   full_name: "",
   password: "",
+});
+
+// 监听表单数据变化，自动清除错误信息
+watch([() => formData.username, () => formData.email, () => formData.full_name, () => formData.password, confirmPassword], () => {
+  if (error.value) {
+    error.value = "";
+  }
 });
 
 // 密码强度计算
@@ -303,14 +310,29 @@ const handleRegister = async () => {
   } catch (err) {
     console.error("Register error:", err);
 
+    // 确保loading状态先设置为false，避免界面状态混乱
+    loading.value = false;
+
     if (err.response?.status === 409) {
-      const message = err.response.data?.detail || "用户名或邮箱已存在";
+      const message = err.response.data?.detail || "用户名或邮箱已存在，请尝试其他信息";
       error.value = message;
-    } else {
+    } else if (err.response?.status === 422) {
+      error.value = "提交的信息格式不正确，请检查后重试";
+    } else if (err.response?.status === 429) {
+      error.value = "注册请求过于频繁，请稍后再试";
+    } else if (err.code === 'NETWORK_ERROR' || !err.response) {
+      error.value = "网络连接失败，请检查网络后重试";    } else {
       error.value = "注册失败，请稍后重试";
     }
+
+    // 确保loading在catch块中也被重置
+    return;
   } finally {
-    loading.value = false;
+    // 只有在注册成功时才设置loading为false
+    // 注册失败时已经在catch块中设置了
+    if (!error.value) {
+      loading.value = false;
+    }
   }
 };
 </script>
@@ -569,21 +591,28 @@ const handleRegister = async () => {
   text-decoration: underline;
 }
 
-.error-slide-enter-active,
-.error-slide-leave-active {
-  transition: all 0.3s ease;
+.error-slide-enter-active {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.error-slide-enter-from,
+.error-slide-leave-active {
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.error-slide-enter-from {
+  opacity: 0;
+  transform: translateY(-15px) scale(0.95);
+}
+
 .error-slide-leave-to {
   opacity: 0;
-  transform: translateY(-10px);
+  transform: translateY(-10px) scale(0.98);
 }
 
 .error-message {
   background: linear-gradient(135deg, #fef2f2, #fee2e2);
   color: #dc2626;
-  padding: 1rem;
+  padding: 1.25rem;
   border-radius: 12px;
   margin-bottom: 1.5rem;
   font-size: 0.875rem;
@@ -591,6 +620,10 @@ const handleRegister = async () => {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+  position: relative;
+  overflow: hidden;
+  animation: pulse-error 0.6s ease-out;
 }
 
 .error-icon {
@@ -780,9 +813,24 @@ const handleRegister = async () => {
     margin-top: 0.25rem;
     gap: 0.375rem;
   }
-
   .strength-text {
     font-size: 0.7rem;
+  }
+}
+
+/* 错误消息脉冲动画 */
+@keyframes pulse-error {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.25);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
   }
 }
 </style>

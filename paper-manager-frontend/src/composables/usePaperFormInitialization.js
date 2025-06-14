@@ -1,7 +1,6 @@
 import { ref, watch, computed } from "vue";
 
-export function usePaperFormInitialization(props) {
-  const form = ref({
+export function usePaperFormInitialization(props) {  const form = ref({
     title: "",
     author_names: "",
     keyword_names: "",
@@ -9,8 +8,10 @@ export function usePaperFormInitialization(props) {
     paper_type: props.paperType || "",
     doi: "",
     journal: "",
+    journal_id: null,
     publication_date: "",
-    category_ids: [],
+    publication_year: null,
+    category_id: "", // 使用单个分类ID
   });
 
   const file = ref(null);
@@ -21,15 +22,29 @@ export function usePaperFormInitialization(props) {
 
   // 计算是否为编辑模式
   const isEdit = computed(() => !!props.paper);
-
   // 初始化表单数据
   const initializeForm = () => {
     if (props.paper) {
       // 编辑模式：填充现有数据
       form.value.title = props.paper.title || "";
       form.value.abstract = props.paper.abstract || "";
-      form.value.doi = props.paper.doi || "";
-      form.value.journal = props.paper.journal || "";
+      form.value.doi = props.paper.doi || "";      // 处理期刊信息 - 优先使用journal_id，兼容journal字段
+      if (props.paper.journal_id) {
+        form.value.journal_id = props.paper.journal_id;
+        form.value.journal = props.paper.journal_name || props.paper.journal || "";
+      } else if (props.paper.journal) {
+        // 向后兼容：如果只有期刊名称，保留它
+        form.value.journal = props.paper.journal;
+        form.value.journal_id = null;
+      } else {
+        form.value.journal = "";
+        form.value.journal_id = null;
+      }
+
+      // 处理发表年份
+      if (props.paper.publication_year) {
+        form.value.publication_year = props.paper.publication_year;
+      }
 
       // 处理发表日期
       if (props.paper.publication_date) {
@@ -57,14 +72,13 @@ export function usePaperFormInitialization(props) {
         } else if (typeof props.paper.keywords === "string") {
           form.value.keyword_names = props.paper.keywords;
         }
-      }
-
-      // 处理分类
+      }      // 处理分类 - 现在统一使用单个分类ID
       if (props.paper.categories && Array.isArray(props.paper.categories)) {
-        form.value.category_ids = props.paper.categories.map((c) => c.id || c);
+        // 如果有多个分类，取第一个
+        form.value.category_id = props.paper.categories[0]?.id || props.paper.categories[0];
       } else if (props.paper.category_id) {
-        form.value.category_ids = props.paper.category_id;
-      } // 初始化作者贡献比例和通讯作者（仅发表论文）
+        form.value.category_id = props.paper.category_id;
+      }// 初始化作者贡献比例和通讯作者（仅发表论文）
       if (
         props.paper.author_contribution_ratios &&
         Array.isArray(props.paper.author_contribution_ratios)
@@ -78,12 +92,13 @@ export function usePaperFormInitialization(props) {
       if (props.paper.corresponding_author_name) {
         authorContributions.value.correspondingAuthor =
           props.paper.corresponding_author_name;
-      }
-    } else if (props.paperType) {
+      }    } else if (props.paperType) {
       // 新建模式：设置论文类型
       form.value.paper_type = props.paperType;
     }
-  }; // 重置表单
+  };
+
+  // 重置表单
   const resetForm = () => {
     form.value = {
       title: "",
@@ -93,8 +108,10 @@ export function usePaperFormInitialization(props) {
       paper_type: props.paperType || "",
       doi: "",
       journal: "",
+      journal_id: null,
       publication_date: "",
-      category_ids: [],
+      publication_year: null,
+      category_id: "", // 使用单个分类ID
     };
     file.value = null;
     authorContributions.value = {

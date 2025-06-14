@@ -91,7 +91,7 @@
         </div>
         <div class="reference-actions">
           <button
-            v-if="reference.file_path"
+            v-if="reference.file_url"
             @click="downloadReference(reference)"
             class="btn-action"
             title="下载文件"
@@ -147,10 +147,10 @@ import { ref, computed, onMounted, watch } from "vue";
 import {
   getReferences,
   deleteReference as deleteReferenceAPI,
-  downloadReference as downloadReferenceAPI,
   getReferenceCategories,
 } from "../../../services/api.js";
 import { useToast } from "../../../composables/useToast.js";
+import { useFileDownload } from "../../../composables/useFileDownload.js";
 import LoadingSpinner from "../../base/LoadingSpinner.vue";
 import Modal from "../../base/Modal.vue";
 import ConfirmDialog from "../../base/ConfirmDialog.vue";
@@ -164,6 +164,7 @@ const props = defineProps({
 });
 
 const { showToast } = useToast();
+const { downloadFile } = useFileDownload();
 
 const loading = ref(false);
 const references = ref([]);
@@ -250,29 +251,10 @@ const confirmDelete = async () => {
   }
 };
 
-const downloadReference = async (reference) => {
-  try {
-    showToast("准备下载文件...", "info");
-    const response = await downloadReferenceAPI(reference.id);
-
-    // 创建下载链接
-    const contentType =
-      response.headers["content-type"] || "application/octet-stream";
-    const blob = new Blob([response.data], { type: contentType });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", `${reference.title}.pdf`);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
-
-    showToast("文件下载成功", "success");
-  } catch (error) {
-    console.error("Failed to download reference:", error);
-    showToast("文件下载失败", "error");
-  }
+const downloadReference = (reference) => {
+  downloadFile(reference, {
+    paperType: "literature",
+  });
 };
 
 const handleReferenceSaved = (savedReference) => {

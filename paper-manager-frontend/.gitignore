@@ -28,3 +28,6 @@ coverage
 *.sw?
 
 *.tsbuildinfo
+
+# PDF.js worker
+pdf.worker.min.js

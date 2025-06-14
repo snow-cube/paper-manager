@@ -22,14 +22,18 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     else:
         expire = datetime.utcnow() + timedelta(minutes=15)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    encoded_jwt = jwt.encode(
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+    )
     return encoded_jwt
 
 
 def verify_token(token: str) -> Optional[TokenData]:
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        username: str = payload.get("sub")
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
+        username: Optional[str] = payload.get("sub")
         if username is None:
             return None
         return TokenData(username=username)
@@ -37,19 +41,30 @@ def verify_token(token: str) -> Optional[TokenData]:
         return None
 
 
-def calculate_workload(contribution_ratio: float, paper_type: str) -> float:
+def calculate_workload(
+    contribution_ratio: float, journal_grade: str = "OTHER"
+) -> float:
     """
-    Calculate workload based on contribution ratio and paper type
+    计算工作量
+
+    Args:
+        contribution_ratio: 贡献比例 (0.0 - 1.0)
+        journal_grade: 期刊等级 (SCI_Q1, SCI_Q2, SCI_Q3, SCI_Q4, EI, OTHER)
+
+    Returns:
+        工作量值
     """
-    base_points = {
-        "SCI_Q1": 100,
-        "SCI_Q2": 80,
-        "SCI_Q3": 60,
-        "SCI_Q4": 40,
-        "EI": 30,
-        "CONFERENCE": 20,
-        "OTHER": 10
+    # 根据期刊等级确定基础工作量
+    base_workload_map = {
+        "SCI_Q1": 10.0,
+        "SCI_Q2": 8.0,
+        "SCI_Q3": 6.0,
+        "SCI_Q4": 4.0,
+        "EI": 3.0,
+        "OTHER": 1.0,
     }
 
-    points = base_points.get(paper_type, 10)
-    return points * contribution_ratio
+    base_workload = base_workload_map.get(journal_grade, 1.0)
+
+    # 工作量 = 基础工作量 × 贡献比例
+    return base_workload * contribution_ratio

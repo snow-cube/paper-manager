@@ -8,7 +8,7 @@ This document outlines the CSS architecture improvements implemented to enhance 
 
 To improve maintainability and organization, we have restructured the CSS files from large monolithic files into a modular structure:
 
-```
+```text
 src/assets/styles/
 ├── base/             # 基础样式
 │   ├── variables.css # CSS 变量和设计令牌

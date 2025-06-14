@@ -43,7 +43,6 @@
           </ul>
         </div>
       </div>
-
       <!-- 表单内容区域 -->
       <div class="form-content">
         <!-- 论文类型选择 -->
@@ -86,31 +85,26 @@
               id="keyword_names"
               v-model="form.keyword_names"
               type="text"
-              :label="`关键词${form.paper_type === 'published' ? ' *' : ''}`"
+              label="关键词"
               placeholder="用逗号分隔多个关键词"
               :required="form.paper_type === 'published'"
               :error="getFieldError('keyword_names')"
               @blur="markTouched('keyword_names')"
               @input="validateFieldRealtime('keyword_names', $event)"
             />
-
-            <FormField
-              id="category_ids"
-              v-model="form.category_ids"
-              type="select"
+            <CategorySelect
+              id="category_id"
+              v-model="form.category_id"
               label="分类"
-              :multiple="form.paper_type === 'published'"
-              @change="markTouched('category_ids')"
-            >
-              <option value="" v-if="form.paper_type === 'literature'">
-                请选择分类
-              </option>
-              <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-                {{ cat.name }}
-              </option>
-            </FormField>
+              placeholder="请选择分类"
+              :categories="categoryTree"
+              :required="form.paper_type === 'published'"
+              :error="getFieldError('category_id')"
+              hint="选择合适的分类有助于论文的管理和检索"
+              @change="markTouched('category_id')"
+              @blur="markTouched('category_id')"
+            />
           </div>
-
           <FormField
             id="doi"
             v-model="form.doi"
@@ -120,9 +114,49 @@
             @blur="markTouched('doi')"
             @input="validateFieldRealtime('doi', $event)"
           />
-          <small class="form-hint" v-if="form.paper_type === 'published'"
-            >按住Ctrl键可选择多个分类</small
-          >
+
+          <!-- 期刊和发表信息 -->
+          <div class="form-row">
+            <JournalSearchField
+              id="journal_id"
+              v-model="form.journal_id"
+              label="期刊"
+              placeholder="搜索期刊名称..."
+              :required="form.paper_type === 'published'"
+              :error="getFieldError('journal_id')"
+              @blur="markTouched('journal_id')"
+              @change="handleJournalChange"
+            />
+
+            <!-- 发表论文使用发表日期 -->
+            <FormField
+              v-if="form.paper_type === 'published'"
+              id="publication_date"
+              v-model="form.publication_date"
+              type="date"
+              label="发表日期"
+              :error="getFieldError('publication_date')"
+              @blur="markTouched('publication_date')"
+              @change="
+                validateFieldRealtime('publication_date', $event.target.value)
+              "
+            />
+
+            <!-- 参考文献使用发表年份 -->
+            <FormField
+              v-else
+              id="publication_year"
+              v-model="form.publication_year"
+              type="number"
+              label="发表年份"
+              placeholder="请输入发表年份"
+              :min="1900"
+              :max="new Date().getFullYear()"
+              :error="getFieldError('publication_year')"
+              @blur="markTouched('publication_year')"
+              @input="validateFieldRealtime('publication_year', $event)"
+            />
+          </div>
         </div>
 
         <!-- 作者信息 -->
@@ -171,50 +205,6 @@
           </transition>
         </div>
 
-        <!-- 发表论文专有字段 -->
-        <div v-if="form.paper_type === 'published'" class="form-section">
-          <div class="section-header">
-            <h3 class="section-title">
-              <span class="section-icon">🎓</span>
-              发表论文信息
-            </h3>
-          </div>
-          <div class="form-row">
-            <FormField
-              id="journal"
-              v-model="form.journal"
-              label="期刊名称"
-              placeholder="请输入期刊名称"
-              required
-              :error="getFieldError('journal')"
-              @blur="markTouched('journal')"
-              @input="validateFieldRealtime('journal', $event)"
-            />
-            <FormField
-              id="publication_date"
-              v-model="form.publication_date"
-              type="date"
-              label="发表日期"
-              :error="getFieldError('publication_date')"
-              @blur="markTouched('publication_date')"
-              @change="
-                validateFieldRealtime('publication_date', $event.target.value)
-              "
-            />
-          </div>
-        </div>
-
-        <!-- 文献专有字段 -->
-        <div v-if="form.paper_type === 'literature'" class="form-section">
-          <div class="section-header">
-            <h3 class="section-title">
-              <span class="section-icon">📚</span>
-              参考文献信息
-            </h3>
-          </div>
-          <!-- 可以在这里添加其他文献专有字段 -->
-        </div>
-
         <!-- 摘要和文件上传 -->
         <div class="form-section">
           <div class="section-header">
@@ -235,11 +225,10 @@
             @blur="markTouched('abstract')"
             @input="validateFieldRealtime('abstract', $event)"
           />
-
           <FileUpload
             v-model="file"
             label="论文文件"
-            accept=".pdf,.doc,.docx"
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.md"
             :error="getFieldError('file')"
             @change="validateFieldRealtime('file', $event)"
           />
@@ -289,11 +278,16 @@ import {
   FileUpload,
   AuthorContributions,
   ModeSwitch,
+  JournalSearchField,
+  CategorySelect,
 } from "./fields";
 import { usePaperFormInitialization } from "../../composables/usePaperFormInitialization";
 import { usePaperFormValidation } from "../../composables/usePaperFormValidation";
 import { usePaperFormData } from "../../composables/usePaperFormData";
 import { useCategories } from "../../composables/useCategories";
+import { useCategoryEvents } from "../../composables/useCategoryEvents";
+import { usePaperEvents } from "../../composables/usePaperEvents";
+import { useJournals } from "../../composables/useJournals";
 import { useTeam } from "../../composables/useTeam";
 
 const props = defineProps({
@@ -319,7 +313,10 @@ const modeOptions = [
 ];
 
 // 使用组合式函数
-const { categories, loadCategories } = useCategories();
+const { categories, loadCategories, refreshCategories } = useCategories();
+const { onCategoryUpdate } = useCategoryEvents();
+const { triggerPaperUpdate } = usePaperEvents();
+const { journals, fetchJournals } = useJournals();
 const { currentTeam } = useTeam();
 const { form, file, authorContributions, isEdit, initializeForm, resetForm } =
   usePaperFormInitialization(props);
@@ -332,7 +329,11 @@ const {
   getFieldError,
   hasFieldError,
   resetValidation,
-} = usePaperFormValidation(form);
+} = usePaperFormValidation(form, {
+  // 使用扩展配置，支持更多文件格式
+  fileConfig: "EXTENDED",
+  paperType: "published", // 可以根据需要动态设置
+});
 const { submitting, handleSubmit: submitForm } = usePaperFormData(
   form,
   file,
@@ -346,6 +347,41 @@ const authorList = computed(() => {
     .split(",")
     .map((name) => name.trim())
     .filter((name) => name.length > 0);
+});
+
+// 计算属性：分类树形结构
+const categoryTree = computed(() => {
+  if (!categories.value || categories.value.length === 0) {
+    return [];
+  }
+
+  // 构建分类映射
+  const categoryMap = new Map();
+  const rootCategories = [];
+
+  // 创建所有分类的映射
+  categories.value.forEach((category) => {
+    categoryMap.set(category.id, { ...category, children: [] });
+  });
+
+  // 构建树形结构
+  categories.value.forEach((category) => {
+    const categoryNode = categoryMap.get(category.id);
+    if (category.parent_id) {
+      const parent = categoryMap.get(category.parent_id);
+      if (parent) {
+        parent.children.push(categoryNode);
+      } else {
+        // 如果父分类不存在，则作为根分类
+        rootCategories.push(categoryNode);
+      }
+    } else {
+      // 根分类
+      rootCategories.push(categoryNode);
+    }
+  });
+
+  return rootCategories;
 });
 
 // 计算属性：验证错误相关
@@ -368,11 +404,10 @@ const touched = computed(() => {
 });
 const formCompleteness = computed(() => {
   if (!form.value) return 0;
-
   // 基本必填字段（不包括 paper_type，因为它是通过 switch 选择的）
   const requiredFields = ["title", "author_names"];
   if (form.value.paper_type === "published") {
-    requiredFields.push("keyword_names", "journal");
+    requiredFields.push("keyword_names", "journal_id");
   }
 
   const completedFields = requiredFields.filter((field) => {
@@ -399,6 +434,12 @@ const handleSubmit = async () => {
 
   try {
     const result = await submitForm(props, isEdit.value);
+
+    // 触发论文更新事件，通知其他组件刷新数据
+    const eventType = isEdit.value ? "edit" : "add";
+    const paperType = form.value.paper_type;
+    triggerPaperUpdate(eventType, paperType, result);
+
     emit("saved", result);
     if (!isEdit.value) {
       resetForm();
@@ -412,6 +453,26 @@ const handleSubmit = async () => {
 const handleReset = () => {
   resetForm();
   resetValidation();
+};
+
+// 处理期刊选择
+const handleJournalChange = (journal) => {
+  console.log("Handling journal change:", journal); // 调试信息
+
+  if (journal) {
+    // 同时更新期刊ID和期刊名称字段
+    form.value.journal_id = journal.id;
+    form.value.journal = journal.name;
+    console.log("Updated form journal fields:", {
+      journal_id: form.value.journal_id,
+      journal: form.value.journal,
+    }); // 调试信息
+    validateFieldRealtime("journal_id", journal.id);
+  } else {
+    form.value.journal_id = null;
+    form.value.journal = null;
+    console.log("Cleared journal fields"); // 调试信息
+  }
 };
 
 // 根据论文类型加载合适的分类
@@ -435,11 +496,20 @@ watch(
   }
 );
 
+// 监听分类更新事件，自动刷新分类数据
+onCategoryUpdate(async () => {
+  await loadAppropriateCategories();
+});
+
 // 初始化表单
 initializeForm();
 
-// 初始加载分类
+// 初始加载分类和期刊
 onMounted(async () => {
+  // 加载期刊数据
+  await fetchJournals();
+
+  // 加载分类数据
   if (form.value.paper_type) {
     await loadAppropriateCategories();
   }
@@ -562,9 +632,10 @@ onMounted(async () => {
   padding: var(--space-md);
   border: 1px solid var(--color-border-light);
   position: relative;
-  overflow: hidden;
+  overflow: visible; /* 改为 visible 以允许下拉框显示 */
 }
 
+/* 为了保持装饰性渐变的效果，使用伪元素 */
 .form-section::before {
   content: "";
   position: absolute;
@@ -574,6 +645,7 @@ onMounted(async () => {
   height: 2px;
   background: linear-gradient(90deg, var(--primary-400), var(--secondary-400));
   opacity: 0.6;
+  border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
 }
 
 .section-header {
@@ -811,7 +883,7 @@ onMounted(async () => {
 .paper-form :deep(.required-indicator) {
   color: var(--error-500);
   font-weight: 700;
-  font-size: var(--text-sm);
+  font-size: inherit;
 }
 
 .paper-form :deep(.form-group) {
@@ -825,7 +897,7 @@ onMounted(async () => {
 .paper-form :deep(.form-textarea),
 .paper-form :deep(.form-select) {
   width: 100%;
-  padding: var(--space-sm) var(--space-md);
+  padding: 0.5rem; /* 使用与基础表单一致的padding */
   border: 2px solid var(--gray-200);
   border-radius: var(--border-radius-lg);
   font-size: var(--text-sm);
@@ -836,6 +908,8 @@ onMounted(async () => {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
   position: relative;
+  height: var(--form-input-height); /* 确保使用统一高度 */
+  box-sizing: border-box; /* 确保padding包含在高度内 */
 }
 
 .paper-form :deep(.form-input):hover,
@@ -877,6 +951,7 @@ onMounted(async () => {
   min-height: 60px;
   font-family: inherit;
   line-height: 1.6;
+  height: auto; /* 覆盖统一高度设置，让文本域使用自己的高度 */
 }
 
 /* 选择框美化 */
@@ -1399,7 +1474,7 @@ onMounted(async () => {
   .paper-form :deep(.form-input),
   .paper-form :deep(.form-textarea),
   .paper-form :deep(.form-select) {
-    padding: var(--space-md);
+    padding: 0.5rem; /* 保持与桌面版一致的padding */
     font-size: var(--text-base);
   }
 

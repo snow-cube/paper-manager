@@ -88,6 +88,7 @@ import {
   deleteTeam as deleteTeamApi,
 } from "../../../services/api.js";
 import { useToast } from "../../../composables/useToast.js";
+import { useTeamEvents } from "../../../composables/useTeamEvents.js";
 import LoadingSpinner from "../../base/LoadingSpinner.vue";
 import Modal from "../../base/Modal.vue";
 import TeamForm from "../../forms/TeamForm.vue";
@@ -96,6 +97,7 @@ import ConfirmDialog from "../../base/ConfirmDialog.vue";
 const emit = defineEmits(["team-selected"]);
 
 const { showToast } = useToast();
+const { triggerTeamUpdate } = useTeamEvents();
 const loading = ref(false);
 const teams = ref([]);
 const showCreateForm = ref(false);
@@ -133,6 +135,9 @@ const confirmDelete = async () => {
     await deleteTeamApi(deletingTeam.value.id);
     teams.value = teams.value.filter((t) => t.id !== deletingTeam.value.id);
     showToast("团队删除成功", "success");
+
+    // Trigger team update event to notify other components
+    triggerTeamUpdate();
   } catch (error) {
     console.error("Failed to delete team:", error);
     showToast("删除团队失败", "error");

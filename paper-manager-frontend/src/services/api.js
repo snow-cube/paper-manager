@@ -20,15 +20,22 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // 清除无效token
-      localStorage.removeItem("token");
-      token = null;
-      // 可以在这里添加重定向到登录页面的逻辑
-      window.location.href = "/login";
+      // 检查是否是登录请求失败，如果是则不重定向
+      const isLoginRequest = error.config?.url?.includes("/users/token");
+
+      if (!isLoginRequest) {
+        // 只有在非登录请求时才清除token并重定向
+        localStorage.removeItem("token");
+        token = null;
+        window.location.href = "/login";
+      }
     }
     return Promise.reject(error);
   }
 );
+
+// Export the api instance as default
+export default api;
 
 // 设置token的辅助函数
 export const setAuthToken = (newToken) => {
@@ -90,7 +97,7 @@ export const getPapers = async (params = {}) => {
   const queryParams = {
     skip,
     limit,
-    ...otherParams
+    ...otherParams,
   };
 
   // 只添加非空的可选参数
@@ -154,9 +161,9 @@ export const downloadReference = async (referenceId) => {
 };
 
 // 通过参考文献标题下载文件
-export const downloadReferenceByTitle = async (title) => {
+export const downloadReferenceByTitle = async (title, teamId) => {
   const response = await api.get("/references/download/by-title", {
-    params: { title },
+    params: { title, team_id: teamId },
     responseType: "blob",
   });
   return response;
@@ -185,15 +192,26 @@ export const getAuthorCollaborationNetwork = async (authorName) => {
 
 // ==================== 分类管理 APIs ====================
 // 获取分类列表
-export const getCategories = async (skip = 0, limit = 100) => {
-  const params = { skip, limit };
-  return (await api.get("/categories/", { params })).data;
-};
+export const getCategories = async (params = {}) => {
+  const {
+    skip = 0,
+    limit = 100,
+    include_stats = false,
+    ...otherParams
+  } = params;
 
-// 获取分类树（兼容旧版本调用）
-export const getCategoryTree = async () => {
-  const categories = await getCategories();
-  return { categories }; // 包装为兼容格式
+  const queryParams = {
+    skip,
+    limit,
+    ...otherParams,
+  };
+
+  // 如果需要统计信息，添加相应参数
+  if (include_stats) {
+    queryParams.include_stats = true;
+  }
+
+  return (await api.get("/categories/", { params: queryParams })).data;
 };
 
 // 创建分类
@@ -214,9 +232,28 @@ export const deleteCategory = async (categoryId) =>
 
 // ==================== 参考文献分类管理 APIs ====================
 // 获取参考文献分类列表
-export const getReferenceCategories = async (teamId, skip = 0, limit = 100) => {
-  const params = { team_id: teamId, skip, limit };
-  return (await api.get("/reference-categories/", { params })).data;
+export const getReferenceCategories = async (teamId, params = {}) => {
+  const {
+    skip = 0,
+    limit = 100,
+    include_stats = false,
+    ...otherParams
+  } = params;
+
+  const queryParams = {
+    team_id: teamId,
+    skip,
+    limit,
+    ...otherParams,
+  };
+
+  // 如果需要统计信息，添加相应参数
+  if (include_stats) {
+    queryParams.include_stats = true;
+  }
+
+  return (await api.get("/reference-categories/", { params: queryParams }))
+    .data;
 };
 
 // 创建参考文献分类
@@ -256,7 +293,7 @@ export const deleteTeam = async (teamId) =>
   (await api.delete(`/teams/${teamId}`)).data;
 
 // 添加团队成员 (通过用户ID)
-export const addTeamMember = async (teamId, userId, role = 'MEMBER') =>
+export const addTeamMember = async (teamId, userId, role = "MEMBER") =>
   (await api.post(`/teams/${teamId}/members/${userId}?role=${role}`)).data;
 
 // 获取团队成员列表
@@ -280,6 +317,8 @@ export const getReferences = async (teamId, params = {}) => {
     limit = 20,
     category_id,
     keyword,
+    journal_id,
+    publication_year,
     ...otherParams
   } = params;
 
@@ -287,12 +326,14 @@ export const getReferences = async (teamId, params = {}) => {
     team_id: teamId,
     skip,
     limit,
-    ...otherParams
+    ...otherParams,
   };
 
-  // 只添加非空的可选参数
+  // 只添加非空的可选参数（基于 OpenAPI 规范）
   if (category_id) queryParams.category_id = category_id;
   if (keyword) queryParams.keyword = keyword;
+  if (journal_id) queryParams.journal_id = journal_id;
+  if (publication_year) queryParams.publication_year = publication_year;
 
   return (await api.get("/references/", { params: queryParams })).data;
 };
@@ -319,3 +360,90 @@ export const uploadReference = async (referenceId, file) => {
   formData.append("file", file);
   return (await api.post(`/references/${referenceId}/upload`, formData)).data;
 };
+
+// 导出论文列表为Excel
+export const exportPapersExcel = async (params = {}) => {
+  const queryParams = {};
+
+  // 构建查询参数，只添加非空值
+  if (params.title) queryParams.title = params.title;
+  if (params.category_id) queryParams.category_id = params.category_id;
+  if (params.author_name) queryParams.author_name = params.author_name;
+  if (params.keyword) queryParams.keyword = params.keyword;
+  if (params.journal_id) queryParams.journal_id = params.journal_id;
+  if (params.start_date) queryParams.start_date = params.start_date;
+  if (params.end_date) queryParams.end_date = params.end_date;
+  if (params.team_id) queryParams.team_id = params.team_id;
+
+  console.log("Exporting papers with params:", queryParams);
+
+  return await api.get("/papers/export/excel", {
+    params: queryParams,
+    responseType: "blob",
+  });
+};
+
+// 导出参考文献列表为Excel
+export const exportReferencesExcel = async (params = {}) => {
+  const queryParams = {};
+
+  // 构建查询参数，只添加非空值
+  if (params.team_id) queryParams.team_id = params.team_id;
+  if (params.category_id) queryParams.category_id = params.category_id;
+  if (params.keyword) queryParams.keyword = params.keyword;
+  if (params.journal_id) queryParams.journal_id = params.journal_id;
+  if (params.publication_year)
+    queryParams.publication_year = params.publication_year;
+  if (params.title) queryParams.title = params.title;
+
+  console.log("Exporting references with params:", queryParams);
+
+  return await api.get("/references/export/excel", {
+    params: queryParams,
+    responseType: "blob",
+  });
+};
+
+// 获取期刊列表
+export const getJournals = async (params = {}) => {
+  // 确保分页参数有默认值
+  const { skip = 0, limit = 20, name, grade, ...otherParams } = params;
+
+  const queryParams = {
+    skip,
+    limit,
+    ...otherParams,
+  };
+
+  // 只添加非空的可选参数
+  if (name) queryParams.name = name;
+  if (grade) queryParams.grade = grade;
+
+  return (await api.get("/journals/", { params: queryParams })).data;
+};
+
+// 创建期刊
+export const createJournal = async (journalData) =>
+  (await api.post("/journals/", journalData)).data;
+
+// 获取单个期刊
+export const getJournal = async (journalId) =>
+  (await api.get(`/journals/${journalId}`)).data;
+
+// 更新期刊
+export const updateJournal = async (journalId, journalData) =>
+  (await api.patch(`/journals/${journalId}`, journalData)).data;
+
+// 删除期刊
+export const deleteJournal = async (journalId) =>
+  (await api.delete(`/journals/${journalId}`)).data;
+
+// 搜索期刊
+export const searchJournals = async (query, limit = 10) => {
+  const params = { q: query, limit };
+  return (await api.get("/journals/search", { params })).data;
+};
+
+// 获取期刊等级列表
+export const getJournalGrades = async () =>
+  (await api.get("/journals/grades/list")).data;

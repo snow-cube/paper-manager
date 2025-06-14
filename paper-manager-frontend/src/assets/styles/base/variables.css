@@ -136,7 +136,11 @@
   --btn-secondary-hover-bg: var(--gray-700);
 
   /* 警告组件样式 */
-  --warning-bg: linear-gradient(135deg, var(--warning-25), var(--color-background-soft));
+  --warning-bg: linear-gradient(
+    135deg,
+    var(--warning-25),
+    var(--color-background-soft)
+  );
   --warning-border: var(--warning-200);
   --warning-text: var(--warning-700);
 
@@ -145,9 +149,9 @@
   --border-radius-xl: 16px;
   --space-3xl: 4rem;
   --space-4xl: 5rem;
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 10px 10px -5px rgb(0 0 0 / 0.04);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1),
+    0 10px 10px -5px rgb(0 0 0 / 0.04);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-
 }
 
 @media (prefers-color-scheme: dark) {

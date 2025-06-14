@@ -5,6 +5,7 @@ from .category import router as category_router
 from .team import router as team_router
 from .reference import router as reference_router
 from .reference_category import router as reference_category_router
+from .journal import router as journal_router
 
 api_router = APIRouter()
 
@@ -27,5 +28,8 @@ api_router.include_router(reference_router, prefix="/references", tags=["referen
 api_router.include_router(
     reference_category_router,
     prefix="/reference-categories",
-    tags=["reference-categories"]
-) 
+    tags=["reference-categories"],
+)
+
+# Journal routes
+api_router.include_router(journal_router, prefix="/journals", tags=["journals"])

@@ -1,10 +1,55 @@
 import { ref, computed, watch } from "vue";
 import { useToast } from "./useToast";
+import { getValidationConfig } from "../config/validationConfig";
 
-export function usePaperFormValidation(form) {
+export function usePaperFormValidation(form, options = {}) {
   const errors = ref({});
   const touched = ref({});
   const { showToast } = useToast();
+  // 获取验证配置，优先使用传入的选项，其次使用默认配置
+  const paperType = computed(() => {
+    if (options.paperType && typeof options.paperType === "function") {
+      return options.paperType();
+    }
+    if (options.paperType && options.paperType.value) {
+      return options.paperType.value;
+    }
+    return options.paperType || "published";
+  });
+  const validationConfig = getValidationConfig({
+    paperType: paperType.value,
+    fileConfig: options.fileConfig || "EXTENDED",
+    customFileConfig:
+      options.fileMaxSize ||
+      options.fileAllowedTypes ||
+      options.fileMaxSizeMessage ||
+      options.fileAllowedTypesMessage
+        ? {
+            ...(options.fileMaxSize && { maxSize: options.fileMaxSize }),
+            ...(options.fileAllowedTypes && {
+              allowedTypes: options.fileAllowedTypes,
+            }),
+            ...(options.fileMaxSizeMessage && {
+              maxSizeMessage: options.fileMaxSizeMessage,
+            }),
+            ...(options.fileAllowedTypesMessage && {
+              allowedTypesMessage: options.fileAllowedTypesMessage,
+            }),
+          }
+        : {},
+    customFieldConfig: options.customFieldConfig,
+  });
+  // 验证配置选项，支持通过参数自定义
+  const validationOptions = {
+    file: validationConfig?.file || {
+      maxSize: 10 * 1024 * 1024,
+      allowedTypes: [".pdf", ".doc", ".docx"],
+      maxSizeMessage: "文件大小不能超过10MB",
+      allowedTypesMessage: "只支持 PDF、DOC、DOCX 格式的文件",
+    },
+    field: validationConfig?.field || {},
+    ...options.customValidationOptions,
+  };
 
   // 验证规则
   const validationRules = {
@@ -61,13 +106,16 @@ export function usePaperFormValidation(form) {
       maxLength: 2000,
       maxLengthMessage: "摘要不能超过2000个字符",
     },
-    journal: {
+    journal_id: {
       requiredIf: (formData) => formData.paper_type === "published",
-      minLength: 2,
-      maxLength: 200,
-      minLengthMessage: "期刊名称至少需要2个字符",
-      maxLengthMessage: "期刊名称不能超过200个字符",
-      message: "发表论文必须填写期刊信息",
+      custom: (value, formData) => {
+        if (formData.paper_type === "published") {
+          if (!value) return "请选择期刊";
+          if (typeof value !== "number" || value <= 0) return "期刊选择无效";
+        }
+        return true;
+      },
+      message: "发表论文必须选择期刊",
     },
     doi: {
       custom: (value) => {
@@ -100,22 +148,35 @@ export function usePaperFormValidation(form) {
     file: {
       custom: (value) => {
         if (value) {
-          // 检查文件大小 (10MB限制)
-          const maxSize = 10 * 1024 * 1024;
+          // 确保验证配置存在
+          const fileConfig = validationOptions.file || {};
+          const maxSize = fileConfig.maxSize || 10 * 1024 * 1024; // 默认10MB
+          const allowedTypes = fileConfig.allowedTypes || [
+            ".pdf",
+            ".doc",
+            ".docx",
+          ];
+          const maxSizeMessage =
+            fileConfig.maxSizeMessage || "文件大小不能超过10MB";
+          const allowedTypesMessage =
+            fileConfig.allowedTypesMessage ||
+            "只支持 PDF、DOC、DOCX 格式的文件";
+
+          // 使用参数化的文件大小限制
           if (value.size > maxSize) {
-            return "文件大小不能超过10MB";
+            return maxSizeMessage;
           }
 
-          // 检查文件类型
-          const allowedTypes = [".pdf", ".doc", ".docx"];
+          // 使用参数化的文件类型限制
           const fileName = value.name.toLowerCase();
           const isAllowed = allowedTypes.some((type) =>
-            fileName.endsWith(type)
+            fileName.endsWith(type.toLowerCase())
           );
           if (!isAllowed) {
-            return "只支持 PDF、DOC、DOCX 格式的文件";
+            return allowedTypesMessage;
           }
-        }        return true;
+        }
+        return true;
       },
     },
   };
@@ -266,11 +327,9 @@ export function usePaperFormValidation(form) {
       !formData.author_names?.trim()
     ) {
       return false;
-    }
-
-    // 发表论文的额外检查
+    } // 发表论文的额外检查
     if (formData.paper_type === "published") {
-      if (!formData.keyword_names?.trim() || !formData.journal?.trim()) {
+      if (!formData.keyword_names?.trim() || !formData.journal_id) {
         return false;
       }
     }

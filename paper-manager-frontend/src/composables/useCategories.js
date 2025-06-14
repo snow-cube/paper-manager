@@ -8,13 +8,21 @@ const lastLoadedType = ref(null);
 const lastLoadedTeamId = ref(null);
 
 export function useCategories() {
-  const loadCategories = async (categoryType = "papers", teamId = null) => {
-    // 如果已加载过相同类型的分类则直接返回
+  const loadCategories = async (
+    categoryType = "papers",
+    teamId = null,
+    forceReload = false
+  ) => {
+    // 如果强制重新加载，或者未加载过相同类型的分类，则重新加载
     if (
-      loaded.value &&
-      lastLoadedType.value === categoryType &&
-      lastLoadedTeamId.value === teamId
+      forceReload ||
+      !loaded.value ||
+      lastLoadedType.value !== categoryType ||
+      lastLoadedTeamId.value !== teamId
     ) {
+      // 继续加载逻辑
+    } else {
+      // 已加载过相同类型的分类则直接返回
       return categories.value;
     }
 
@@ -68,10 +76,23 @@ export function useCategories() {
     );
     return category ? [category] : [];
   };
-
   const getAllCategories = () => {
     return categories.value;
   };
+
+  // 强制刷新分类数据
+  const refreshCategories = async (categoryType = "papers", teamId = null) => {
+    return await loadCategories(categoryType, teamId, true);
+  };
+
+  // 重置分类数据
+  const resetCategories = () => {
+    categories.value = [];
+    loaded.value = false;
+    lastLoadedType.value = null;
+    lastLoadedTeamId.value = null;
+  };
+
   // 自动加载分类数据（默认加载论文分类）
   onMounted(() => {
     if (!loaded.value && !loading.value) {
@@ -84,6 +105,8 @@ export function useCategories() {
     loading,
     loaded,
     loadCategories,
+    refreshCategories,
+    resetCategories,
     getCategoryName,
     getCategoryPath,
     getAllCategories,
