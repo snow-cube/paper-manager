@@ -6,7 +6,7 @@ import Publications from "../pages/Publications.vue";
 import Categories from "../pages/Categories.vue";
 import Teams from "../pages/Teams.vue";
 import Auth from "../pages/Auth.vue";
-import CollaborationSearch from "../pages/CollaborationSearch.vue";
+import AuthorAnalysis from "../pages/AuthorAnalysis.vue";
 import Journals from "../pages/Journals.vue";
 import FilePreviewPage from "../pages/FilePreviewPage.vue";
 
@@ -48,10 +48,11 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    path: "/collaboration",
-    name: "CollaborationSearch",
-    component: CollaborationSearch,
+    path: "/author-analysis",
+    name: "AuthorAnalysis",
+    component: AuthorAnalysis,
     meta: { requiresAuth: true },
+    props: (route) => ({ searchAuthor: route.query.author }),
   },
   {
     path: "/journals",
@@ -64,9 +65,10 @@ const routes = [
     name: "FilePreviewPage",
     component: FilePreviewPage,
     meta: { requiresAuth: true },
-  },
-  // 重定向旧的论文路由到文献管理
-  { path: "/papers", redirect: "/literature" },
+  }, // 重定向旧的论文路由到文献管理
+  { path: "/papers", redirect: "/literature" }, // 重定向旧的合作网络路由到作者信息查询
+  { path: "/collaboration", redirect: "/author-analysis" },
+  { path: "/collaboration-search", redirect: "/author-analysis" },
 ];
 
 const router = createRouter({

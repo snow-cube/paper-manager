@@ -875,10 +875,12 @@ client_secret: string (可选)
     "abstract": "string",
     "publication_date": "datetime",
     "journal_id": "integer",
-    "doi": "string",    "category_id": "integer",
+    "doi": "string",
+    "category_id": "integer",
     "keyword_names": ["string"],
     "author_names": ["string"],
     "author_contribution_ratios": ["number"],
+    "corresponding_author_name": "string",
     "team_id": "integer"
 }
 ```
@@ -894,6 +896,7 @@ client_secret: string (可选)
 - `keyword_names`: array[string] - 关键词列表（完全替换现有关键词）
 - `author_names`: array[string] - 作者姓名列表（完全替换现有作者，按顺序排列）
 - `author_contribution_ratios`: array[number] - 作者贡献率列表（对应author_names的顺序，默认为1.0）
+- `corresponding_author_name`: string - 通讯作者姓名（必须在author_names列表中）
 - `team_id`: integer - 团队ID（不能设为0，必须是有效的团队ID）
 
 响应体：
@@ -1047,7 +1050,10 @@ curl -X GET "http://localhost:8000/api/papers/download/by-title?title=深度学�
     "workloads": [
         {
             "author_id": "integer",
+            "author_name": "string",
             "contribution_ratio": "number",
+            "is_corresponding": "boolean",
+            "author_order": "integer",
             "workload": "number"
         }
     ]
@@ -1131,6 +1137,68 @@ curl -X GET "http://localhost:8000/api/papers/download/by-title?title=深度学�
 - 导出的Excel包含以下列：ID、Title、Abstract、Authors、Keywords、Category、Journal、Publication Date、DOI、Team、Created At、Has File
 - 文件名格式：`papers_export_YYYYMMDD_HHMMSS.xlsx`
 - 返回Content-Type: `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
+
+##### GET `/api/papers/authors/workload/export/excel`
+
+导出作者工作量信息为Excel文件
+
+查询参数：
+
+- author_name: string (可选) - 作者名称，如果提供则导出该作者的详细工作量信息，否则导出所有作者的汇总信息
+
+响应：Excel文件下载
+
+**功能说明：**
+
+#### 指定作者详细导出 (提供 author_name 参数)
+
+导出字段包括：
+
+- 作者姓名
+- 论文标题
+- 期刊名称
+- 期刊等级
+- 发表日期
+- 贡献比例
+- 是否通讯作者
+- 作者顺序
+- 工作量
+
+还会自动添加一行总计信息。
+
+#### 全部作者汇总导出 (不提供 author_name 参数)
+
+导出字段包括：
+
+- 作者姓名
+- 论文总数
+- 通讯作者论文数
+- 总工作量
+- 平均工作量
+
+按总工作量降序排序。
+
+**文件格式：**
+
+- 使用 `openpyxl` 引擎确保兼容性
+- 自动调整列宽以适应内容
+- 中文列名便于阅读
+- 生成带时间戳的文件名
+
+**使用示例：**
+
+```bash
+# 导出所有作者工作量汇总
+GET /api/papers/authors/workload/export/excel
+
+# 导出指定作者详细工作量
+GET /api/papers/authors/workload/export/excel?author_name=张三
+```
+
+**文件名格式：**
+
+- 指定作者：`{author_name}_workload_YYYYMMDD_HHMMSS.xlsx`
+- 全部作者：`all_authors_workload_summary_YYYYMMDD_HHMMSS.xlsx`
 
 ### 期刊相关 API
 

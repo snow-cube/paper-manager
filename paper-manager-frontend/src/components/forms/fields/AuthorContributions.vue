@@ -278,14 +278,9 @@ const getAuthorInitials = (name) => {
     .slice(0, 2);
 };
 
-// 自动平均分配
+// 自动平均分配（按钮触发）
 const autoDistribute = () => {
-  if (authorList.value.length === 0) return;
-
-  const averageContribution = 1 / authorList.value.length;
-  contributions.value = authorList.value.map(() =>
-    Number(averageContribution.toFixed(3))
-  );
+  performAutoDistribute();
   emitUpdate();
 };
 
@@ -312,12 +307,62 @@ const setCorrespondingAuthor = (author) => {
   emitUpdate();
 };
 
+// 检查是否需要自动分配贡献率
+const shouldAutoDistribute = () => {
+  const total = contributions.value.reduce(
+    (sum, contrib) => sum + (contrib || 0),
+    0
+  );
+  // 如果总贡献率为0或接近0（小于0.01），则需要自动分配
+  return total < 0.01;
+};
+
+// 自动分配贡献率（内部使用，不触发emitUpdate）
+const performAutoDistribute = () => {
+  if (authorList.value.length === 0) return;
+
+  const authorCount = authorList.value.length;
+
+  if (authorCount === 1) {
+    // 只有一个作者，直接设为 100%
+    contributions.value = [1.0];
+  } else {
+    // 多个作者时，使用优化的平均分配算法
+    // 100 除以人数，向下取整得到基础百分数
+    const basePercentage = Math.floor(100 / authorCount);
+
+    // 计算剩余的百分数
+    const remainingPercentage = 100 - basePercentage * authorCount;
+
+    // 初始化所有作者的百分数为基础值
+    const percentages = new Array(authorCount).fill(basePercentage);
+
+    // 将剩余的百分数平均分配给前几个作者（向上取整）
+    for (let i = 0; i < remainingPercentage; i++) {
+      percentages[i] += 1;
+    }
+
+    // 转换为两位小数的比例形式（如 0.33）
+    contributions.value = percentages.map((percentage) => percentage / 100);
+  }
+};
+
 // 统一的emit更新函数
 const emitUpdate = () => {
   emit("update:modelValue", {
     contributions: [...contributions.value],
     correspondingAuthor: correspondingAuthor.value,
   });
+};
+
+// 提交前的自动分配检查
+const prepareForSubmit = () => {
+  if (shouldAutoDistribute()) {
+    performAutoDistribute();
+    emitUpdate();
+    return true; // 表示进行了自动分配
+  }
+  return false; // 表示没有进行自动分配
 };
 
 // 调整数值
@@ -398,6 +443,11 @@ const updateContributions = () => {
   );
   emitUpdate();
 };
+
+// 暴露方法给父组件
+defineExpose({
+  prepareForSubmit,
+});
 </script>
 
 <style scoped>

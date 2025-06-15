@@ -39,7 +39,6 @@ export { default as CategoryTree } from "./content/category/CategoryTree.vue";
 
 // Collaboration Components
 export { default as CollaborationNetwork } from "./content/collaboration/CollaborationNetwork.vue";
-export { default as CollaborationNetworkModal } from "./content/collaboration/CollaborationNetworkModal.vue";
 
 // Paper Components
 export { default as PaperCard } from "./content/paper/PaperCard.vue";

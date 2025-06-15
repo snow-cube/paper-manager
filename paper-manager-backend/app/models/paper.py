@@ -128,6 +128,7 @@ class PaperUpdate(SQLModel):
     keyword_names: Optional[List[str]] = None
     author_names: Optional[List[str]] = None
     author_contribution_ratios: Optional[List[float]] = None
+    corresponding_author_name: Optional[str] = None
     team_id: Optional[int] = None
 
 
