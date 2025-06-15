@@ -21,7 +21,6 @@ export { default as PdfViewer } from "./paper/PdfViewer.vue";
 export { default as TeamInfo } from "./team/TeamInfo.vue";
 export { default as TeamList } from "./team/TeamList.vue";
 export { default as TeamMembers } from "./team/TeamMembers.vue";
-export { default as TeamReferences } from "./team/TeamReferences.vue";
 export { default as TeamSelector } from "./team/TeamSelector.vue";
 
 // Re-export all content sub-modules

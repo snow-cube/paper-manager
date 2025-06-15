@@ -160,10 +160,10 @@
   );
   --warning-border: var(--warning-200);
   --warning-text: var(--warning-700);
-
   /* 更多尺寸变量 */
   --border-radius-sm: 6px;
   --border-radius-xl: 16px;
+  --space-xxl: 2.5rem;
   --space-3xl: 4rem;
   --space-4xl: 5rem;
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1),

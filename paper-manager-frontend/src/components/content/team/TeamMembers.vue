@@ -31,6 +31,12 @@
             <span :class="['role-badge', member.role.toLowerCase()]">
               {{ getRoleLabel(member.role) }}
             </span>
+            <span
+              v-if="member.id === props.team.creator_id"
+              class="creator-badge"
+            >
+              创建者
+            </span>
             <span class="join-date">
               加入于 {{ formatDate(member.joined_at) }}
             </span>
@@ -38,7 +44,7 @@
         </div>
         <div class="member-actions">
           <select
-            v-if="canManageMembers && !member.is_creator"
+            v-if="canManageMembers && member.id !== props.team.creator_id"
             :value="member.role"
             @change="updateMemberRole(member, $event.target.value)"
             class="role-select"
@@ -47,7 +53,7 @@
             <option value="ADMIN">管理员</option>
           </select>
           <button
-            v-if="canManageMembers && !member.is_creator"
+            v-if="canManageMembers && member.id !== props.team.creator_id"
             @click="removeMember(member)"
             class="btn-remove"
             title="移除成员"
@@ -116,14 +122,14 @@
         </form>
       </div>
     </Modal>
-
     <!-- 移除成员确认对话框 -->
     <ConfirmDialog
-      v-if="removingMember"
+      :visible="!!removingMember"
       title="移除成员"
-      :message="`确定要将 ${removingMember.full_name} 从团队中移除吗？`"
+      :message="`确定要将 ${removingMember?.full_name} 从团队中移除吗？`"
       @confirm="confirmRemoveMember"
       @cancel="removingMember = null"
+      @close="removingMember = null"
     />
   </div>
 </template>
@@ -169,7 +175,10 @@ const canManageMembers = computed(() => {
   const currentMember = members.value.find(
     (m) => m.id === currentUser.value?.id
   );
-  return currentMember?.role === "ADMIN" || currentMember?.is_creator;
+  return (
+    currentMember?.role === "ADMIN" ||
+    currentUser.value?.id === props.team.creator_id
+  );
 });
 
 const loadMembers = async () => {
@@ -258,11 +267,15 @@ const addMember = async () => {
 };
 
 const removeMember = (member) => {
+  console.log("Remove member clicked:", member);
   removingMember.value = member;
+  console.log("removingMember.value set to:", removingMember.value);
 };
 
 const confirmRemoveMember = async () => {
   if (!removingMember.value) return;
+
+  console.log("Confirming remove member:", removingMember.value);
 
   try {
     await removeTeamMember(props.team.id, removingMember.value.id);
@@ -606,5 +619,17 @@ onMounted(() => {
 
 .form-group {
   position: relative;
+}
+
+.creator-badge {
+  display: inline-block;
+  padding: var(--space-xs) var(--space-sm);
+  background: linear-gradient(135deg, var(--warning-100), var(--warning-200));
+  color: var(--warning-700);
+  border-radius: var(--border-radius);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  border: 1px solid var(--warning-300);
+  margin-left: var(--space-xs);
 }
 </style>

@@ -50,7 +50,6 @@ export { default as PdfViewer } from "./content/paper/PdfViewer.vue";
 export { default as TeamInfo } from "./content/team/TeamInfo.vue";
 export { default as TeamList } from "./content/team/TeamList.vue";
 export { default as TeamMembers } from "./content/team/TeamMembers.vue";
-export { default as TeamReferences } from "./content/team/TeamReferences.vue";
 export { default as TeamSelector } from "./content/team/TeamSelector.vue";
 
 // Icon Components
