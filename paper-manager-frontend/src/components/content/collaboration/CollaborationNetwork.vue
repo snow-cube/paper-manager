@@ -106,7 +106,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed, watch } from "vue";
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from "vue";
 import * as d3 from "d3";
 
 const props = defineProps({
@@ -213,21 +213,31 @@ const createNetworkData = () => {
 
 // 初始化网络图
 const initNetwork = () => {
-  if (!networkContainer.value) return;
+  if (!networkContainer.value) {
+    console.warn("网络容器未找到");
+    return;
+  }
 
   const container = networkContainer.value;
-  const width = container.clientWidth;
-  const height = container.clientHeight;
+  const width = container.clientWidth || 800; // 提供默认宽度
+  const height = container.clientHeight || 600; // 提供默认高度
+
+  // 如果高度仍然为0，使用父容器高度或设置最小高度
+  const actualHeight =
+    height > 0 ? height : Math.max(container.offsetHeight, 600);
+  const actualWidth = width > 0 ? width : Math.max(container.offsetWidth, 800);
+
+  console.log("容器尺寸:", { width, height, actualWidth, actualHeight });
 
   // 清空容器
   d3.select(container).selectAll("*").remove();
-
   // 创建SVG
   svg = d3
     .select(container)
     .append("svg")
-    .attr("width", width)
-    .attr("height", height);
+    .attr("width", actualWidth)
+    .attr("height", actualHeight)
+    .style("min-height", "600px"); // 确保最小高度
 
   // 创建缩放功能
   zoom = d3
@@ -241,11 +251,12 @@ const initNetwork = () => {
 
   // 创建主容器组
   const container_g = svg.append("g");
-
   // 获取网络数据
   const networkData = createNetworkData();
   nodes = networkData.nodes;
   links = networkData.links;
+
+  console.log("网络数据:", { nodes: nodes.length, links: links.length });
   // 创建力导向仿真
   simulation = d3
     .forceSimulation(nodes)
@@ -258,7 +269,7 @@ const initNetwork = () => {
         .strength(0.8)
     )
     .force("charge", d3.forceManyBody().strength(-400))
-    .force("center", d3.forceCenter(width / 2, height / 2))
+    .force("center", d3.forceCenter(actualWidth / 2, actualHeight / 2))
     .force("collision", d3.forceCollide().radius(35)); // 创建连线
   linkElements = container_g
     .append("g")
@@ -577,15 +588,19 @@ const dragended = (event, d) => {
 const centerNetwork = () => {
   if (!svg || !networkContainer.value) return;
 
-  const width = networkContainer.value.clientWidth;
-  const height = networkContainer.value.clientHeight;
+  const container = networkContainer.value;
+  const width = container.clientWidth || 800;
+  const height = container.clientHeight || 600;
+  const actualHeight =
+    height > 0 ? height : Math.max(container.offsetHeight, 600);
+  const actualWidth = width > 0 ? width : Math.max(container.offsetWidth, 800);
 
   svg
     .transition()
     .duration(750)
     .call(
       zoom.transform,
-      d3.zoomIdentity.translate(width / 2, height / 2).scale(1)
+      d3.zoomIdentity.translate(actualWidth / 2, actualHeight / 2).scale(1)
     );
 };
 
@@ -602,12 +617,20 @@ const handleWheel = (event) => {
 // 监听窗口大小变化
 const handleResize = () => {
   if (networkContainer.value) {
-    initNetwork();
+    // 延迟重新初始化，等待布局完成
+    setTimeout(() => {
+      initNetwork();
+    }, 100);
   }
 };
 
 onMounted(() => {
-  initNetwork();
+  // 延迟初始化，确保DOM完全渲染
+  nextTick(() => {
+    setTimeout(() => {
+      initNetwork();
+    }, 100);
+  });
   window.addEventListener("resize", handleResize);
 });
 
@@ -622,7 +645,11 @@ onUnmounted(() => {
 watch(
   () => props.networkData,
   () => {
-    initNetwork();
+    nextTick(() => {
+      setTimeout(() => {
+        initNetwork();
+      }, 100);
+    });
   },
   { deep: true }
 );
@@ -824,6 +851,7 @@ watch(
 .network-container {
   width: 100%;
   height: 100%;
+  min-height: 600px; /* 确保最小高度 */
   background: var(--white);
   cursor: grab;
   position: relative;
@@ -1032,91 +1060,5 @@ watch(
 
 :deep(.link) {
   transition: all var(--transition-normal);
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .collaboration-network {
-    min-height: 650px; /* 中等屏幕也提高高度 */
-  }
-
-  .network-body {
-    min-height: 480px; /* 中等屏幕的图形区域也相应提高 */
-  }
-
-  .network-header {
-    padding: var(--space-md);
-  }
-
-  .header-content {
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--space-md);
-  }
-
-  .network-controls {
-    flex-direction: column;
-    gap: var(--space-md);
-  }
-
-  .network-stats {
-    justify-content: center;
-  }
-
-  .collaborator-details {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: calc(100vw - var(--space-xl));
-    max-width: 320px;
-    max-height: 70vh;
-    overflow-y: auto;
-  }
-
-  .legend {
-    justify-content: center;
-  }
-}
-
-@media (max-width: 480px) {
-  .collaboration-network {
-    min-height: 550px; /* 小屏幕也适当提高高度 */
-  }
-
-  .network-body {
-    min-height: 380px; /* 小屏幕图形区域也提高高度 */
-  }
-
-  .stat-card {
-    min-width: 80px;
-    padding: var(--space-sm);
-    flex-direction: column;
-    gap: var(--space-xs);
-    text-align: center;
-  }
-
-  .stat-value {
-    font-size: var(--text-base);
-  }
-
-  .stat-label {
-    font-size: var(--text-xs);
-  }
-
-  .control-group {
-    flex-direction: column;
-    width: 100%;
-  }
-
-  .control-btn {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .legend-items {
-    flex-direction: column;
-    gap: var(--space-sm);
-  }
 }
 </style>
