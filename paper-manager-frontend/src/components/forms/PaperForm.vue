@@ -45,194 +45,217 @@
       </div>
       <!-- 表单内容区域 -->
       <div class="form-content">
-        <!-- 论文类型选择 -->
-        <div class="form-section">
-          <div class="section-header">
-            <h3 class="section-title">
-              <span class="section-icon">🎯</span>
-              基本信息
-            </h3>
-          </div>
-
-          <!-- 基本信息字段 -->
-          <FormField
-            id="title"
-            v-model="form.title"
-            type="text"
-            label="论文标题"
-            placeholder="请输入论文标题"
-            required
-            :error="getFieldError('title')"
-            @blur="markTouched('title')"
-            @input="validateFieldRealtime('title', $event)"
-          />
-          <FormField
-            v-if="form.paper_type === 'literature'"
-            id="author_names"
-            v-model="form.author_names"
-            type="textarea"
-            label="作者"
-            placeholder="请输入作者（用逗号分隔多个作者，例如：张三, 李四, 王五）"
-            required
-            :rows="2"
-            :error="getFieldError('author_names')"
-            @blur="markTouched('author_names')"
-            @input="validateFieldRealtime('author_names', $event)"
-          />
-
-          <div class="form-row">
-            <FormField
-              id="keyword_names"
-              v-model="form.keyword_names"
-              type="text"
-              label="关键词"
-              placeholder="用逗号分隔多个关键词"
-              :required="form.paper_type === 'published'"
-              :error="getFieldError('keyword_names')"
-              @blur="markTouched('keyword_names')"
-              @input="validateFieldRealtime('keyword_names', $event)"
-            />
-            <CategorySelect
-              id="category_id"
-              v-model="form.category_id"
-              label="分类"
-              placeholder="请选择分类"
-              :categories="categoryTree"
-              :required="form.paper_type === 'published'"
-              :error="getFieldError('category_id')"
-              hint="选择合适的分类有助于论文的管理和检索"
-              @change="markTouched('category_id')"
-              @blur="markTouched('category_id')"
-            />
-          </div>
-          <FormField
-            id="doi"
-            v-model="form.doi"
-            label="DOI"
-            placeholder="如：10.1000/xyz123"
-            :error="getFieldError('doi')"
-            @blur="markTouched('doi')"
-            @input="validateFieldRealtime('doi', $event)"
-          />
-
-          <!-- 期刊和发表信息 -->
-          <div class="form-row">
-            <JournalSearchField
-              id="journal_id"
-              v-model="form.journal_id"
-              label="期刊"
-              placeholder="搜索期刊名称..."
-              :required="form.paper_type === 'published'"
-              :error="getFieldError('journal_id')"
-              @blur="markTouched('journal_id')"
-              @change="handleJournalChange"
-            />
-
-            <!-- 发表论文使用发表日期 -->
-            <FormField
-              v-if="form.paper_type === 'published'"
-              id="publication_date"
-              v-model="form.publication_date"
-              type="date"
-              label="发表日期"
-              :error="getFieldError('publication_date')"
-              @blur="markTouched('publication_date')"
-              @change="
-                validateFieldRealtime('publication_date', $event.target.value)
-              "
-            />
-
-            <!-- 参考文献使用发表年份 -->
-            <FormField
-              v-else
-              id="publication_year"
-              v-model="form.publication_year"
-              type="number"
-              label="发表年份"
-              placeholder="请输入发表年份"
-              :min="1900"
-              :max="new Date().getFullYear()"
-              :error="getFieldError('publication_year')"
-              @blur="markTouched('publication_year')"
-              @input="validateFieldRealtime('publication_year', $event)"
-            />
+        <!-- 加载状态 -->
+        <div v-if="isInitializing" class="form-loading">
+          <div class="loading-content">
+            <span class="loading-icon">⏳</span>
+            <span class="loading-text">正在加载论文数据...</span>
           </div>
         </div>
 
-        <!-- 作者信息 -->
-        <div v-if="form.paper_type === 'published'" class="form-section">
-          <div class="section-header">
-            <h3 class="section-title">
-              <span class="section-icon">👥</span>
-              作者信息
-            </h3>
-          </div>
-          <FormField
-            id="author_names"
-            v-model="form.author_names"
-            type="textarea"
-            label="作者"
-            placeholder="请输入作者（用逗号分隔多个作者，例如：张三, 李四, 王五）"
-            required
-            :rows="2"
-            :error="getFieldError('author_names')"
-            @blur="markTouched('author_names')"
-            @input="validateFieldRealtime('author_names', $event)"
-          />
-          <div class="subsection-header">
-            <button
-              type="button"
-              class="collapsible-tag"
-              @click="isContributionsCollapsed = !isContributionsCollapsed"
-              :class="{ collapsed: isContributionsCollapsed }"
-            >
-              <span class="tag-text">作者贡献比例</span>
-              <span
-                class="tag-arrow"
-                :class="{ rotated: isContributionsCollapsed }"
-                >›</span
-              >
-            </button>
-          </div>
-          <transition name="collapse">
-            <div v-show="!isContributionsCollapsed" class="collapsible-content">
-              <AuthorContributions
-                :authors="authorList"
-                v-model="authorContributions"
-                :error="getFieldError('author_contributions')"
+        <!-- 表单字段 -->
+        <div v-else>
+          <!-- 论文类型选择 -->
+          <div class="form-section">
+            <div class="section-header">
+              <h3 class="section-title">
+                <span class="section-icon">🎯</span>
+                基本信息
+              </h3>
+            </div>
+
+            <!-- 基本信息字段 -->
+            <FormField
+              id="title"
+              v-model="form.title"
+              type="text"
+              label="论文标题"
+              placeholder="请输入论文标题"
+              required
+              :error="getFieldError('title')"
+              @blur="markTouched('title')"
+              @input="validateFieldRealtime('title', $event)"
+            />
+            <FormField
+              v-if="form.paper_type === 'literature'"
+              id="author_names"
+              v-model="form.author_names"
+              type="textarea"
+              label="作者"
+              placeholder="请输入作者（用逗号分隔多个作者，例如：张三, 李四, 王五）"
+              required
+              :rows="2"
+              :error="getFieldError('author_names')"
+              @blur="markTouched('author_names')"
+              @input="validateFieldRealtime('author_names', $event)"
+            />
+
+            <div class="form-row">
+              <FormField
+                id="keyword_names"
+                v-model="form.keyword_names"
+                type="text"
+                label="关键词"
+                placeholder="用逗号分隔多个关键词"
+                :required="form.paper_type === 'published'"
+                :error="getFieldError('keyword_names')"
+                @blur="markTouched('keyword_names')"
+                @input="validateFieldRealtime('keyword_names', $event)"
+              />
+              <CategorySelect
+                id="category_id"
+                v-model="form.category_id"
+                label="分类"
+                placeholder="请选择分类"
+                :categories="categoryTree"
+                :required="form.paper_type === 'published'"
+                :error="getFieldError('category_id')"
+                hint="选择合适的分类有助于论文的管理和检索"
+                @change="markTouched('category_id')"
+                @blur="markTouched('category_id')"
               />
             </div>
-          </transition>
-        </div>
+            <FormField
+              id="doi"
+              v-model="form.doi"
+              label="DOI"
+              placeholder="如：10.1000/xyz123"
+              :error="getFieldError('doi')"
+              @blur="markTouched('doi')"
+              @input="validateFieldRealtime('doi', $event)"
+            />
 
-        <!-- 摘要和文件上传 -->
-        <div class="form-section">
-          <div class="section-header">
-            <h3 class="section-title">
-              <span class="section-icon">📄</span>
-              详细信息
-            </h3>
+            <!-- 期刊和发表信息 -->
+            <div class="form-row">
+              <JournalSearchField
+                id="journal_id"
+                v-model="form.journal_id"
+                label="期刊"
+                placeholder="搜索期刊名称..."
+                :required="form.paper_type === 'published'"
+                :error="getFieldError('journal_id')"
+                @blur="markTouched('journal_id')"
+                @change="handleJournalChange"
+              />
+
+              <!-- 发表论文使用发表日期 -->
+              <FormField
+                v-if="form.paper_type === 'published'"
+                id="publication_date"
+                v-model="form.publication_date"
+                type="date"
+                label="发表日期"
+                :error="getFieldError('publication_date')"
+                @blur="markTouched('publication_date')"
+                @change="
+                  validateFieldRealtime('publication_date', $event.target.value)
+                "
+              />
+
+              <!-- 参考文献使用发表年份 -->
+              <FormField
+                v-else
+                id="publication_year"
+                v-model="form.publication_year"
+                type="number"
+                label="发表年份"
+                placeholder="请输入发表年份"
+                :min="1900"
+                :max="new Date().getFullYear()"
+                :error="getFieldError('publication_year')"
+                @blur="markTouched('publication_year')"
+                @input="validateFieldRealtime('publication_year', $event)"
+              />
+            </div>
           </div>
 
-          <FormField
-            id="abstract"
-            v-model="form.abstract"
-            type="textarea"
-            label="摘要"
-            placeholder="请输入论文摘要"
-            :rows="4"
-            :error="getFieldError('abstract')"
-            @blur="markTouched('abstract')"
-            @input="validateFieldRealtime('abstract', $event)"
-          />
-          <FileUpload
-            v-model="file"
-            label="论文文件"
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.md"
-            :error="getFieldError('file')"
-            @change="validateFieldRealtime('file', $event)"
-          />
+          <!-- 作者信息 -->
+          <div v-if="form.paper_type === 'published'" class="form-section">
+            <div class="section-header">
+              <h3 class="section-title">
+                <span class="section-icon">👥</span>
+                作者信息
+              </h3>
+            </div>
+            <FormField
+              id="author_names"
+              v-model="form.author_names"
+              type="textarea"
+              label="作者"
+              placeholder="请输入作者（用逗号分隔多个作者，例如：张三, 李四, 王五）"
+              required
+              :rows="2"
+              :error="getFieldError('author_names')"
+              @blur="markTouched('author_names')"
+              @input="validateFieldRealtime('author_names', $event)"
+            />
+            <div class="subsection-header">
+              <button
+                type="button"
+                class="collapsible-tag"
+                @click="isContributionsCollapsed = !isContributionsCollapsed"
+                :class="{ collapsed: isContributionsCollapsed }"
+              >
+                <span class="tag-text">作者贡献比例</span>
+                <span
+                  class="tag-arrow"
+                  :class="{ rotated: isContributionsCollapsed }"
+                  >›</span
+                >
+              </button>
+            </div>
+            <transition name="collapse">
+              <div
+                v-show="!isContributionsCollapsed"
+                class="collapsible-content"
+              >
+                <AuthorContributions
+                  ref="authorContributionsRef"
+                  :authors="authorList"
+                  v-model="authorContributions"
+                  :error="getFieldError('author_contributions')"
+                  @update:modelValue="
+                    (value) => {
+                      console.log('AuthorContributions emitted update:', value);
+                      authorContributions = value;
+                    }
+                  "
+                />
+              </div>
+            </transition>
+          </div>
+
+          <!-- 详细信息和文件上传 -->
+          <div class="form-section">
+            <div class="section-header">
+              <h3 class="section-title">
+                <span class="section-icon">📄</span>
+                {{ form.paper_type === "published" ? "详细信息" : "文件上传" }}
+              </h3>
+            </div>
+
+            <FormField
+              v-if="form.paper_type === 'published'"
+              id="abstract"
+              v-model="form.abstract"
+              type="textarea"
+              label="摘要"
+              placeholder="请输入论文摘要"
+              :rows="4"
+              :error="getFieldError('abstract')"
+              @blur="markTouched('abstract')"
+              @input="validateFieldRealtime('abstract', $event)"
+            />
+            <FileUpload
+              v-model="file"
+              label="论文文件"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.md"
+              :error="getFieldError('file')"
+              @change="validateFieldRealtime('file', $event)"
+            />
+          </div>
         </div>
+        <!-- 结束 v-else 包装 -->
       </div>
 
       <!-- 表单操作区域 -->
@@ -303,6 +326,9 @@ const props = defineProps({
 
 const emit = defineEmits(["saved", "cancel", "progress-update"]);
 
+// 组件引用
+const authorContributionsRef = ref(null);
+
 // 作者贡献比例折叠状态
 const isContributionsCollapsed = ref(false);
 
@@ -318,8 +344,15 @@ const { onCategoryUpdate } = useCategoryEvents();
 const { triggerPaperUpdate } = usePaperEvents();
 const { journals, fetchJournals } = useJournals();
 const { currentTeam } = useTeam();
-const { form, file, authorContributions, isEdit, initializeForm, resetForm } =
-  usePaperFormInitialization(props);
+const {
+  form,
+  file,
+  authorContributions,
+  isEdit,
+  isInitializing,
+  initializeForm,
+  resetForm,
+} = usePaperFormInitialization(props);
 const {
   errors,
   isValidForm,
@@ -428,6 +461,19 @@ watch(
 
 // 处理表单提交
 const handleSubmit = async () => {
+  // 在验证之前，检查并自动分配贡献率
+  if (authorContributionsRef.value) {
+    try {
+      const wasAutoDistributed =
+        authorContributionsRef.value.prepareForSubmit();
+      if (wasAutoDistributed) {
+        console.log("自动分配了作者贡献率");
+      }
+    } catch (error) {
+      console.warn("自动分配贡献率时出错:", error);
+    }
+  }
+
   if (!validateForm()) {
     return;
   }
@@ -503,6 +549,15 @@ onCategoryUpdate(async () => {
 
 // 初始化表单
 initializeForm();
+
+// 添加调试监控
+watch(
+  () => authorContributions.value,
+  (newValue) => {
+    console.log("PaperForm: authorContributions changed:", newValue);
+  },
+  { deep: true, immediate: true }
+);
 
 // 初始加载分类和期刊
 onMounted(async () => {
@@ -623,6 +678,43 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+}
+
+/* 加载状态样式 */
+.form-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--space-xl);
+  background: var(--color-background-soft);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--color-border-light);
+}
+
+.loading-content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+}
+
+.loading-icon {
+  font-size: var(--text-lg);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  font-weight: 500;
 }
 
 /* 表单分区样式 */

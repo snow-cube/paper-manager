@@ -4,13 +4,14 @@
       <label v-if="label" class="form-label" :for="id">
         {{ label }}
         <span v-if="required" class="required-indicator">*</span>
-      </label>      <!-- 分类选择器主容器 -->
+      </label>
+      <!-- 分类选择器主容器 -->
       <div
         ref="categorySelector"
         class="category-selector"
         :class="{
           'category-selector-focused': isOpen,
-          'category-selector-disabled': disabled
+          'category-selector-disabled': disabled,
         }"
         @click="toggleDropdown"
         tabindex="0"
@@ -20,16 +21,32 @@
         <!-- 选择框显示区 -->
         <div class="category-display">
           <!-- 显示选中的分类路径 -->
-          <div v-if="selectedCategory" class="selected-category">            <div class="category-breadcrumb">
+          <div v-if="selectedCategory" class="selected-category">
+            <div class="category-breadcrumb">
               <span
                 v-for="(pathItem, index) in categoryPath"
                 :key="pathItem.id"
                 class="breadcrumb-item"
               >
                 <span class="breadcrumb-text">{{ pathItem.name }}</span>
-                <span v-if="index < categoryPath.length - 1" class="breadcrumb-separator">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-                    <path d="M4.5 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                <span
+                  v-if="index < categoryPath.length - 1"
+                  class="breadcrumb-separator"
+                >
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
+                    fill="currentColor"
+                  >
+                    <path
+                      d="M4.5 2l4 4-4 4"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      fill="none"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
                   </svg>
                 </span>
               </span>
@@ -38,7 +55,7 @@
 
           <!-- 占位符 -->
           <div v-else class="category-placeholder">
-            {{ placeholder || '请选择分类' }}
+            {{ placeholder || "请选择分类" }}
           </div>
 
           <!-- 清除按钮 -->
@@ -50,14 +67,26 @@
             title="清除选择"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M12 4L4 12M4 4l8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path
+                d="M12 4L4 12M4 4l8 8"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
             </svg>
           </button>
 
           <!-- 下拉箭头 -->
           <div class="dropdown-arrow" :class="{ 'arrow-up': isOpen }">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+              <path
+                d="M4 6l4 4 4-4"
+                stroke="currentColor"
+                stroke-width="2"
+                fill="none"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
             </svg>
           </div>
         </div>
@@ -74,9 +103,27 @@
           <!-- 搜索框 -->
           <div class="category-search">
             <div class="search-input-container">
-              <svg class="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5" fill="none"/>
-                <path d="m11 11 2.5 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <svg
+                class="search-icon"
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+              >
+                <circle
+                  cx="6.5"
+                  cy="6.5"
+                  r="5"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  fill="none"
+                />
+                <path
+                  d="m11 11 2.5 2.5"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                />
               </svg>
               <input
                 ref="searchInput"
@@ -93,8 +140,18 @@
                 class="search-clear"
                 @click="clearSearch"
               >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-                  <path d="M10 4L4 10M4 4l6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  fill="currentColor"
+                >
+                  <path
+                    d="M10 4L4 10M4 4l6 6"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                  />
                 </svg>
               </button>
             </div>
@@ -129,22 +186,19 @@
             </div>
 
             <!-- 无结果提示 -->
-            <div v-else-if="searchQuery && categories.length > 0" class="no-results">
+            <div
+              v-else-if="searchQuery && categories.length > 0"
+              class="no-results"
+            >
               <div class="no-results-icon">🔍</div>
-              <div class="no-results-text">
-                未找到匹配的分类
-              </div>
-              <div class="no-results-hint">
-                尝试使用不同的关键词搜索
-              </div>
+              <div class="no-results-text">未找到匹配的分类</div>
+              <div class="no-results-hint">尝试使用不同的关键词搜索</div>
             </div>
 
             <!-- 无分类数据 -->
             <div v-else-if="categories.length === 0" class="no-categories">
               <div class="no-categories-icon">📁</div>
-              <div class="no-categories-text">
-                暂无可用分类
-              </div>
+              <div class="no-categories-text">暂无可用分类</div>
             </div>
           </div>
         </div>
@@ -158,8 +212,15 @@
 
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from "vue";
-import { useFloating, autoUpdate, offset, flip, shift, size } from '@floating-ui/vue';
-import CategorySelectNode from './CategorySelectNode.vue';
+import {
+  useFloating,
+  autoUpdate,
+  offset,
+  flip,
+  shift,
+  size,
+} from "@floating-ui/vue";
+import CategorySelectNode from "./CategorySelectNode.vue";
 
 const props = defineProps({
   id: String,
@@ -176,11 +237,11 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update:modelValue', 'change', 'blur']);
+const emit = defineEmits(["update:modelValue", "change", "blur"]);
 
 // 组件状态
 const isOpen = ref(false);
-const searchQuery = ref('');
+const searchQuery = ref("");
 const expandedIds = ref(new Set());
 const dropdownPanel = ref(null);
 const searchInput = ref(null);
@@ -188,7 +249,7 @@ const categorySelector = ref(null);
 
 // 浮动定位
 const { floatingStyles } = useFloating(categorySelector, dropdownPanel, {
-  placement: 'bottom-start',
+  placement: "bottom-start",
   whileElementsMounted: autoUpdate,
   middleware: [
     offset(4),
@@ -216,7 +277,7 @@ const categoryMap = computed(() => {
   const map = new Map();
 
   const addToMap = (categories) => {
-    categories.forEach(category => {
+    categories.forEach((category) => {
       map.set(category.id, category);
       if (category.children && category.children.length > 0) {
         addToMap(category.children);
@@ -243,7 +304,9 @@ const categoryPath = computed(() => {
 
   while (current) {
     path.unshift(current);
-    current = current.parent_id ? categoryMap.value.get(current.parent_id) : null;
+    current = current.parent_id
+      ? categoryMap.value.get(current.parent_id)
+      : null;
   }
 
   return path;
@@ -258,14 +321,18 @@ const filteredCategories = computed(() => {
   const query = searchQuery.value.toLowerCase();
 
   const filterCategories = (categories) => {
-    const filtered = [];    categories.forEach(category => {
+    const filtered = [];
+    categories.forEach((category) => {
       const matchesName = category.name.toLowerCase().includes(query);
-      const hasMatchingChildren = category.children && filterCategories(category.children).length > 0;
+      const hasMatchingChildren =
+        category.children && filterCategories(category.children).length > 0;
 
       if (matchesName || hasMatchingChildren) {
         const filteredCategory = {
           ...category,
-          children: category.children ? filterCategories(category.children) : []
+          children: category.children
+            ? filterCategories(category.children)
+            : [],
         };
         filtered.push(filteredCategory);
 
@@ -299,16 +366,16 @@ const toggleDropdown = () => {
 
 // 选择分类
 const selectCategory = (categoryId) => {
-  emit('update:modelValue', categoryId);
-  emit('change', categoryId);
+  emit("update:modelValue", categoryId);
+  emit("change", categoryId);
   isOpen.value = false;
-  searchQuery.value = '';
+  searchQuery.value = "";
 };
 
 // 清除选择
 const clearSelection = () => {
-  emit('update:modelValue', null);
-  emit('change', null);
+  emit("update:modelValue", null);
+  emit("change", null);
 };
 
 // 切换节点展开状态
@@ -327,7 +394,7 @@ const handleSearch = () => {
 
 // 清除搜索
 const clearSearch = () => {
-  searchQuery.value = '';
+  searchQuery.value = "";
   if (searchInput.value) {
     searchInput.value.focus();
   }
@@ -336,18 +403,18 @@ const clearSearch = () => {
 // 键盘事件处理
 const handleKeydown = (event) => {
   switch (event.key) {
-    case 'Enter':
-    case ' ':
+    case "Enter":
+    case " ":
       event.preventDefault();
       toggleDropdown();
       break;
-    case 'Escape':
+    case "Escape":
       if (isOpen.value) {
         isOpen.value = false;
         event.preventDefault();
       }
       break;
-    case 'ArrowDown':
+    case "ArrowDown":
       if (!isOpen.value) {
         event.preventDefault();
         toggleDropdown();
@@ -362,7 +429,7 @@ const handleBlur = (event) => {
   setTimeout(() => {
     if (!dropdownPanel.value?.contains(event.relatedTarget)) {
       isOpen.value = false;
-      emit('blur', event);
+      emit("blur", event);
     }
   }, 150);
 };
@@ -389,7 +456,7 @@ const initializeExpanded = () => {
   }
 
   // 默认展开根分类
-  props.categories.forEach(category => {
+  props.categories.forEach((category) => {
     if (category.children && category.children.length > 0) {
       expandedIds.value.add(category.id);
     }
@@ -397,29 +464,36 @@ const initializeExpanded = () => {
 };
 
 // 监听分类数据变化
-watch(() => props.categories, () => {
-  initializeExpanded();
-}, { immediate: true, deep: true });
+watch(
+  () => props.categories,
+  () => {
+    initializeExpanded();
+  },
+  { immediate: true, deep: true }
+);
 
 // 监听modelValue变化
-watch(() => props.modelValue, () => {
-  if (selectedCategory.value) {
-    // 确保选中分类的路径都是展开的
-    let current = selectedCategory.value;
-    while (current && current.parent_id) {
-      expandedIds.value.add(current.parent_id);
-      current = categoryMap.value.get(current.parent_id);
+watch(
+  () => props.modelValue,
+  () => {
+    if (selectedCategory.value) {
+      // 确保选中分类的路径都是展开的
+      let current = selectedCategory.value;
+      while (current && current.parent_id) {
+        expandedIds.value.add(current.parent_id);
+        current = categoryMap.value.get(current.parent_id);
+      }
     }
   }
-});
+);
 
 onMounted(() => {
-  document.addEventListener('click', handleClickOutside);
+  document.addEventListener("click", handleClickOutside);
   initializeExpanded();
 });
 
 onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside);
+  document.removeEventListener("click", handleClickOutside);
 });
 </script>
 
@@ -591,7 +665,8 @@ onUnmounted(() => {
 
 .search-input {
   width: 100%;
-  padding: var(--space-sm) var(--space-xl) var(--space-sm) calc(var(--space-xl) + var(--space-xs));
+  padding: var(--space-sm) var(--space-xl) var(--space-sm)
+    calc(var(--space-xl) + var(--space-xs));
   border: 1px solid var(--gray-200);
   border-radius: var(--border-radius);
   font-size: var(--text-sm);
@@ -747,7 +822,8 @@ onUnmounted(() => {
   }
 
   .category-search {
-    padding: var(--space-sm);  }
+    padding: var(--space-sm);
+  }
 
   .breadcrumb-text {
     font-size: var(--text-xs);
