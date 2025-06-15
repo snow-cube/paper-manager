@@ -1,68 +1,106 @@
 <template>
   <div class="collaboration-network">
     <div class="network-header">
-      <h3 class="network-title">{{ authorName }} 的合作网络</h3>
-      <div class="network-stats">
-        <span class="stat-item">
-          <strong>{{ totalCollaborators }}</strong> 位合作者
-        </span>
-        <span class="stat-item">
-          <strong>{{ totalPapers }}</strong> 篇合作论文
-        </span>
-      </div>
-    </div>
-
-    <div class="network-controls">
-      <button @click="centerNetwork" class="control-btn" title="居中显示">
-        🎯 居中
-      </button>
-      <button @click="resetZoom" class="control-btn" title="重置缩放">
-        🔍 重置
-      </button>
-      <div class="legend">
-        <div class="legend-item">
-          <div class="legend-color main-author"></div>
-          <span>目标作者</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-color collaborator"></div>
-          <span>合作者</span>
+      <div class="header-content">
+        <h3 class="network-title">
+          <span class="title-icon">🌐</span>
+          {{ authorName }} 的合作网络
+        </h3>
+        <div class="network-stats">
+          <div class="stat-card">
+            <span class="stat-value">{{ totalCollaborators }}</span>
+            <span class="stat-label">合作者</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value">{{ totalPapers }}</span>
+            <span class="stat-label">合作论文</span>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div
-      ref="networkContainer"
-      class="network-container"
-      @wheel="handleWheel"
-    ></div>
-
-    <div v-if="selectedCollaborator" class="collaborator-details">
-      <h4>{{ selectedCollaborator.name }}</h4>
-      <p>
-        <strong>合作次数:</strong>
-        {{ selectedCollaborator.collaboration_count }}
-      </p>
-      <div class="collaboration-papers">
-        <h5>合作论文:</h5>
-        <ul>
-          <li
-            v-for="paper in selectedCollaborator.papers"
-            :key="paper.paper_id"
-            class="paper-item"
+      <div class="network-controls">
+        <div class="control-group">
+          <button
+            @click="centerNetwork"
+            class="control-btn btn-primary"
+            title="居中显示"
           >
-            <span class="paper-info">
-              论文 #{{ paper.paper_id }} (第{{ paper.author_order }}作者)
-              <span v-if="paper.is_corresponding" class="corresponding-badge"
-                >通讯</span
-              >
-            </span>
-          </li>
-        </ul>
+            <span class="btn-icon">🎯</span>
+            <span class="btn-text">居中</span>
+          </button>
+          <button
+            @click="resetZoom"
+            class="control-btn btn-secondary"
+            title="重置缩放"
+          >
+            <span class="btn-icon">🔍</span>
+            <span class="btn-text">重置</span>
+          </button>
+        </div>
+
+        <div class="legend">
+          <div class="legend-title">图例</div>
+          <div class="legend-items">
+            <div class="legend-item">
+              <div class="legend-color main-author"></div>
+              <span class="legend-text">目标作者</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color collaborator"></div>
+              <span class="legend-text">合作者</span>
+            </div>
+          </div>
+        </div>
       </div>
-      <button @click="selectedCollaborator = null" class="close-details">
-        ✕ 关闭
-      </button>
+    </div>
+
+    <div class="network-body">
+      <div
+        ref="networkContainer"
+        class="network-container"
+        @wheel="handleWheel"
+      ></div>
+
+      <div v-if="selectedCollaborator" class="collaborator-details">
+        <div class="details-header">
+          <div class="collaborator-avatar">
+            {{ selectedCollaborator.name.charAt(0) }}
+          </div>
+          <div class="collaborator-info">
+            <h4 class="collaborator-name">{{ selectedCollaborator.name }}</h4>
+            <div class="collaboration-stats">
+              <span class="collaboration-count">
+                合作 {{ selectedCollaborator.collaboration_count }} 次
+              </span>
+            </div>
+          </div>
+          <button @click="selectedCollaborator = null" class="close-details">
+            <span class="close-icon">✕</span>
+          </button>
+        </div>
+
+        <div class="collaboration-papers">
+          <h5 class="papers-title">
+            <span class="papers-icon">📄</span>
+            合作论文
+          </h5>
+          <div class="papers-list">
+            <div
+              v-for="paper in selectedCollaborator.papers"
+              :key="paper.paper_id"
+              class="paper-item"
+            >
+              <div class="paper-id">论文 #{{ paper.paper_id }}</div>
+              <div class="paper-meta">
+                <span class="author-order">第{{ paper.author_order }}作者</span>
+                <span v-if="paper.is_corresponding" class="corresponding-badge">
+                  ✓ 通讯作者
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -208,7 +246,6 @@ const initNetwork = () => {
   const networkData = createNetworkData();
   nodes = networkData.nodes;
   links = networkData.links;
-
   // 创建力导向仿真
   simulation = d3
     .forceSimulation(nodes)
@@ -217,13 +254,12 @@ const initNetwork = () => {
       d3
         .forceLink(links)
         .id((d) => d.id)
-        .distance(100)
+        .distance(120)
+        .strength(0.8)
     )
-    .force("charge", d3.forceManyBody().strength(-300))
+    .force("charge", d3.forceManyBody().strength(-400))
     .force("center", d3.forceCenter(width / 2, height / 2))
-    .force("collision", d3.forceCollide().radius(30));
-
-  // 创建连线
+    .force("collision", d3.forceCollide().radius(35)); // 创建连线
   linkElements = container_g
     .append("g")
     .selectAll("line")
@@ -231,9 +267,10 @@ const initNetwork = () => {
     .enter()
     .append("line")
     .attr("class", "link")
-    .attr("stroke", "#999")
+    .attr("stroke", "#f2effc") // 淡紫色连线
     .attr("stroke-opacity", 0.6)
-    .attr("stroke-width", (d) => Math.sqrt(d.weight) * 2);
+    .attr("stroke-width", (d) => Math.sqrt(d.weight) * 2.5)
+    .style("stroke-linecap", "round");
 
   // 创建节点
   nodeElements = container_g
@@ -249,48 +286,249 @@ const initNetwork = () => {
         .on("start", dragstarted)
         .on("drag", dragged)
         .on("end", dragended)
-    );
-
-  // 添加节点圆圈
+    ); // 添加节点圆圈
   nodeElements
     .append("circle")
-    .attr("r", (d) => (d.type === "main" ? 20 : 15))
-    .attr("fill", (d) => (d.type === "main" ? "#ff6b35" : "#4ecdc4"))
-    .attr("stroke", "#fff")
-    .attr("stroke-width", 2)
+    .attr("r", (d) => (d.type === "main" ? 22 : 16))
+    .attr("fill", (d) => (d.type === "main" ? "#9f90d9" : "#22c55e")) // 使用具体的十六进制颜色
+    .attr("stroke", "#ffffff") // 白色边框
+    .attr("stroke-width", 3)
+    .style("filter", "drop-shadow(0px 2px 6px rgba(99, 102, 241, 0.15))")
     .on("click", (event, d) => {
       if (d.type === "collaborator") {
         selectedCollaborator.value = d.data;
       }
     })
     .on("mouseover", (event, d) => {
-      // 高亮相关连线
+      // 高亮相关连线和节点
+      nodeElements
+        .select("circle")
+        .attr("stroke", (n) => {
+          if (n.id === d.id) {
+            // 当前悬停节点使用亮色边框
+            return n.type === "main" ? "#d6cef2" : "#86efac"; // 更亮的紫色和绿色
+          } else if (
+            links.some(
+              (l) =>
+                (l.source.id === d.id && l.target.id === n.id) ||
+                (l.target.id === d.id && l.source.id === n.id)
+            )
+          ) {
+            // 相连节点使用中等亮度边框
+            return n.type === "main" ? "#bbaee6" : "#4ade80"; // 中等亮度的紫色和绿色
+          }
+          return "#ffffff"; // 非相关节点保持白色边框
+        })
+        .attr("stroke-width", (n) => {
+          if (n.id === d.id) return 4;
+          if (
+            links.some(
+              (l) =>
+                (l.source.id === d.id && l.target.id === n.id) ||
+                (l.target.id === d.id && l.source.id === n.id)
+            )
+          )
+            return 3;
+          return 3; // 保持较粗的白色边框以确保可见性
+        })
+        .attr("fill", (n) => {
+          if (n.id === d.id) {
+            // 当前悬停节点使用亮色填充
+            return n.type === "main" ? "#bbaee6" : "#4ade80"; // 亮紫色和亮绿色
+          } else if (
+            links.some(
+              (l) =>
+                (l.source.id === d.id && l.target.id === n.id) ||
+                (l.target.id === d.id && l.source.id === n.id)
+            )
+          ) {
+            // 相连节点保持原色
+            return n.type === "main" ? "#9f90d9" : "#22c55e"; // 原始紫色和绿色
+          }
+          // 非相关节点使用稍微暗一点但仍然清晰可见的颜色
+          return n.type === "main" ? "#bbaee6" : "#4ade80"; // 保持亮色，避免显示为黑色
+        })
+        .style("filter", (n) => {
+          if (n.id === d.id) {
+            return n.type === "main"
+              ? "drop-shadow(0px 4px 12px rgba(99, 102, 241, 0.4))"
+              : "drop-shadow(0px 4px 12px rgba(16, 185, 129, 0.4))";
+          } else if (
+            links.some(
+              (l) =>
+                (l.source.id === d.id && l.target.id === n.id) ||
+                (l.target.id === d.id && l.source.id === n.id)
+            )
+          ) {
+            return n.type === "main"
+              ? "drop-shadow(0px 3px 8px rgba(99, 102, 241, 0.3))"
+              : "drop-shadow(0px 3px 8px rgba(16, 185, 129, 0.3))";
+          }
+          return n.type === "main"
+            ? "drop-shadow(0px 2px 4px rgba(99, 102, 241, 0.15))"
+            : "drop-shadow(0px 2px 4px rgba(16, 185, 129, 0.15))";
+        })
+        .attr("fill-opacity", (n) => {
+          if (n.id === d.id) return 1;
+          if (
+            links.some(
+              (l) =>
+                (l.source.id === d.id && l.target.id === n.id) ||
+                (l.target.id === d.id && l.source.id === n.id)
+            )
+          )
+            return 1;
+          return 0.7; // 非相关节点适当降低不透明度但保持可见
+        });
       linkElements
+        .attr("stroke", (l) => {
+          // 高亮连线使用主题色
+          return l.source.id === d.id || l.target.id === d.id
+            ? "#bbaee6"
+            : "#f2effc"; // 亮紫色和淡紫色
+        })
         .attr("stroke-opacity", (l) =>
-          l.source.id === d.id || l.target.id === d.id ? 1 : 0.1
+          l.source.id === d.id || l.target.id === d.id ? 0.8 : 0.3
         )
         .attr("stroke-width", (l) =>
           l.source.id === d.id || l.target.id === d.id
-            ? Math.sqrt(l.weight) * 3
+            ? Math.sqrt(l.weight) * 3.5
             : Math.sqrt(l.weight) * 2
-        );
+        ); // 高亮合作次数标签
+      nodeElements
+        .select(".collaboration-count-bg")
+        .attr("fill", (n) => {
+          if (n.id === d.id) return "#22c55e"; // 绿色背景
+          if (
+            links.some(
+              (l) =>
+                (l.source.id === d.id && l.target.id === n.id) ||
+                (l.target.id === d.id && l.source.id === n.id)
+            )
+          )
+            return "#ffffff"; // 白色背景
+          return "#ffffff"; // 非相关节点也保持白色背景
+        })
+        .attr("stroke", (n) => {
+          if (n.id === d.id) return "#16a34a"; // 深绿色边框
+          if (
+            links.some(
+              (l) =>
+                (l.source.id === d.id && l.target.id === n.id) ||
+                (l.target.id === d.id && l.source.id === n.id)
+            )
+          )
+            return "#4ade80"; // 亮绿色边框
+          return "#86efac"; // 非相关节点保持淡绿色边框
+        })
+        .attr("stroke-width", (n) => {
+          if (n.id === d.id) return 2.5;
+          if (
+            links.some(
+              (l) =>
+                (l.source.id === d.id && l.target.id === n.id) ||
+                (l.target.id === d.id && l.source.id === n.id)
+            )
+          )
+            return 2;
+          return 1.5; // 保持原有边框宽度
+        })
+        .attr("opacity", (n) => {
+          if (n.id === d.id) return 1;
+          if (
+            links.some(
+              (l) =>
+                (l.source.id === d.id && l.target.id === n.id) ||
+                (l.target.id === d.id && l.source.id === n.id)
+            )
+          )
+            return 0.95;
+          return 0.8; // 适当降低但保持可见
+        });
+      nodeElements
+        .selectAll("text")
+        .filter(function () {
+          return d3.select(this).attr("dy") === "38px";
+        })
+        .attr("fill", (n) => {
+          if (n.id === d.id) return "#ffffff"; // 白色文字
+          if (
+            links.some(
+              (l) =>
+                (l.source.id === d.id && l.target.id === n.id) ||
+                (l.target.id === d.id && l.source.id === n.id)
+            )
+          )
+            return "#16a34a"; // 深绿色文字
+          return "#16a34a"; // 非相关节点也保持深绿色文字
+        })
+        .attr("font-weight", (n) => {
+          if (n.id === d.id) return "700";
+          if (
+            links.some(
+              (l) =>
+                (l.source.id === d.id && l.target.id === n.id) ||
+                (l.target.id === d.id && l.source.id === n.id)
+            )
+          )
+            return "600";
+          return "600"; // 保持字体粗细
+        });
     })
     .on("mouseout", () => {
       // 恢复默认样式
+      nodeElements
+        .select("circle")
+        .attr("stroke", "#ffffff") // 白色边框
+        .attr("stroke-width", 3)
+        .attr("fill", (d) => (d.type === "main" ? "#9f90d9" : "#22c55e")) // 恢复原始颜色
+        .style("filter", "drop-shadow(0px 2px 6px rgba(99, 102, 241, 0.15))")
+        .attr("fill-opacity", 1);
       linkElements
+        .attr("stroke", "#f2effc") // 淡紫色连线
         .attr("stroke-opacity", 0.6)
-        .attr("stroke-width", (d) => Math.sqrt(d.weight) * 2);
-    });
+        .attr("stroke-width", (d) => Math.sqrt(d.weight) * 2.5);
 
-  // 添加节点标签
+      // 恢复合作次数标签样式
+      nodeElements
+        .select(".collaboration-count-bg")
+        .attr("fill", "#ffffff") // 白色背景
+        .attr("stroke", "#86efac") // 绿色边框
+        .attr("stroke-width", 1.5)
+        .attr("opacity", 0.95);
+
+      nodeElements
+        .selectAll("text")
+        .filter(function () {
+          return d3.select(this).attr("dy") === "38px";
+        })
+        .attr("fill", "#16a34a") // 深绿色文字
+        .attr("font-weight", "600");
+    }); // 添加节点标签
   nodeElements
     .append("text")
     .text((d) => d.name)
     .attr("text-anchor", "middle")
     .attr("dy", "0.35em")
-    .attr("font-size", "12px")
-    .attr("fill", "#333")
-    .attr("pointer-events", "none");
+    .attr("font-size", (d) => (d.type === "main" ? "13px" : "11px"))
+    .attr("font-weight", (d) => (d.type === "main" ? "700" : "600"))
+    .attr("fill", "#ffffff") // 白色文字
+    .attr("pointer-events", "none")
+    .style("text-shadow", "0px 1px 2px rgba(0, 0, 0, 0.3)"); // 添加合作次数标签背景
+  nodeElements
+    .filter((d) => d.type === "collaborator")
+    .append("rect")
+    .attr("class", "collaboration-count-bg")
+    .attr("x", -14)
+    .attr("y", 26)
+    .attr("width", 28)
+    .attr("height", 18)
+    .attr("rx", 9)
+    .attr("fill", "#ffffff") // 白色背景
+    .attr("stroke", "#86efac") // 绿色边框
+    .attr("stroke-width", 1.5)
+    .attr("opacity", 0.95)
+    .style("filter", "drop-shadow(0px 1px 3px rgba(16, 185, 129, 0.2))");
 
   // 添加合作次数标签
   nodeElements
@@ -298,10 +536,12 @@ const initNetwork = () => {
     .append("text")
     .text((d) => d.collaborationCount)
     .attr("text-anchor", "middle")
-    .attr("dy", "25px")
-    .attr("font-size", "10px")
-    .attr("fill", "#666")
-    .attr("pointer-events", "none");
+    .attr("dy", "38px")
+    .attr("font-size", "11px")
+    .attr("font-weight", "600")
+    .attr("fill", "#16a34a") // 深绿色文字
+    .attr("pointer-events", "none")
+    .style("text-shadow", "0px 1px 2px rgba(255, 255, 255, 0.8)");
 
   // 更新仿真
   simulation.on("tick", () => {
@@ -389,188 +629,494 @@ watch(
 </script>
 
 <style scoped>
+/* 主容器 */
 .collaboration-network {
   width: 100%;
   height: 100%;
-  background: #f9f9f9;
-  border-radius: 8px;
-  padding: 10px;
-  box-sizing: border-box;
-  position: relative;
+  min-height: 750px; /* 进一步提高最小高度，给图更多空间 */
+  background: var(--white);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--primary-100);
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+  box-shadow: var(--shadow-sm);
 }
 
+/* 头部区域 */
 .network-header {
+  background: var(--primary-25);
+  border-bottom: 1px solid var(--primary-100);
+  padding: var(--space-lg);
+}
+
+.header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: var(--space-md);
+  gap: var(--space-lg);
 }
 
 .network-title {
   margin: 0;
-  color: #333;
-  font-size: 1.2em;
+  color: var(--primary-700);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.title-icon {
+  font-size: var(--text-xl);
 }
 
 .network-stats {
   display: flex;
-  gap: 20px;
+  gap: var(--space-md);
 }
 
-.stat-item {
-  font-size: 0.9em;
-  color: #666;
-}
-
-.network-controls {
+.stat-card {
+  background: var(--white);
+  padding: var(--space-md);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-xs);
+  border: 1px solid var(--primary-100);
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 15px;
+  gap: var(--space-sm);
+  min-width: 100px;
+}
+
+.stat-value {
+  color: var(--primary-600);
+  font-weight: 600;
+  font-size: var(--text-lg);
+  line-height: 1;
+}
+
+.stat-label {
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* 控制器区域 */
+.network-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.control-group {
+  display: flex;
+  gap: var(--space-sm);
 }
 
 .control-btn {
-  padding: 5px 10px;
-  border: 1px solid #ddd;
-  background: white;
-  border-radius: 4px;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--border-radius);
+  font-weight: 600;
+  font-size: var(--text-sm);
   cursor: pointer;
-  font-size: 0.85em;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  border: none;
+  transition: all var(--transition-normal);
+  height: 36px;
 }
 
-.control-btn:hover {
-  background: #f5f5f5;
+.btn-primary {
+  background: var(--primary-500);
+  color: var(--white);
 }
 
+.btn-primary:hover {
+  background: var(--primary-600);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-secondary {
+  background: var(--white);
+  color: var(--primary-600);
+  border: 1px solid var(--primary-300);
+}
+
+.btn-secondary:hover {
+  background: var(--primary-50);
+  border-color: var(--primary-500);
+  color: var(--primary-700);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-icon {
+  font-size: var(--text-sm);
+}
+
+.btn-text {
+  font-size: var(--text-sm);
+}
+
+/* 图例 */
 .legend {
   display: flex;
-  gap: 15px;
-  margin-left: auto;
+  align-items: center;
+  gap: var(--space-md);
+  background: var(--white);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--primary-100);
+  box-shadow: var(--shadow-xs);
+}
+
+.legend-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--primary-700);
+}
+
+.legend-items {
+  display: flex;
+  gap: var(--space-md);
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 0.85em;
+  gap: var(--space-xs);
+}
+
+.legend-text {
+  font-size: var(--text-sm);
+  color: var(--color-text);
 }
 
 .legend-color {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  border: 1px solid #fff;
+  border: 2px solid var(--white);
+  box-shadow: var(--shadow-xs);
 }
 
 .legend-color.main-author {
-  background: #ff6b35;
+  background: var(--primary-500);
 }
 
 .legend-color.collaborator {
-  background: #4ecdc4;
+  background: var(--success-500);
+}
+
+/* 网络容器主体 */
+.network-body {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  min-height: 580px; /* 大幅提高图形区域高度，给网络图更多绘制空间 */
 }
 
 .network-container {
   width: 100%;
-  height: 100%; /* 使用100%高度而不是固定像素值 */
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: white;
-  overflow: hidden;
+  height: 100%;
+  background: var(--white);
   cursor: grab;
+  position: relative;
 }
 
 .network-container:active {
   cursor: grabbing;
 }
 
+/* 合作者详情面板 */
 .collaborator-details {
   position: absolute;
-  top: 80px;
-  right: 20px;
-  width: 250px;
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 15px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  top: var(--space-lg);
+  right: var(--space-lg);
+  width: 280px;
+  background: var(--white);
+  border: 1px solid var(--primary-100);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-lg);
   z-index: 1000;
+  overflow: hidden;
 }
 
-.collaborator-details h4 {
-  margin: 0 0 10px 0;
-  color: #333;
+.details-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  background: var(--primary-25);
+  border-bottom: 1px solid var(--primary-100);
+  position: relative;
 }
 
-.collaborator-details p {
-  margin: 0 0 10px 0;
-  color: #666;
+.collaborator-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--success-500);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-base);
+  font-weight: 600;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
 }
 
-.collaboration-papers h5 {
-  margin: 10px 0 5px 0;
-  color: #333;
+.collaborator-info {
+  flex: 1;
+  min-width: 0;
 }
 
-.collaboration-papers ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  max-height: 150px;
-  overflow-y: auto;
+.collaborator-name {
+  margin: 0 0 var(--space-xs) 0;
+  color: var(--color-heading);
+  font-size: var(--text-base);
+  font-weight: 600;
+  line-height: 1.3;
 }
 
-.paper-item {
-  padding: 5px 0;
-  border-bottom: 1px solid #eee;
-  font-size: 0.85em;
+.collaboration-stats {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
 }
 
-.paper-item:last-child {
-  border-bottom: none;
-}
-
-.corresponding-badge {
-  background: #ff6b35;
-  color: white;
-  padding: 1px 4px;
-  border-radius: 3px;
-  font-size: 0.75em;
-  margin-left: 5px;
+.collaboration-count {
+  color: var(--success-600);
+  font-size: var(--text-sm);
+  font-weight: 500;
 }
 
 .close-details {
   position: absolute;
-  top: 5px;
-  right: 5px;
-  background: none;
-  border: none;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  width: 28px;
+  height: 28px;
+  background: var(--white);
+  border: 1px solid var(--primary-200);
+  border-radius: 50%;
   cursor: pointer;
-  color: #999;
-  font-size: 0.9em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  transition: all var(--transition-normal);
 }
 
 .close-details:hover {
-  color: #333;
+  background: var(--error-50);
+  border-color: var(--error-300);
+  color: var(--error-600);
+  transform: scale(1.05);
 }
 
-/* 节点样式 */
+.close-icon {
+  font-size: var(--text-xs);
+}
+
+/* 合作论文列表 */
+.collaboration-papers {
+  padding: var(--space-lg);
+}
+
+.papers-title {
+  margin: 0 0 var(--space-md) 0;
+  color: var(--primary-700);
+  font-size: var(--text-base);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.papers-icon {
+  font-size: var(--text-sm);
+}
+
+.papers-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.paper-item {
+  background: var(--primary-25);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--primary-100);
+  transition: all var(--transition-normal);
+}
+
+.paper-item:hover {
+  background: var(--primary-50);
+  border-color: var(--primary-200);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-xs);
+}
+
+.paper-id {
+  font-weight: 600;
+  color: var(--primary-700);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.paper-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--text-xs);
+}
+
+.author-order {
+  color: var(--color-text);
+  background: var(--white);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--primary-100);
+}
+
+.corresponding-badge {
+  background: var(--success-100);
+  color: var(--success-700);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius-sm);
+  font-weight: 600;
+  border: 1px solid var(--success-200);
+}
+
+/* D3 节点和连线样式 */
 :deep(.node) {
   cursor: pointer;
 }
 
 :deep(.node circle) {
-  transition: all 0.2s ease;
+  transition: all var(--transition-normal);
+  filter: drop-shadow(0px 2px 4px rgba(99, 102, 241, 0.1));
 }
 
 :deep(.node:hover circle) {
   stroke-width: 3px;
-  filter: brightness(1.1);
+  filter: drop-shadow(0px 4px 8px rgba(99, 102, 241, 0.2)) brightness(1.05);
+  transform: scale(1.08);
+}
+
+:deep(.collaboration-count-bg) {
+  transition: all var(--transition-normal);
+  filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+:deep(.node:hover .collaboration-count-bg) {
+  filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.15));
+  transform: scale(1.05);
+}
+
+:deep(.node text[dy="38px"]) {
+  transition: all var(--transition-normal);
+  text-shadow: 0px 1px 2px rgba(255, 255, 255, 0.8);
 }
 
 :deep(.link) {
-  transition: all 0.2s ease;
+  transition: all var(--transition-normal);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .collaboration-network {
+    min-height: 650px; /* 中等屏幕也提高高度 */
+  }
+
+  .network-body {
+    min-height: 480px; /* 中等屏幕的图形区域也相应提高 */
+  }
+
+  .network-header {
+    padding: var(--space-md);
+  }
+
+  .header-content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-md);
+  }
+
+  .network-controls {
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .network-stats {
+    justify-content: center;
+  }
+
+  .collaborator-details {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(100vw - var(--space-xl));
+    max-width: 320px;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  .legend {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .collaboration-network {
+    min-height: 550px; /* 小屏幕也适当提高高度 */
+  }
+
+  .network-body {
+    min-height: 380px; /* 小屏幕图形区域也提高高度 */
+  }
+
+  .stat-card {
+    min-width: 80px;
+    padding: var(--space-sm);
+    flex-direction: column;
+    gap: var(--space-xs);
+    text-align: center;
+  }
+
+  .stat-value {
+    font-size: var(--text-base);
+  }
+
+  .stat-label {
+    font-size: var(--text-xs);
+  }
+
+  .control-group {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .control-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .legend-items {
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
 }
 </style>

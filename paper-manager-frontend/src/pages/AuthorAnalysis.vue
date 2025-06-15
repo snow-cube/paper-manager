@@ -1205,19 +1205,6 @@ watch(
   color: var(--color-text-light);
 }
 
-/* 合作网络 */
-.network-section {
-  margin-bottom: var(--space-xl);
-}
-
-.collaboration-visualization {
-  height: 500px;
-  border: 1px solid var(--primary-100);
-  border-radius: var(--border-radius-lg);
-  overflow: hidden;
-  background: var(--white);
-}
-
 .loading-state,
 .error-state,
 .no-results-state,
