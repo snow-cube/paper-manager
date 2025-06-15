@@ -70,27 +70,16 @@
         <RouterLink to="/teams" class="btn">团队管理</RouterLink>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">🏷️</div>
-        <h3>分类管理</h3>
-        <p>创建自定义分类体系，让研究资料管理更加条理清晰</p>
-        <RouterLink to="/categories" class="btn">分类管理</RouterLink>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">🔗</div>
-        <h3>合作网络</h3>
-        <p>探索学者间的合作关系，发现潜在的研究伙伴和学术网络</p>
-        <RouterLink to="/collaboration" class="btn">探索网络</RouterLink>
+        <div class="feature-icon">🔍</div>
+        <h3>作者查询</h3>
+        <p>查询作者工作量和合作网络，分析学术成果和研究影响力</p>
+        <RouterLink to="/author-analysis" class="btn">查询作者</RouterLink>
       </div>
     </div>
     <div class="stats" v-if="isAuthenticated">
       <div class="stat-item">
         <div class="stat-number">{{ stats.papers }}</div>
         <div class="stat-label">论文总数</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number">{{ stats.categories }}</div>
-        <div class="stat-label">分类数量</div>
       </div>
       <div class="stat-item">
         <div class="stat-number">{{ stats.teams }}</div>
@@ -103,20 +92,17 @@
 <script setup>
 import { RouterLink } from "vue-router";
 import { ref, onMounted, watch, onUnmounted } from "vue";
-import { getPapers, getCategories, getTeams } from "../services/api";
+import { getPapers, getTeams } from "../services/api";
 import { useAuth } from "../composables/useAuth";
-import { useCategoryEvents } from "../composables/useCategoryEvents";
 import { usePaperEvents } from "../composables/usePaperEvents";
 import { useTeamEvents } from "../composables/useTeamEvents";
 
 const { isAuthenticated } = useAuth();
-const { onCategoryUpdate } = useCategoryEvents();
 const { onPaperUpdate } = usePaperEvents();
 const { onTeamUpdate } = useTeamEvents();
 
 const stats = ref({
   papers: 0,
-  categories: 0,
   teams: 0,
 });
 
@@ -129,24 +115,16 @@ const loadStats = async () => {
 
   try {
     loading.value = true;
-
-    const [papers, categories, teams] = await Promise.all([
-      getPapers(),
-      getCategories(),
-      getTeams(),
-    ]);
+    const [papers, teams] = await Promise.all([getPapers(), getTeams()]);
 
     stats.value = {
       papers: papers?.length || 0,
-      categories: categories?.length || 0,
       teams: teams?.length || 0,
     };
   } catch (error) {
-    console.error("Failed to load stats:", error);
-    // Reset stats on error
+    console.error("Failed to load stats:", error); // Reset stats on error
     stats.value = {
       papers: 0,
-      categories: 0,
       teams: 0,
     };
   } finally {
@@ -174,12 +152,6 @@ watch(isAuthenticated, (newValue) => {
 });
 
 // 监听各种更新事件以刷新统计数据
-const unsubscribeCategoryUpdate = onCategoryUpdate(() => {
-  if (isAuthenticated.value) {
-    loadStats();
-  }
-});
-
 const unsubscribePaperUpdate = onPaperUpdate(() => {
   if (isAuthenticated.value) {
     loadStats();
@@ -194,7 +166,6 @@ const unsubscribeTeamUpdate = onTeamUpdate(() => {
 
 // 组件卸载时清理事件监听器
 onUnmounted(() => {
-  unsubscribeCategoryUpdate();
   unsubscribePaperUpdate();
   unsubscribeTeamUpdate();
 });
@@ -532,7 +503,7 @@ onUnmounted(() => {
 }
 
 .stat-number {
-  font-size: var(--text-4xl);
+  font-size: var(--text-2xl);
   font-weight: 800;
   background: linear-gradient(135deg, var(--primary-700), var(--primary-500));
   -webkit-background-clip: text;
@@ -546,7 +517,7 @@ onUnmounted(() => {
 .stat-label {
   color: var(--color-text);
   font-weight: 500;
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }

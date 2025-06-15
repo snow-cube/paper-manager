@@ -1100,6 +1100,61 @@
         }
       }
     },
+    "/api/papers/authors/workload/export/excel": {
+      "get": {
+        "tags": [
+          "papers"
+        ],
+        "summary": "Export Author Workload To Excel",
+        "description": "导出作者工作量信息为Excel文件",
+        "operationId": "export_author_workload_to_excel_api_papers_authors_workload_export_excel_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "author_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Author Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/categories/": {
       "post": {
         "tags": [
@@ -3820,7 +3875,7 @@
             ],
             "title": "Doi"
           },
-          "file_path": {
+          "file_url": {
             "anyOf": [
               {
                 "type": "string"
@@ -3829,7 +3884,7 @@
                 "type": "null"
               }
             ],
-            "title": "File Path"
+            "title": "File Url"
           },
           "created_at": {
             "type": "string",
@@ -4022,7 +4077,7 @@
             ],
             "title": "Author Contribution Ratios"
           },
-          "file_path": {
+          "corresponding_author_name": {
             "anyOf": [
               {
                 "type": "string"
@@ -4031,7 +4086,7 @@
                 "type": "null"
               }
             ],
-            "title": "File Path"
+            "title": "Corresponding Author Name"
           },
           "team_id": {
             "anyOf": [
@@ -4296,6 +4351,10 @@
       },
       "ReferenceRead": {
         "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
           "title": {
             "type": "string",
             "title": "Title"
@@ -4314,17 +4373,6 @@
               }
             ],
             "title": "Doi"
-          },
-          "file_path": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "File Path"
           },
           "journal_id": {
             "anyOf": [
@@ -4384,10 +4432,6 @@
             ],
             "title": "Category Id"
           },
-          "id": {
-            "type": "integer",
-            "title": "Id"
-          },
           "keywords": {
             "items": {
               "type": "string"
@@ -4416,14 +4460,27 @@
               }
             ],
             "title": "Journal Name"
+          },
+          "file_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Url"
           }
         },
         "type": "object",
         "required": [
+          "id",
           "title",
           "authors",
-          "created_by_id",
-          "id"
+          "created_at",
+          "updated_at",
+          "created_by_id"
         ],
         "title": "ReferenceRead"
       },
@@ -4461,17 +4518,6 @@
               }
             ],
             "title": "Doi"
-          },
-          "file_path": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "File Path"
           },
           "journal_id": {
             "anyOf": [

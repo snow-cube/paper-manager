@@ -37,9 +37,9 @@
                     <span class="nav-icon">👥</span>
                     <span class="nav-text">团队管理</span>
                   </RouterLink>
-                  <RouterLink to="/collaboration" class="nav-link">
-                    <span class="nav-icon">🔗</span>
-                    <span class="nav-text">合作网络</span>
+                  <RouterLink to="/author-analysis" class="nav-link">
+                    <span class="nav-icon">🔍</span>
+                    <span class="nav-text">作者查询</span>
                   </RouterLink>
                   <!-- 管理功能下拉菜单 -->
                   <div

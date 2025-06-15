@@ -1,7 +1,7 @@
 <template>
   <div class="collaboration-network">
     <div class="network-header">
-      <h3 class="network-title">{{ author.name }} 的合作网络</h3>
+      <h3 class="network-title">{{ authorName }} 的合作网络</h3>
       <div class="network-stats">
         <span class="stat-item">
           <strong>{{ totalCollaborators }}</strong> 位合作者
@@ -13,18 +13,10 @@
     </div>
 
     <div class="network-controls">
-      <button
-        @click="centerNetwork"
-        class="control-btn"
-        title="居中显示"
-      >
+      <button @click="centerNetwork" class="control-btn" title="居中显示">
         🎯 居中
       </button>
-      <button
-        @click="resetZoom"
-        class="control-btn"
-        title="重置缩放"
-      >
+      <button @click="resetZoom" class="control-btn" title="重置缩放">
         🔍 重置
       </button>
       <div class="legend">
@@ -47,7 +39,10 @@
 
     <div v-if="selectedCollaborator" class="collaborator-details">
       <h4>{{ selectedCollaborator.name }}</h4>
-      <p><strong>合作次数:</strong> {{ selectedCollaborator.collaboration_count }}</p>
+      <p>
+        <strong>合作次数:</strong>
+        {{ selectedCollaborator.collaboration_count }}
+      </p>
       <div class="collaboration-papers">
         <h5>合作论文:</h5>
         <ul>
@@ -57,9 +52,10 @@
             class="paper-item"
           >
             <span class="paper-info">
-              论文 #{{ paper.paper_id }}
-              (第{{ paper.author_order }}作者)
-              <span v-if="paper.is_corresponding" class="corresponding-badge">通讯</span>
+              论文 #{{ paper.paper_id }} (第{{ paper.author_order }}作者)
+              <span v-if="paper.is_corresponding" class="corresponding-badge"
+                >通讯</span
+              >
             </span>
           </li>
         </ul>
@@ -72,29 +68,78 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
-import * as d3 from 'd3'
+import { ref, onMounted, onUnmounted, computed, watch } from "vue";
+import * as d3 from "d3";
 
 const props = defineProps({
   networkData: {
     type: Object,
-    required: true
-  }
-})
+    required: true,
+  },
+});
 
-const networkContainer = ref(null)
-const selectedCollaborator = ref(null)
+const networkContainer = ref(null);
+const selectedCollaborator = ref(null);
 
 // 计算属性
-const author = computed(() => props.networkData.author || {})
-const totalCollaborators = computed(() => props.networkData.total_collaborators || 0)
-const collaborators = computed(() => props.networkData.collaborators || [])
+const authorName = computed(() => {
+  const authorData = props.networkData.author;
+  console.log("Author data:", authorData, typeof authorData);
+
+  if (!authorData) return "未知作者";
+
+  // 如果是字符串，直接返回
+  if (typeof authorData === "string") return authorData;
+
+  // 如果是对象，尝试获取 name 属性
+  if (typeof authorData === "object") {
+    // 处理 name 为字符串的情况
+    if (typeof authorData.name === "string") {
+      return authorData.name;
+    }
+    // 处理 name 为对象的情况
+    if (typeof authorData.name === "object" && authorData.name?.name) {
+      return authorData.name.name;
+    }
+    // 尝试其他可能的属性
+    if (authorData.author_name) return authorData.author_name;
+    if (authorData.author) return authorData.author;
+  }
+
+  return "未知作者";
+});
+
+const author = computed(() => {
+  const authorData = props.networkData.author || {};
+
+  // 提取 ID
+  let authorId = "main_author"; // 默认值
+  if (typeof authorData === "object") {
+    authorId =
+      authorData.id ||
+      authorData.author_id ||
+      authorData.name?.id ||
+      "main_author";
+  }
+
+  return {
+    id: authorId,
+    name: authorName.value,
+  };
+});
+const totalCollaborators = computed(
+  () => props.networkData.total_collaborators || 0
+);
+const collaborators = computed(() => props.networkData.collaborators || []);
 const totalPapers = computed(() => {
-  return collaborators.value.reduce((sum, collab) => sum + collab.papers.length, 0)
-})
+  return collaborators.value.reduce(
+    (sum, collab) => sum + collab.papers.length,
+    0
+  );
+});
 
 // D3 变量
-let svg, simulation, nodes, links, nodeElements, linkElements, zoom
+let svg, simulation, nodes, links, nodeElements, linkElements, zoom;
 
 // 创建网络数据
 const createNetworkData = () => {
@@ -102,75 +147,85 @@ const createNetworkData = () => {
     {
       id: author.value.id,
       name: author.value.name,
-      type: 'main',
-      collaborationCount: 0
-    }
-  ]
+      type: "main",
+      collaborationCount: 0,
+    },
+  ];
 
-  const networkLinks = []
+  const networkLinks = [];
 
-  collaborators.value.forEach(collaborator => {
+  collaborators.value.forEach((collaborator) => {
     networkNodes.push({
       id: collaborator.author_id,
       name: collaborator.name,
-      type: 'collaborator',
+      type: "collaborator",
       collaborationCount: collaborator.collaboration_count,
-      data: collaborator
-    })
+      data: collaborator,
+    });
 
     networkLinks.push({
       source: author.value.id,
       target: collaborator.author_id,
-      weight: collaborator.collaboration_count
-    })
-  })
+      weight: collaborator.collaboration_count,
+    });
+  });
 
-  return { nodes: networkNodes, links: networkLinks }
-}
+  return { nodes: networkNodes, links: networkLinks };
+};
 
 // 初始化网络图
 const initNetwork = () => {
-  if (!networkContainer.value) return
+  if (!networkContainer.value) return;
 
-  const container = networkContainer.value
-  const width = container.clientWidth
-  const height = container.clientHeight
+  const container = networkContainer.value;
+  const width = container.clientWidth;
+  const height = container.clientHeight;
 
   // 清空容器
-  d3.select(container).selectAll("*").remove()
+  d3.select(container).selectAll("*").remove();
 
   // 创建SVG
-  svg = d3.select(container)
+  svg = d3
+    .select(container)
     .append("svg")
     .attr("width", width)
-    .attr("height", height)
+    .attr("height", height);
 
   // 创建缩放功能
-  zoom = d3.zoom()
+  zoom = d3
+    .zoom()
     .scaleExtent([0.1, 4])
     .on("zoom", (event) => {
-      svg.select("g").attr("transform", event.transform)
-    })
+      svg.select("g").attr("transform", event.transform);
+    });
 
-  svg.call(zoom)
+  svg.call(zoom);
 
   // 创建主容器组
-  const container_g = svg.append("g")
+  const container_g = svg.append("g");
 
   // 获取网络数据
-  const networkData = createNetworkData()
-  nodes = networkData.nodes
-  links = networkData.links
+  const networkData = createNetworkData();
+  nodes = networkData.nodes;
+  links = networkData.links;
 
   // 创建力导向仿真
-  simulation = d3.forceSimulation(nodes)
-    .force("link", d3.forceLink(links).id(d => d.id).distance(100))
+  simulation = d3
+    .forceSimulation(nodes)
+    .force(
+      "link",
+      d3
+        .forceLink(links)
+        .id((d) => d.id)
+        .distance(100)
+    )
     .force("charge", d3.forceManyBody().strength(-300))
     .force("center", d3.forceCenter(width / 2, height / 2))
-    .force("collision", d3.forceCollide().radius(30))
+    .force("collision", d3.forceCollide().radius(30));
 
   // 创建连线
-  linkElements = container_g.append("g")
+  linkElements = container_g
+    .append("g")
     .selectAll("line")
     .data(links)
     .enter()
@@ -178,145 +233,159 @@ const initNetwork = () => {
     .attr("class", "link")
     .attr("stroke", "#999")
     .attr("stroke-opacity", 0.6)
-    .attr("stroke-width", d => Math.sqrt(d.weight) * 2)
+    .attr("stroke-width", (d) => Math.sqrt(d.weight) * 2);
 
   // 创建节点
-  nodeElements = container_g.append("g")
+  nodeElements = container_g
+    .append("g")
     .selectAll("g")
     .data(nodes)
     .enter()
     .append("g")
     .attr("class", "node")
-    .call(d3.drag()
-      .on("start", dragstarted)
-      .on("drag", dragged)
-      .on("end", dragended))
+    .call(
+      d3
+        .drag()
+        .on("start", dragstarted)
+        .on("drag", dragged)
+        .on("end", dragended)
+    );
 
   // 添加节点圆圈
-  nodeElements.append("circle")
-    .attr("r", d => d.type === 'main' ? 20 : 15)
-    .attr("fill", d => d.type === 'main' ? "#ff6b35" : "#4ecdc4")
+  nodeElements
+    .append("circle")
+    .attr("r", (d) => (d.type === "main" ? 20 : 15))
+    .attr("fill", (d) => (d.type === "main" ? "#ff6b35" : "#4ecdc4"))
     .attr("stroke", "#fff")
     .attr("stroke-width", 2)
     .on("click", (event, d) => {
-      if (d.type === 'collaborator') {
-        selectedCollaborator.value = d.data
+      if (d.type === "collaborator") {
+        selectedCollaborator.value = d.data;
       }
     })
     .on("mouseover", (event, d) => {
       // 高亮相关连线
       linkElements
-        .attr("stroke-opacity", l =>
-          l.source.id === d.id || l.target.id === d.id ? 1 : 0.1)
-        .attr("stroke-width", l =>
-          l.source.id === d.id || l.target.id === d.id ? Math.sqrt(l.weight) * 3 : Math.sqrt(l.weight) * 2)
+        .attr("stroke-opacity", (l) =>
+          l.source.id === d.id || l.target.id === d.id ? 1 : 0.1
+        )
+        .attr("stroke-width", (l) =>
+          l.source.id === d.id || l.target.id === d.id
+            ? Math.sqrt(l.weight) * 3
+            : Math.sqrt(l.weight) * 2
+        );
     })
     .on("mouseout", () => {
       // 恢复默认样式
       linkElements
         .attr("stroke-opacity", 0.6)
-        .attr("stroke-width", d => Math.sqrt(d.weight) * 2)
-    })
+        .attr("stroke-width", (d) => Math.sqrt(d.weight) * 2);
+    });
 
   // 添加节点标签
-  nodeElements.append("text")
-    .text(d => d.name)
+  nodeElements
+    .append("text")
+    .text((d) => d.name)
     .attr("text-anchor", "middle")
     .attr("dy", "0.35em")
     .attr("font-size", "12px")
     .attr("fill", "#333")
-    .attr("pointer-events", "none")
+    .attr("pointer-events", "none");
 
   // 添加合作次数标签
-  nodeElements.filter(d => d.type === 'collaborator')
+  nodeElements
+    .filter((d) => d.type === "collaborator")
     .append("text")
-    .text(d => d.collaborationCount)
+    .text((d) => d.collaborationCount)
     .attr("text-anchor", "middle")
     .attr("dy", "25px")
     .attr("font-size", "10px")
     .attr("fill", "#666")
-    .attr("pointer-events", "none")
+    .attr("pointer-events", "none");
 
   // 更新仿真
   simulation.on("tick", () => {
     linkElements
-      .attr("x1", d => d.source.x)
-      .attr("y1", d => d.source.y)
-      .attr("x2", d => d.target.x)
-      .attr("y2", d => d.target.y)
+      .attr("x1", (d) => d.source.x)
+      .attr("y1", (d) => d.source.y)
+      .attr("x2", (d) => d.target.x)
+      .attr("y2", (d) => d.target.y);
 
-    nodeElements
-      .attr("transform", d => `translate(${d.x},${d.y})`)
-  })
-}
+    nodeElements.attr("transform", (d) => `translate(${d.x},${d.y})`);
+  });
+};
 
 // 拖拽事件处理
 const dragstarted = (event, d) => {
-  if (!event.active) simulation.alphaTarget(0.3).restart()
-  d.fx = d.x
-  d.fy = d.y
-}
+  if (!event.active) simulation.alphaTarget(0.3).restart();
+  d.fx = d.x;
+  d.fy = d.y;
+};
 
 const dragged = (event, d) => {
-  d.fx = event.x
-  d.fy = event.y
-}
+  d.fx = event.x;
+  d.fy = event.y;
+};
 
 const dragended = (event, d) => {
-  if (!event.active) simulation.alphaTarget(0)
-  d.fx = null
-  d.fy = null
-}
+  if (!event.active) simulation.alphaTarget(0);
+  d.fx = null;
+  d.fy = null;
+};
 
 // 控制函数
 const centerNetwork = () => {
-  if (!svg || !networkContainer.value) return
+  if (!svg || !networkContainer.value) return;
 
-  const width = networkContainer.value.clientWidth
-  const height = networkContainer.value.clientHeight
+  const width = networkContainer.value.clientWidth;
+  const height = networkContainer.value.clientHeight;
 
-  svg.transition().duration(750).call(
-    zoom.transform,
-    d3.zoomIdentity.translate(width / 2, height / 2).scale(1)
-  )
-}
+  svg
+    .transition()
+    .duration(750)
+    .call(
+      zoom.transform,
+      d3.zoomIdentity.translate(width / 2, height / 2).scale(1)
+    );
+};
 
 const resetZoom = () => {
-  if (!svg) return
+  if (!svg) return;
 
-  svg.transition().duration(750).call(
-    zoom.transform,
-    d3.zoomIdentity
-  )
-}
+  svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity);
+};
 
 const handleWheel = (event) => {
-  event.preventDefault()
-}
+  event.preventDefault();
+};
 
 // 监听窗口大小变化
 const handleResize = () => {
   if (networkContainer.value) {
-    initNetwork()
+    initNetwork();
   }
-}
+};
 
 onMounted(() => {
-  initNetwork()
-  window.addEventListener('resize', handleResize)
-})
+  initNetwork();
+  window.addEventListener("resize", handleResize);
+});
 
 onUnmounted(() => {
   if (simulation) {
-    simulation.stop()
+    simulation.stop();
   }
-  window.removeEventListener('resize', handleResize)
-})
+  window.removeEventListener("resize", handleResize);
+});
 
 // 监听数据变化
-watch(() => props.networkData, () => {
-  initNetwork()
-}, { deep: true })
+watch(
+  () => props.networkData,
+  () => {
+    initNetwork();
+  },
+  { deep: true }
+);
 </script>
 
 <style scoped>
@@ -426,7 +495,7 @@ watch(() => props.networkData, () => {
   border: 1px solid #ddd;
   border-radius: 8px;
   padding: 15px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   z-index: 1000;
 }
 

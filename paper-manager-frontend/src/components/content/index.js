@@ -10,7 +10,6 @@ export { default as CategoryTree } from "./category/CategoryTree.vue";
 
 // Collaboration Components
 export { default as CollaborationNetwork } from "./collaboration/CollaborationNetwork.vue";
-export { default as CollaborationNetworkModal } from "./collaboration/CollaborationNetworkModal.vue";
 
 // Paper Components
 export { default as PaperCard } from "./paper/PaperCard.vue";

@@ -29,12 +29,36 @@
           {{ isLiteratureType ? "参考文献" : "发表论文" }}
         </div>
         <h1 class="paper-title">{{ displayData.title }}</h1>
-
         <!-- 核心信息摘要 -->
         <div class="core-info">
           <div class="core-info-item">
             <span class="info-icon">👤</span>
-            <span class="info-text">{{ authorsText }}</span>
+            <span class="info-text">
+              <span v-if="!authorsList.length">{{ authorsText }}</span>
+              <template v-else>
+                <span
+                  v-for="(author, index) in authorsList"
+                  :key="author"
+                  class="author-wrapper"
+                >                  <router-link
+                    :to="`/author-analysis?author=${encodeURIComponent(
+                      author
+                    )}`"
+                    class="author-link"
+                    :title="`点击在新标签页查看 ${author} 的合作网络`"
+                    target="_blank"
+                  >
+                    <span class="author-icon">👤</span>
+                    <span class="author-name">{{ author }}</span>
+                    <span class="link-indicator">🔗</span> </router-link
+                  ><span
+                    v-if="index < authorsList.length - 1"
+                    class="author-separator"
+                    >,
+                  </span>
+                </span>
+              </template>
+            </span>
           </div>
           <div
             v-if="journalText && journalText !== '未知期刊'"
@@ -308,12 +332,23 @@
         </div>
         <!-- 工作量数据卡片 - 仅对发表论文显示 -->
         <div
-          v-if="!isLiteratureType && workloads.length > 0"
+          v-if="
+            !isLiteratureType &&
+            workloadData &&
+            workloadData.workloads &&
+            workloadData.workloads.length > 0
+          "
           class="content-card workload-card"
         >
           <div class="card-header">
-            <span class="card-icon">📊</span>
-            <h3 class="card-title">作者贡献及工作量</h3>
+            <div class="header-left">
+              <span class="card-icon">📊</span>
+              <h3 class="card-title">作者贡献及工作量</h3>
+            </div>
+            <div v-if="workloadData.journal_grade" class="journal-grade-badge">
+              <span class="grade-label">期刊等级:</span>
+              <span class="grade-value">{{ workloadData.journal_grade }}</span>
+            </div>
           </div>
           <div class="card-content">
             <div class="workload-table-container">
@@ -322,8 +357,14 @@
                   <tr>
                     <th>
                       <span class="table-header">
-                        <span class="header-icon">👤</span>
-                        <span>作者ID</span>
+                        <span class="header-icon">�</span>
+                        <span>排序</span>
+                      </span>
+                    </th>
+                    <th>
+                      <span class="table-header">
+                        <span class="header-icon">�👤</span>
+                        <span>作者</span>
                       </span>
                     </th>
                     <th>
@@ -338,11 +379,53 @@
                         <span>工作量</span>
                       </span>
                     </th>
+                    <th>
+                      <span class="table-header">
+                        <span class="header-icon">✉️</span>
+                        <span>通讯作者</span>
+                      </span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="workload in workloads" :key="workload.author_id">
-                    <td>{{ workload.author_id }}</td>
+                  <tr
+                    v-for="workload in sortedWorkloads"
+                    :key="workload.author_id"
+                    :class="{
+                      'corresponding-author': workload.is_corresponding,
+                    }"
+                  >
+                    <td>
+                      <span class="author-order">{{
+                        workload.author_order
+                      }}</span>
+                    </td>
+                    <td>
+                      <div class="author-cell">                        <router-link
+                          :to="`/author-analysis?author=${encodeURIComponent(
+                            workload.author_name || workload.author_id
+                          )}`"
+                          class="author-link"
+                          :title="`点击在新标签页查看 ${
+                            workload.author_name || workload.author_id
+                          } 的合作网络`"
+                          target="_blank"
+                        >
+                          <span class="author-icon">👤</span>
+                          <span class="author-name">{{
+                            workload.author_name || workload.author_id
+                          }}</span>
+                          <span class="link-indicator">🔗</span>
+                        </router-link>
+                        <span
+                          v-if="workload.is_corresponding"
+                          class="corresponding-indicator"
+                          title="通讯作者"
+                        >
+                          ✉️
+                        </span>
+                      </div>
+                    </td>
                     <td>
                       <div class="contribution-cell">
                         <div class="contribution-bar">
@@ -353,21 +436,46 @@
                             }"
                           ></div>
                         </div>
-                        <span class="contribution-text"
-                          >{{
-                            (workload.contribution_ratio * 100).toFixed(1)
-                          }}%</span
-                        >
+                        <span class="contribution-text">
+                          {{ (workload.contribution_ratio * 100).toFixed(1) }}%
+                        </span>
                       </div>
                     </td>
                     <td>
-                      <span class="workload-value">{{
-                        workload.workload.toFixed(2)
-                      }}</span>
+                      <span class="workload-value">
+                        {{ workload.workload.toFixed(2) }}
+                      </span>
+                    </td>
+                    <td>
+                      <span class="corresponding-status">
+                        {{ workload.is_corresponding ? "是" : "否" }}
+                      </span>
                     </td>
                   </tr>
                 </tbody>
               </table>
+            </div>
+
+            <!-- 工作量汇总信息 -->
+            <div class="workload-summary">
+              <div class="summary-item">
+                <span class="summary-label">总工作量:</span>
+                <span class="summary-value">{{
+                  totalWorkload.toFixed(2)
+                }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">作者人数:</span>
+                <span class="summary-value">{{
+                  workloadData.workloads.length
+                }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">通讯作者数:</span>
+                <span class="summary-value">{{
+                  correspondingAuthorsCount
+                }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -497,7 +605,7 @@ const { smartOpenPreview } = useFilePreview();
 
 const showPreview = ref(false);
 const previewUrl = ref("");
-const workloads = ref([]);
+const workloadData = ref(null);
 const isLoadingWorkload = ref(false);
 const workloadError = ref(null);
 const detailData = ref(null);
@@ -545,6 +653,27 @@ const authorsText = computed(() => {
   }
 
   return String(authors);
+});
+
+// 作者列表 - 用于渲染可点击的作者列表
+const authorsList = computed(() => {
+  const authors = displayData.value.authors;
+  if (!authors) return [];
+
+  // 对于参考文献，尝试按逗号分割作者字符串
+  if (typeof authors === "string") {
+    return authors
+      .split(/,\s*/)
+      .map((name) => name.trim())
+      .filter((name) => name);
+  }
+
+  // 对于发表论文，直接使用数组
+  if (Array.isArray(authors)) {
+    return authors;
+  }
+
+  return [];
 });
 
 // 计算期刊信息 - 优先使用 journal_name，后备使用 journal
@@ -697,6 +826,39 @@ const canPreviewFile = computed(() => {
   if (!fileUrl) return false;
   const previewInfo = getFilePreviewInfo(fileUrl);
   return previewInfo.canPreview;
+});
+
+// 按作者排序排列的工作量数据
+const sortedWorkloads = computed(() => {
+  if (!workloadData.value || !workloadData.value.workloads) {
+    return [];
+  }
+
+  return [...workloadData.value.workloads].sort((a, b) => {
+    return (a.author_order || 999) - (b.author_order || 999);
+  });
+});
+
+// 计算总工作量
+const totalWorkload = computed(() => {
+  if (!workloadData.value || !workloadData.value.workloads) {
+    return 0;
+  }
+
+  return workloadData.value.workloads.reduce((total, workload) => {
+    return total + (workload.workload || 0);
+  }, 0);
+});
+
+// 计算通讯作者数量
+const correspondingAuthorsCount = computed(() => {
+  if (!workloadData.value || !workloadData.value.workloads) {
+    return 0;
+  }
+
+  return workloadData.value.workloads.filter(
+    (workload) => workload.is_corresponding
+  ).length;
 });
 
 // 获取文件元数据
@@ -855,16 +1017,28 @@ const fetchWorkload = async () => {
 
   isLoadingWorkload.value = true;
   workloadError.value = null;
-  workloads.value = [];
+  workloadData.value = null;
 
   try {
     const response = await getPaperWorkload(displayData.value.id);
-    workloads.value = response.workloads || [];
+    workloadData.value = response;
+
+    // 验证响应数据结构
+    if (!response.workloads || !Array.isArray(response.workloads)) {
+      console.warn("Invalid workload data structure:", response);
+      workloadData.value = {
+        paper_id: response.paper_id || displayData.value.id,
+        journal_grade: response.journal_grade || null,
+        workloads: [],
+      };
+    }
   } catch (error) {
     console.error("Failed to fetch paper workload:", error);
     workloadError.value = "无法加载工作量数据，请稍后重试。";
     if (error.response && error.response.status === 404) {
       workloadError.value = "找不到该论文的工作量数据。";
+    } else if (error.response && error.response.status >= 500) {
+      workloadError.value = "服务器错误，请稍后重试。";
     }
   } finally {
     isLoadingWorkload.value = false;
@@ -980,6 +1154,48 @@ watch(
     rgba(248, 250, 252, 0.98) 100%
   );
   border: 2px solid var(--primary-200);
+}
+
+/* 工作量卡片头部样式增强 */
+.workload-card .card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.journal-grade-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  /* background: linear-gradient(
+    135deg,
+    var(--success-50) 0%,
+    var(--success-100) 100%
+  ); */
+  /* color: var(--success-700); */
+  padding: var(--space-xs) var(--space-sm);
+  /* border-radius: var(--border-radius); */
+  /* border: 1px solid var(--success-200); */
+  font-size: var(--text-xs);
+  font-weight: 600;
+  /* box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); */
+}
+
+.grade-label {
+  color: var(--success-600);
+}
+
+.grade-value {
+  color: var(--success-800);
+  font-weight: 700;
 }
 
 /* 头部信息卡片 */
@@ -1123,6 +1339,184 @@ watch(
 .info-text {
   font-weight: 500;
   color: var(--gray-800);
+}
+
+/* 作者链接样式 */
+.author-wrapper {
+  display: inline-block;
+}
+
+.author-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius);
+  text-decoration: none;
+  color: var(--primary-600);
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.08) 0%,
+    rgba(99, 102, 241, 0.04) 100%
+  );
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 500;
+  position: relative;
+  overflow: hidden;
+}
+
+.author-link::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(99, 102, 241, 0.1),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.author-link:hover::before {
+  left: 100%;
+}
+
+.author-link:hover {
+  color: var(--primary-700);
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.15) 0%,
+    rgba(99, 102, 241, 0.08) 100%
+  );
+  border-color: rgba(99, 102, 241, 0.25);
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2),
+    0 2px 6px rgba(99, 102, 241, 0.15);
+  text-decoration: none;
+}
+
+.author-link:active {
+  transform: translateY(0) scale(1);
+  transition: transform 0.1s ease;
+}
+
+.author-icon {
+  font-size: var(--text-xs);
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+
+.author-link:hover .author-icon {
+  opacity: 1;
+}
+
+.author-name {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.link-indicator {
+  font-size: var(--text-xs);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.author-link:hover .link-indicator {
+  opacity: 0.8;
+  transform: translateX(0);
+}
+
+/* 增强的交互动画 */
+.author-link:hover .link-indicator {
+  animation: linkPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes linkPulse {
+  0%,
+  100% {
+    opacity: 0.8;
+    transform: translateX(0) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(1px) scale(1.1);
+  }
+}
+
+/* 作者链接获得焦点时的样式 */
+.author-link:focus {
+  outline: 2px solid var(--primary-400);
+  outline-offset: 2px;
+  border-color: var(--primary-400);
+}
+
+.author-link:focus:not(:hover) {
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.12) 0%,
+    rgba(99, 102, 241, 0.06) 100%
+  );
+}
+
+/* 为作者名称添加下划线动画 */
+.author-link .author-name {
+  position: relative;
+}
+
+.author-link .author-name::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: var(--primary-500);
+  transition: width 0.3s ease;
+}
+
+.author-link:hover .author-name::after {
+  width: 100%;
+}
+
+.author-separator {
+  margin: 0 var(--space-xs);
+  color: var(--gray-400);
+  font-weight: 400;
+}
+
+/* 工作量表格中的作者链接样式调整 */
+.workload-table .author-link {
+  font-size: var(--text-sm);
+  padding: var(--space-xs);
+  border-radius: var(--border-radius-sm);
+}
+
+.workload-table .author-link .author-icon,
+.workload-table .author-link .link-indicator {
+  font-size: 0.75rem;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .author-link {
+    padding: var(--space-xs);
+    gap: 2px;
+  }
+
+  .author-icon,
+  .link-indicator {
+    font-size: 0.7rem;
+  }
+
+  .author-name {
+    font-size: var(--text-sm);
+  }
 }
 
 /* 卡片通用样式 */
@@ -1559,6 +1953,22 @@ watch(
   letter-spacing: 0.5px;
 }
 
+.workload-table th:first-child {
+  width: 80px; /* 排序列固定宽度 */
+}
+
+.workload-table th:nth-child(3) {
+  width: 160px; /* 贡献比例列统一宽度 */
+}
+
+.workload-table th:nth-child(4) {
+  width: 160px; /* 工作量列统一宽度 */
+}
+
+.workload-table th:nth-child(5) {
+  width: 160px; /* 通讯作者列统一宽度 */
+}
+
 .table-header {
   display: flex;
   align-items: center;
@@ -1586,211 +1996,99 @@ watch(
   border-bottom: none;
 }
 
-.contribution-cell {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.contribution-bar {
-  flex: 1;
-  height: 6px;
-  background: var(--gray-200);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.contribution-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--primary-400), var(--primary-500));
-  border-radius: 3px;
-  transition: width 0.3s ease;
-}
-
-.contribution-text {
-  font-weight: 600;
-  color: var(--primary-600);
-  min-width: 40px;
-  text-align: right;
-  font-size: var(--text-xs);
-}
-
-.workload-value {
-  font-weight: 600;
-  color: var(--gray-800);
-  font-size: var(--text-sm);
-}
-
-/* 操作按钮区域 */
-.action-bar {
-  background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(20px);
-  border-radius: var(--border-radius-lg);
-  padding: var(--space-lg);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-  margin-top: var(--space-lg);
-}
-
-.action-group {
-  display: flex;
-  gap: var(--space-sm);
-  align-items: center;
-}
-
-.primary-actions {
-  flex: 1;
-}
-
-.secondary-actions {
-  justify-content: flex-end;
-}
-
-/* 按钮样式增强 */
-.btn {
-  padding: var(--space-sm) var(--space-lg);
-  border: none;
-  border-radius: var(--border-radius-lg);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+.author-order {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-xs);
-  position: relative;
-  overflow: hidden;
-  text-decoration: none;
-  letter-spacing: 0.3px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none !important;
-}
-
-.btn-small {
-  padding: var(--space-xs) var(--space-md);
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(
+    135deg,
+    var(--primary-100) 0%,
+    var(--primary-200) 100%
+  );
+  color: var(--primary-700);
+  border-radius: 50%;
+  font-weight: 600;
   font-size: var(--text-xs);
-  border-radius: var(--border-radius);
+  border: 1px solid var(--primary-300);
 }
 
-.btn-icon {
-  font-size: var(--text-sm);
-  transition: transform 0.2s ease;
+.author-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.corresponding-indicator {
+  font-size: var(--text-xs);
+  opacity: 0.8;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
 }
 
-.btn:hover .btn-icon {
-  transform: scale(1.05);
-}
-
-.btn-download-main {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: white;
-  box-shadow: 0 3px 8px rgba(16, 185, 129, 0.25),
-    0 1px 3px rgba(16, 185, 129, 0.15);
-}
-
-.btn-download-main:hover {
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 5px 12px rgba(16, 185, 129, 0.3),
-    0 2px 4px rgba(16, 185, 129, 0.2);
-}
-
-.btn-edit {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  color: white;
-  box-shadow: 0 3px 8px rgba(99, 102, 241, 0.25),
-    0 1px 3px rgba(99, 102, 241, 0.15);
-}
-
-.btn-edit:hover {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 5px 12px rgba(99, 102, 241, 0.3),
-    0 2px 4px rgba(99, 102, 241, 0.2);
-}
-
-.btn-close {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.95),
-    rgba(248, 250, 252, 0.9)
-  );
-  color: var(--gray-700);
-  border: 1px solid rgba(107, 114, 128, 0.2);
-}
-
-.btn-close:hover {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 1),
-    rgba(248, 250, 252, 0.95)
-  );
-  color: var(--gray-800);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.06);
-  border-color: rgba(99, 102, 241, 0.2);
-}
-
-.btn-preview,
-.btn-download {
-  background: var(--white);
-  color: var(--primary-600);
-  border: 1px solid var(--primary-200);
-  box-shadow: var(--shadow-xs);
-}
-
-.btn-preview:hover,
-.btn-download:hover {
-  background: var(--primary-50);
-  color: var(--primary-700);
-  border-color: var(--primary-300);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
-}
-
-.btn-preview.preview-supported {
-  background: linear-gradient(135deg, var(--primary-50), var(--primary-100));
-  color: var(--primary-700);
-  border-color: var(--primary-300);
-}
-
-.btn-preview.preview-supported:hover {
-  background: linear-gradient(135deg, var(--primary-100), var(--primary-200));
-  color: var(--primary-800);
-  border-color: var(--primary-400);
-}
-
-.btn-preview-tab {
-  background: linear-gradient(135deg, var(--info-50), var(--info-100));
-  color: var(--info-700);
-  border: 1px solid var(--info-200);
-  box-shadow: var(--shadow-xs);
-}
-
-.btn-preview-tab:hover {
-  background: linear-gradient(135deg, var(--info-100), var(--info-200));
-  color: var(--info-800);
-  border-color: var(--info-300);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
-}
-
-.file-size-loading {
-  color: var(--gray-400);
-  font-style: italic;
+.corresponding-status {
+  font-weight: 600;
+  color: var(--success-600);
   font-size: var(--text-xs);
+}
+
+.corresponding-author {
+  background: linear-gradient(
+    135deg,
+    rgba(34, 197, 94, 0.05) 0%,
+    rgba(34, 197, 94, 0.02) 100%
+  ) !important;
+  border-left: 3px solid var(--success-300);
+}
+
+.corresponding-author:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(34, 197, 94, 0.08) 0%,
+    rgba(34, 197, 94, 0.05) 100%
+  ) !important;
+}
+
+/* 工作量汇总信息 */
+.workload-summary {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  margin-top: var(--space-lg);
+  padding: var(--space-lg);
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.05) 0%,
+    rgba(139, 92, 246, 0.05) 100%
+  );
+  border-radius: var(--border-radius-lg);
+  border: 1px solid rgba(99, 102, 241, 0.1);
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 120px;
+}
+
+.summary-label {
+  font-size: var(--text-xs);
+  color: var(--gray-600);
+  font-weight: 500;
+  margin-bottom: var(--space-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-value {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--primary-600);
+  line-height: 1;
 }
 
 /* 加载和错误状态 */
@@ -1898,144 +2196,121 @@ watch(
   overflow: hidden;
   background: white;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  max-height: 80vh;
 }
 
-/* 响应式设计 */
-@media (max-width: 1200px) {
-  .dual-column-section {
-    grid-template-columns: 3fr 2fr; /* 在中等屏幕上调整比例 */
-  }
-
-  .info-grid {
-    grid-template-columns: 1fr; /* 在较小宽度时改为单列 */
-  }
+/* 操作按钮栏 */
+.action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(248, 250, 252, 0.9) 100%
+  );
+  backdrop-filter: blur(8px);
+  border-radius: var(--border-radius-lg);
+  margin-top: var(--space-lg);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
-@media (max-width: 1024px) {
-  .dual-column-section {
-    grid-template-columns: 1fr;
-    gap: var(--space-md);
-  }
-
-  .dual-column-section.small-cards {
-    grid-template-columns: 1fr;
-  }
-
-  .info-grid {
-    grid-template-columns: repeat(
-      auto-fit,
-      minmax(240px, 1fr)
-    ); /* 在单列布局时恢复多列 */
-  }
+.action-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
 }
 
-@media (max-width: 768px) {
-  .paper-detail {
-    padding: var(--space-md);
-    max-width: 100%;
-  }
-
-  .header-card,
-  .card-content {
-    padding: var(--space-lg);
-  }
-
-  .core-info {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .core-info-item {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .dual-column-section {
-    grid-template-columns: 1fr;
-  }
-
-  .info-grid {
-    grid-template-columns: 1fr; /* 移动端单列显示 */
-  }
-
-  .action-bar {
-    flex-direction: column;
-  }
-
-  .action-group {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .btn {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .file-container {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .file-actions {
-    width: 100%;
-    justify-content: center;
-  }
+.action-group.primary-actions {
+  flex: 1;
 }
 
-@media (max-width: 480px) {
-  .paper-title {
-    font-size: var(--text-xl);
-  }
-
-  .header-card,
-  .card-content {
-    padding: var(--space-md);
-  }
-
-  .core-info-item {
-    font-size: var(--text-xs);
-    padding: var(--space-xs) var(--space-sm);
-  }
+.action-group.secondary-actions {
+  flex-shrink: 0;
 }
 
-/* 动画和交互增强 */
-@media (prefers-reduced-motion: no-preference) {
-  .info-card,
-  .content-card {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .keyword-tag,
-  .info-item,
-  .metadata-item {
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .btn {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
+/* 按钮样式 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  border: none;
+  border-radius: var(--border-radius);
+  font-weight: 600;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all var(--transition-bounce);
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+  letter-spacing: 0.02em;
 }
 
-/* 深色模式支持（如果需要） */
-@media (prefers-color-scheme: dark) {
-  .paper-detail {
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  }
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
 
-  .header-card,
-  .info-card,
-  .content-card {
-    background: rgba(30, 41, 59, 0.95);
-    border-color: rgba(255, 255, 255, 0.1);
-  }
+.btn-icon {
+  font-size: 1.1em;
+  line-height: 1;
+}
 
-  .paper-title {
-    color: var(--gray-100);
-  }
-  .card-title {
-    color: var(--primary-300);
-  }
+/* 下载按钮 */
+.btn-download-main {
+  background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+  color: var(--white);
+  box-shadow: 0 2px 6px rgba(125, 108, 192, 0.12),
+    inset 0 1px 1px rgba(255, 255, 255, 0.12);
+}
+
+.btn-download-main:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(125, 108, 192, 0.25),
+    0 6px 16px rgba(125, 108, 192, 0.15),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2);
+}
+
+/* 编辑按钮 */
+.btn-edit {
+  background: var(--white);
+  color: var(--primary-700);
+  border: 2px solid var(--primary-200);
+  box-shadow: 0 2px 6px rgba(125, 108, 192, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8);
+}
+
+.btn-edit:hover {
+  background: var(--primary-100);
+  color: var(--primary-800);
+  border-color: var(--primary-300);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(125, 108, 192, 0.15),
+    0 2px 4px rgba(125, 108, 192, 0.08),
+    inset 0 1px 2px rgba(255, 255, 255, 0.9);
+}
+
+/* 关闭按钮 */
+.btn-close {
+  background: var(--white);
+  color: var(--gray-600);
+  border: 2px solid var(--gray-200);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8);
+}
+
+.btn-close:hover {
+  background: var(--gray-50);
+  color: var(--gray-700);
+  border-color: var(--gray-300);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04),
+    inset 0 1px 2px rgba(255, 255, 255, 0.9);
 }
 </style>

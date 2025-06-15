@@ -190,6 +190,21 @@ export const getAuthorCollaborationNetwork = async (authorName) => {
     .data;
 };
 
+// 导出作者工作量Excel文件
+export const exportAuthorWorkloadExcel = async (authorName = null) => {
+  const params = {};
+  if (authorName) {
+    params.author_name = authorName;
+  }
+
+  const response = await api.get("/papers/authors/workload/export/excel", {
+    params,
+    responseType: "blob", // 重要：指定响应类型为blob以处理二进制文件
+  });
+
+  return response;
+};
+
 // ==================== 分类管理 APIs ====================
 // 获取分类列表
 export const getCategories = async (params = {}) => {

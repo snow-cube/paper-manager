@@ -5,4 +5,3 @@
  */
 
 export { default as CollaborationNetwork } from "./CollaborationNetwork.vue";
-export { default as CollaborationNetworkModal } from "./CollaborationNetworkModal.vue";

@@ -581,9 +581,13 @@ def update_paper(
                 )
 
     # 更新基本信息
-    paper_data = paper_update.dict(exclude_unset=True)
-    # 移除需要特殊处理的字段
-    special_fields = {"keyword_names", "author_names", "author_contribution_ratios"}
+    paper_data = paper_update.dict(exclude_unset=True)  # 移除需要特殊处理的字段
+    special_fields = {
+        "keyword_names",
+        "author_names",
+        "author_contribution_ratios",
+        "corresponding_author_name",
+    }
     update_data = {k: v for k, v in paper_data.items() if k not in special_fields}
 
     # 更新基本字段（包括category_id）
@@ -613,11 +617,18 @@ def update_paper(
                 and i < len(paper_update.author_contribution_ratios)
                 else 1.0
             )
+
+            # 判断是否为通讯作者
+            is_corresponding = (
+                paper_update.corresponding_author_name is not None
+                and name == paper_update.corresponding_author_name
+            )
+
             paper_author = PaperAuthor(
                 paper_id=paper_id,
                 author_id=author.id,
                 contribution_ratio=contribution_ratio,
-                is_corresponding=False,  # 可以根据需要调整
+                is_corresponding=is_corresponding,
                 author_order=i + 1,
             )
             session.add(paper_author)
@@ -693,6 +704,10 @@ def calculate_paper_workload(paper_id: int, session: Session = Depends(get_sessi
 
     workloads = []
     for author_link in author_links:
+        # 获取作者信息
+        author = session.get(Author, author_link.author_id)
+        author_name = author.name if author else "Unknown Author"
+
         workload = calculate_workload(
             contribution_ratio=author_link.contribution_ratio,
             journal_grade=journal_grade,
@@ -700,7 +715,10 @@ def calculate_paper_workload(paper_id: int, session: Session = Depends(get_sessi
         workloads.append(
             {
                 "author_id": author_link.author_id,
+                "author_name": author_name,
                 "contribution_ratio": author_link.contribution_ratio,
+                "is_corresponding": author_link.is_corresponding,
+                "author_order": author_link.author_order,
                 "workload": workload,
             }
         )
@@ -1055,3 +1073,173 @@ def export_papers_excel(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
+
+
+@router.get("/authors/workload/export/excel")
+async def export_author_workload_to_excel(
+    author_name: Optional[str] = None,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """导出作者工作量信息为Excel文件"""
+
+    if author_name:
+        # 导出指定作者的工作量信息
+        # 查找作者
+        author = session.exec(select(Author).where(Author.name == author_name)).first()
+        if not author:
+            raise HTTPException(
+                status_code=404, detail=f"Author '{author_name}' not found"
+            )
+
+        # 获取作者的所有论文关联
+        author_papers = session.exec(
+            select(PaperAuthor).where(PaperAuthor.author_id == author.id)
+        ).all()
+
+        # 收集数据
+        data = []
+        for paper_link in author_papers:
+            paper = session.get(Paper, paper_link.paper_id)
+            if paper:
+                # 获取期刊等级
+                journal_grade = "OTHER"
+                journal_name = None
+                if paper.journal_id:
+                    journal = session.get(Journal, paper.journal_id)
+                    if journal:
+                        journal_grade = journal.grade
+                        journal_name = journal.name
+
+                workload = calculate_workload(
+                    contribution_ratio=paper_link.contribution_ratio,
+                    journal_grade=journal_grade,
+                )
+
+                data.append(
+                    {
+                        "作者姓名": author.name,
+                        "论文标题": paper.title,
+                        "期刊名称": journal_name or "未指定",
+                        "期刊等级": journal_grade,
+                        "发表日期": (
+                            paper.publication_date.strftime("%Y-%m-%d")
+                            if paper.publication_date
+                            else "未指定"
+                        ),
+                        "贡献比例": paper_link.contribution_ratio,
+                        "是否通讯作者": "是" if paper_link.is_corresponding else "否",
+                        "作者顺序": paper_link.author_order,
+                        "工作量": workload,
+                    }
+                )
+
+        # 计算总工作量
+        total_workload = sum(item["工作量"] for item in data)
+
+        # 添加汇总行
+        if data:
+            data.append(
+                {
+                    "作者姓名": f"{author.name} (总计)",
+                    "论文标题": "",
+                    "期刊名称": "",
+                    "期刊等级": "",
+                    "发表日期": "",
+                    "贡献比例": "",
+                    "是否通讯作者": "",
+                    "作者顺序": "",
+                    "工作量": total_workload,
+                }
+            )
+
+        filename_prefix = f"{author_name}_workload"
+    else:
+        # 导出所有作者的工作量汇总信息
+        # 获取所有作者
+        authors = session.exec(select(Author)).all()
+
+        data = []
+        for author in authors:
+            # 获取作者的所有论文关联
+            author_papers = session.exec(
+                select(PaperAuthor).where(PaperAuthor.author_id == author.id)
+            ).all()
+
+            total_workload = 0
+            paper_count = 0
+            corresponding_count = 0
+
+            for paper_link in author_papers:
+                paper = session.get(Paper, paper_link.paper_id)
+                if paper:
+                    # 获取期刊等级
+                    journal_grade = "OTHER"
+                    if paper.journal_id:
+                        journal = session.get(Journal, paper.journal_id)
+                        if journal:
+                            journal_grade = journal.grade
+
+                    workload = calculate_workload(
+                        contribution_ratio=paper_link.contribution_ratio,
+                        journal_grade=journal_grade,
+                    )
+
+                    total_workload += workload
+                    paper_count += 1
+                    if paper_link.is_corresponding:
+                        corresponding_count += 1
+
+            data.append(
+                {
+                    "作者姓名": author.name,
+                    "论文总数": paper_count,
+                    "通讯作者论文数": corresponding_count,
+                    "总工作量": total_workload,
+                    "平均工作量": (
+                        round(total_workload / paper_count, 2) if paper_count > 0 else 0
+                    ),
+                }
+            )
+
+        # 按总工作量降序排序
+        data.sort(key=lambda x: x["总工作量"], reverse=True)
+
+        filename_prefix = "all_authors_workload_summary"
+
+    # 创建DataFrame
+    df = pd.DataFrame(data)
+
+    # 创建临时文件
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_file:
+        # 使用ExcelWriter来设置格式
+        with pd.ExcelWriter(tmp_file.name, engine="openpyxl") as writer:
+            df.to_excel(writer, index=False, sheet_name="工作量统计")
+
+            # 获取工作表并设置格式
+            worksheet = writer.sheets["工作量统计"]
+
+            # 自动调整列宽
+            for column in worksheet.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = min(max_length + 2, 50)
+                worksheet.column_dimensions[column_letter].width = adjusted_width
+
+        # 生成文件名
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"{filename_prefix}_{timestamp}.xlsx"
+
+        # 返回文件
+        return FileResponse(
+            path=tmp_file.name,
+            filename=filename,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            background=None,  # 不在后台删除，因为我们需要文件被下载后才删除
+        )
