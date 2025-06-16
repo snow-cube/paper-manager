@@ -9,6 +9,8 @@ import Auth from "../pages/Auth.vue";
 import AuthorAnalysis from "../pages/AuthorAnalysis.vue";
 import Journals from "../pages/Journals.vue";
 import FilePreviewPage from "../pages/FilePreviewPage.vue";
+import Profile from "../pages/Profile.vue";
+import Settings from "../pages/Settings.vue";
 
 const routes = [
   {
@@ -64,6 +66,18 @@ const routes = [
     path: "/file-preview",
     name: "FilePreviewPage",
     component: FilePreviewPage,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/profile",
+    name: "Profile",
+    component: Profile,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/settings",
+    name: "Settings",
+    component: Settings,
     meta: { requiresAuth: true },
   }, // 重定向旧的论文路由到文献管理
   { path: "/papers", redirect: "/literature" }, // 重定向旧的合作网络路由到作者信息查询

@@ -63,6 +63,10 @@ export const register = async (userData) =>
 // 获取当前用户信息
 export const getCurrentUser = async () => (await api.get("/users/me")).data;
 
+// 更新当前用户个人信息
+export const updateCurrentUserProfile = async (userData) =>
+  (await api.patch("/users/me", userData)).data;
+
 // 获取用户列表
 export const getUsers = async (skip = 0, limit = 100) => {
   const params = { skip, limit };

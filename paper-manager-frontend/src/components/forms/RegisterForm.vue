@@ -53,16 +53,19 @@
             <input
               id="username"
               v-model="formData.username"
+              @blur="validateField('username', formData.username)"
               type="text"
               required
-              placeholder="请输入用户名"
+              placeholder="请输入用户名（3-50个字符，仅字母数字下划线连字符）"
               class="form-control"
-              :class="{ error: error && !formData.username }"
+              :class="{ error: validationErrors.username }"
             />
             <div class="input-border"></div>
           </div>
+          <div v-if="validationErrors.username" class="field-error">
+            {{ validationErrors.username }}
+          </div>
         </div>
-
         <div class="form-group">
           <label for="email">
             <span class="label-icon">📧</span>
@@ -72,17 +75,20 @@
             <input
               id="email"
               v-model="formData.email"
+              @blur="validateField('email', formData.email)"
               type="email"
               required
               placeholder="请输入邮箱地址"
               class="form-control"
-              :class="{ error: error && !formData.email }"
+              :class="{ error: validationErrors.email }"
             />
             <div class="input-border"></div>
           </div>
+          <div v-if="validationErrors.email" class="field-error">
+            {{ validationErrors.email }}
+          </div>
         </div>
       </div>
-
       <div class="form-group">
         <label for="full_name">
           <span class="label-icon">✨</span>
@@ -92,13 +98,17 @@
           <input
             id="full_name"
             v-model="formData.full_name"
+            @blur="validateField('full_name', formData.full_name)"
             type="text"
             required
-            placeholder="请输入您的真实姓名"
+            placeholder="请输入您的真实姓名（2-100个字符）"
             class="form-control"
-            :class="{ error: error && !formData.full_name }"
+            :class="{ error: validationErrors.full_name }"
           />
           <div class="input-border"></div>
+        </div>
+        <div v-if="validationErrors.full_name" class="field-error">
+          {{ validationErrors.full_name }}
         </div>
       </div>
 
@@ -112,11 +122,12 @@
             <input
               id="password"
               v-model="formData.password"
+              @blur="validateField('password', formData.password)"
               :type="showPassword ? 'text' : 'password'"
               required
-              placeholder="请输入密码"
+              placeholder="请输入密码（至少8个字符，包含大小写字母、数字、特殊字符中的至少三种）"
               class="form-control"
-              :class="{ error: error && !formData.password }"
+              :class="{ error: validationErrors.password }"
             />
             <button
               type="button"
@@ -128,20 +139,26 @@
             </button>
             <div class="input-border"></div>
           </div>
+          <div v-if="validationErrors.password" class="field-error">
+            {{ validationErrors.password }}
+          </div>
           <div class="password-strength">
             <div class="strength-bar">
               <div
                 class="strength-fill"
                 :class="passwordStrength.class"
-                :style="{ width: passwordStrength.width }"
+                :style="{ width: passwordStrength.percentage + '%' }"
               ></div>
             </div>
-            <span class="strength-text" :class="passwordStrength.class">{{
-              passwordStrength.text
-            }}</span>
+            <span class="strength-text" :class="passwordStrength.class">
+              {{
+                passwordStrength.text
+                  ? `密码强度：${passwordStrength.text}`
+                  : ""
+              }}
+            </span>
           </div>
         </div>
-
         <div class="form-group">
           <label for="confirmPassword">
             <span class="label-icon">🔐</span>
@@ -151,14 +168,17 @@
             <input
               id="confirmPassword"
               v-model="confirmPassword"
+              @blur="validateField('confirmPassword', confirmPassword)"
               :type="showConfirmPassword ? 'text' : 'password'"
               required
               placeholder="请再次输入密码"
               class="form-control"
               :class="{
-                error: error && !confirmPassword,
+                error: validationErrors.confirmPassword,
                 success:
-                  confirmPassword && formData.password === confirmPassword,
+                  confirmPassword &&
+                  formData.password === confirmPassword &&
+                  !validationErrors.confirmPassword,
               }"
             />
             <button
@@ -170,6 +190,9 @@
               <span v-else>👁️</span>
             </button>
             <div class="input-border"></div>
+          </div>
+          <div v-if="validationErrors.confirmPassword" class="field-error">
+            {{ validationErrors.confirmPassword }}
           </div>
         </div>
       </div>
@@ -224,115 +247,31 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch } from "vue";
-import { register } from "../../services/api.js";
-import { useToast } from "../../composables/useToast.js";
+import { ref } from "vue";
+import { useUserRegistration } from "../../composables/useUserRegistration.js";
 
 const emit = defineEmits(["register-success", "switch-to-login"]);
 
-const { showToast } = useToast();
-const loading = ref(false);
-const error = ref("");
-const confirmPassword = ref("");
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
-const agreeTerms = ref(false);
 
-const formData = reactive({
-  username: "",
-  email: "",
-  full_name: "",
-  password: "",
-});
-
-// 监听表单数据变化，自动清除错误信息
-watch([() => formData.username, () => formData.email, () => formData.full_name, () => formData.password, confirmPassword], () => {
-  if (error.value) {
-    error.value = "";
-  }
-});
-
-// 密码强度计算
-const passwordStrength = computed(() => {
-  const password = formData.password;
-  if (!password) return { width: "0%", class: "", text: "" };
-
-  let score = 0;
-  if (password.length >= 6) score++;
-  if (password.length >= 8) score++;
-  if (/[A-Z]/.test(password)) score++;
-  if (/[a-z]/.test(password)) score++;
-  if (/[0-9]/.test(password)) score++;
-  if (/[^A-Za-z0-9]/.test(password)) score++;
-
-  if (score <= 2) return { width: "33%", class: "weak", text: "弱" };
-  if (score <= 4) return { width: "66%", class: "medium", text: "中" };
-  return { width: "100%", class: "strong", text: "强" };
-});
-
-const validateForm = () => {
-  if (
-    !formData.username ||
-    !formData.email ||
-    !formData.full_name ||
-    !formData.password
-  ) {
-    error.value = "请填写所有必填字段";
-    return false;
-  }
-
-  if (formData.password !== confirmPassword.value) {
-    error.value = "两次输入的密码不一致";
-    return false;
-  }
-
-  if (formData.password.length < 6) {
-    error.value = "密码长度不能少于6位";
-    return false;
-  }
-
-  return true;
-};
+const {
+  loading,
+  error,
+  validationErrors,
+  formData,
+  confirmPassword,
+  agreeTerms,
+  passwordStrength,
+  isFormValid,
+  validateField,
+  handleRegister: registerUser,
+} = useUserRegistration();
 
 const handleRegister = async () => {
-  if (!validateForm()) {
-    return;
-  }
-
-  loading.value = true;
-  error.value = "";
-
-  try {
-    await register(formData);
-
-    showToast("注册成功！请登录", "success");
+  const success = await registerUser();
+  if (success) {
     emit("register-success");
-  } catch (err) {
-    console.error("Register error:", err);
-
-    // 确保loading状态先设置为false，避免界面状态混乱
-    loading.value = false;
-
-    if (err.response?.status === 409) {
-      const message = err.response.data?.detail || "用户名或邮箱已存在，请尝试其他信息";
-      error.value = message;
-    } else if (err.response?.status === 422) {
-      error.value = "提交的信息格式不正确，请检查后重试";
-    } else if (err.response?.status === 429) {
-      error.value = "注册请求过于频繁，请稍后再试";
-    } else if (err.code === 'NETWORK_ERROR' || !err.response) {
-      error.value = "网络连接失败，请检查网络后重试";    } else {
-      error.value = "注册失败，请稍后重试";
-    }
-
-    // 确保loading在catch块中也被重置
-    return;
-  } finally {
-    // 只有在注册成功时才设置loading为false
-    // 注册失败时已经在catch块中设置了
-    if (!error.value) {
-      loading.value = false;
-    }
   }
 };
 </script>
@@ -507,21 +446,25 @@ const handleRegister = async () => {
 }
 
 .strength-fill.weak {
-  background: #ef4444;
+  background: linear-gradient(90deg, #ef4444, #f87171);
 }
 
 .strength-fill.medium {
-  background: #f59e0b;
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
 }
 
 .strength-fill.strong {
-  background: #10b981;
+  background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+.strength-fill.very-strong {
+  background: linear-gradient(90deg, #059669, #10b981);
 }
 
 .strength-text {
   font-size: 0.75rem;
   font-weight: 600;
-  min-width: 20px;
+  min-width: 60px;
 }
 
 .strength-text.weak {
@@ -534,6 +477,10 @@ const handleRegister = async () => {
 
 .strength-text.strong {
   color: #10b981;
+}
+
+.strength-text.very-strong {
+  color: #059669;
 }
 
 .terms-wrapper {
@@ -628,6 +575,27 @@ const handleRegister = async () => {
 
 .error-icon {
   font-size: 1.25rem;
+}
+
+/* 字段级别的错误信息 */
+.field-error {
+  color: #dc2626;
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+  padding: 0.25rem 0;
+  font-weight: 500;
+  animation: slide-down 0.3s ease-out;
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .form-actions {

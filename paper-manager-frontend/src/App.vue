@@ -364,13 +364,13 @@ const handleLogout = async () => {
 const handleUserProfile = () => {
   closeUserDropdown();
   // 跳转到个人资料页面
-  console.log("Navigate to user profile");
+  router.push("/profile");
 };
 
 const handleUserSettings = () => {
   closeUserDropdown();
   // 跳转到账户设置页面
-  console.log("Navigate to user settings");
+  router.push("/settings");
 };
 
 // 获取用户头像或首字母

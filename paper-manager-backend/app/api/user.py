@@ -2,10 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlmodel import Session, select
 from typing import List
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from app.core.database import get_session
 from app.models.user import User, UserCreate, UserRead, UserUpdate
+from app.schemas.user import UserProfileUpdate
 from app.services.utils import (
     verify_password,
     get_password_hash,
@@ -116,6 +117,47 @@ def create_user(user: UserCreate, session: Session = Depends(get_session)):
 
 @router.get("/me", response_model=UserRead)
 async def read_users_me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+
+@router.patch("/me", response_model=UserRead)
+async def update_my_profile(
+    profile_update: UserProfileUpdate,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    """普通用户更新自己的个人信息"""
+
+    # 获取更新数据，排除未设置的字段
+    update_data = profile_update.dict(exclude_unset=True)
+
+    # 如果更新邮箱，检查是否已被其他用户使用
+    if "email" in update_data:
+        existing_user = session.exec(
+            select(User).where(
+                User.email == update_data["email"], User.id != current_user.id
+            )
+        ).first()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail="该邮箱已被其他用户使用"
+            )
+
+    # 如果更新密码，进行哈希处理
+    if "password" in update_data:
+        update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
+
+    # 更新updated_at时间戳
+    update_data["updated_at"] = datetime.utcnow()
+
+    # 应用更新
+    for key, value in update_data.items():
+        setattr(current_user, key, value)
+
+    session.add(current_user)
+    session.commit()
+    session.refresh(current_user)
+
     return current_user
 
 
