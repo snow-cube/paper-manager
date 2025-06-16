@@ -1,4 +1,5 @@
-<template>  <div class="modal-overlay" @click="handleOverlayClick">
+<template>
+  <div class="modal-overlay" @click="handleOverlayClick">
     <div class="modal-content" :class="`modal-${size}`" ref="modalContent">
       <!-- 可选的进度条 - 固定在modal顶部 -->
       <div v-if="showProgress" class="modal-progress">
@@ -9,7 +10,7 @@
             :class="{
               'progress-low': progress < 50,
               'progress-medium': progress >= 50 && progress < 80,
-              'progress-high': progress >= 80
+              'progress-high': progress >= 80,
             }"
           ></div>
         </div>
@@ -32,18 +33,18 @@ import { ref, onMounted, onUnmounted } from "vue";
 const props = defineProps({
   showProgress: {
     type: Boolean,
-    default: false
+    default: false,
   },
   progress: {
     type: Number,
     default: 0,
-    validator: (value) => value >= 0 && value <= 100
+    validator: (value) => value >= 0 && value <= 100,
   },
   size: {
     type: String,
     default: "large",
-    validator: (value) => ["small", "medium", "large"].includes(value)
-  }
+    validator: (value) => ["small", "medium", "large"].includes(value),
+  },
 });
 
 const emit = defineEmits(["close"]);
@@ -155,7 +156,7 @@ onUnmounted(() => {
 }
 
 .progress-fill::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -193,40 +194,38 @@ onUnmounted(() => {
 
 .modal-slot-wrapper {
   position: relative;
+  padding: 2rem;
 }
 
 .modal-slot-wrapper.has-progress {
   margin-top: -4px; /* 让内容紧贴进度条 */
+  padding-top: 2rem;
 }
 
 .modal-close {
-  position: sticky;
-  top: var(--space-lg);
-  right: var(--space-lg);
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
   background: rgba(255, 255, 255, 0.95);
-  border: 1px solid var(--primary-200);
-  width: var(--space-2xl);
-  height: var(--space-2xl);
+  border: 1px solid #e2e8f0;
+  width: 2rem;
+  height: 2rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: var(--text-lg);
-  color: var(--primary-600);
-  transition: all var(--transition-normal);
+  font-size: 1.125rem;
+  color: #64748b;
+  transition: all 0.2s ease;
   z-index: 13;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(10px);
-  float: right;
-  margin-right: var(--space-lg);
-  margin-top: var(--space-lg);
-  margin-bottom: calc(-1 * var(--space-2xl) - var(--space-lg));
 }
 
 .modal-close:hover {
   background: rgba(255, 255, 255, 1);
-  color: var(--primary-800);
+  color: #374151;
   transform: scale(1.1) rotate(90deg);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
 }
@@ -264,26 +263,31 @@ onUnmounted(() => {
     width: auto;
     max-width: 95vw;
     max-height: 95vh;
-  }.modal-close {
-    top: var(--space-md);
-    margin-right: var(--space-md);
-    margin-top: var(--space-md);
-    width: var(--space-xl);
-    height: var(--space-xl);
-    font-size: var(--text-base);
-    margin-bottom: calc(-1 * var(--space-xl) - var(--space-md));
+  }
+  .modal-close {
+    top: 0.75rem;
+    right: 0.75rem;
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 1rem;
+  }
+
+  .modal-slot-wrapper {
+    padding: 1.5rem;
   }
 }
 
 @media (max-width: 480px) {
   .modal-close {
-    top: var(--space-sm);
-    margin-right: var(--space-sm);
-    margin-top: var(--space-sm);
-    width: 3rem;
-    height: 3rem;
-    font-size: var(--text-lg);
-    margin-bottom: calc(-3rem - var(--space-sm));
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    font-size: 0.875rem;
+  }
+
+  .modal-slot-wrapper {
+    padding: 1rem;
   }
 }
 </style>

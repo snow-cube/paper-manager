@@ -9,6 +9,9 @@ import Auth from "../pages/Auth.vue";
 import AuthorAnalysis from "../pages/AuthorAnalysis.vue";
 import Journals from "../pages/Journals.vue";
 import FilePreviewPage from "../pages/FilePreviewPage.vue";
+import Profile from "../pages/Profile.vue";
+import Settings from "../pages/Settings.vue";
+import UserManagement from "../pages/UserManagement.vue";
 
 const routes = [
   {
@@ -65,6 +68,23 @@ const routes = [
     name: "FilePreviewPage",
     component: FilePreviewPage,
     meta: { requiresAuth: true },
+  },
+  {
+    path: "/profile",
+    name: "Profile",
+    component: Profile,
+    meta: { requiresAuth: true },
+  },  {
+    path: "/settings",
+    name: "Settings",
+    component: Settings,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/user-management",
+    name: "UserManagement",
+    component: UserManagement,
+    meta: { requiresAuth: true, requiresAdmin: true },
   }, // 重定向旧的论文路由到文献管理
   { path: "/papers", redirect: "/literature" }, // 重定向旧的合作网络路由到作者信息查询
   { path: "/collaboration", redirect: "/author-analysis" },
@@ -80,7 +100,7 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   console.log("路由守卫 - 导航到:", to.path, to.query);
 
-  const { isAuthenticated, initializeAuth } = useAuth();
+  const { isAuthenticated, initializeAuth, currentUser } = useAuth();
 
   console.log("路由守卫 - 当前认证状态:", isAuthenticated.value);
 
@@ -90,6 +110,7 @@ router.beforeEach(async (to, from, next) => {
     const authResult = await initializeAuth();
     console.log("路由守卫 - 认证初始化结果:", authResult);
   }
+
   // 检查是否需要认证
   if (to.meta.requiresAuth && !isAuthenticated.value) {
     console.log("路由守卫 - 需要认证但未登录，重定向到登录页");
@@ -103,6 +124,16 @@ router.beforeEach(async (to, from, next) => {
       next("/login");
     }
     return;
+  }
+
+  // 检查是否需要管理员权限
+  if (to.meta.requiresAdmin && isAuthenticated.value) {
+    console.log("路由守卫 - 检查管理员权限:", currentUser.value?.is_superuser);
+    if (!currentUser.value?.is_superuser) {
+      console.log("路由守卫 - 需要管理员权限但用户不是管理员，重定向到首页");
+      next("/");
+      return;
+    }
   }
 
   // 检查是否需要访客状态（如登录页面）

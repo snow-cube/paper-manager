@@ -46,7 +46,8 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import { useTeam } from "../../../composables/useTeam.js";
 
-const { currentTeam, userTeams, switchTeam, onTeamUpdate, refreshTeams } = useTeam();
+const { currentTeam, userTeams, switchTeam, onTeamUpdate, refreshTeams } =
+  useTeam();
 const isOpen = ref(false);
 
 const toggleDropdown = () => {
@@ -199,7 +200,7 @@ onUnmounted(() => {
 
 .dropdown-item .team-info {
   flex: 1;
-  gap: 0;
+  gap: 0.5rem;
 }
 
 .dropdown-item .team-info .team-name {

@@ -425,6 +425,59 @@ client_secret: string (可选)
 }
 ```
 
+##### PATCH `/api/users/me`
+
+更新当前用户个人信息
+
+**描述**: 允许已认证的用户更新自己的个人信息
+
+**认证**: 需要Bearer Token（通过登录获取）
+
+请求体：
+
+```json
+{
+    "email": "string",
+    "full_name": "string",
+    "password": "string"
+}
+```
+
+**所有字段都是可选的：**
+
+- `email`: string - 邮箱地址（会检查唯一性）
+- `full_name`: string - 用户全名
+- `password`: string - 新密码（会自动进行哈希处理）
+
+**安全特性：**
+
+- 只能更新自己的信息，不能修改其他用户
+- 邮箱唯一性检查：不能使用已被其他用户占用的邮箱
+- 密码安全：密码会自动进行哈希处理后存储
+- 受限字段：不允许普通用户修改 `username`、`is_active`、`is_superuser` 等敏感字段
+
+响应体：
+
+```json
+{
+    "id": "integer",
+    "username": "string",
+    "email": "string",
+    "full_name": "string",
+    "is_active": "boolean",
+    "is_superuser": "boolean",
+    "created_at": "datetime",
+    "updated_at": "datetime"
+}
+```
+
+**错误处理：**
+
+- `401 Unauthorized`: 未提供有效的认证token
+- `403 Forbidden`: 账户被禁用
+- `409 Conflict`: 邮箱已被其他用户使用
+- `422 Validation Error`: 请求数据格式错误
+
 ##### GET `/api/users/{user_id}`
 
 获取指定用户信息
@@ -2074,9 +2127,9 @@ curl -X GET "http://localhost:8000/api/references/download/by-title?title=相关
 
 ### 权限说明
 
-- **普通用户**: 可以管理自己的论文和参考文献
+- **普通用户**: 可以管理自己的论文和参考文献，可以更新自己的个人信息（邮箱、全名、密码）
 - **团队管理员/拥有者**: 可以管理团队成员和团队资源
-- **超级用户**: 可以管理所有用户和全局分类
+- **超级用户**: 可以管理所有用户和全局分类，可以修改任何用户的所有信息
 
 ## 7. 团队角色说明
 
@@ -2213,6 +2266,38 @@ curl -X POST "http://localhost:8000/api/users/token" \
   -d "username=your_username&password=your_password"
 ```
 
+### 更新用户个人信息
+
+```bash
+# 更新邮箱
+curl -X PATCH "http://localhost:8000/api/users/me" \
+  -H "Authorization: Bearer your_token" \
+  -H "Content-Type: application/json" \
+  -d '{"email": "newemail@example.com"}'
+
+# 更新全名
+curl -X PATCH "http://localhost:8000/api/users/me" \
+  -H "Authorization: Bearer your_token" \
+  -H "Content-Type: application/json" \
+  -d '{"full_name": "新的姓名"}'
+
+# 更新密码
+curl -X PATCH "http://localhost:8000/api/users/me" \
+  -H "Authorization: Bearer your_token" \
+  -H "Content-Type: application/json" \
+  -d '{"password": "newpassword123"}'
+
+# 同时更新多个字段
+curl -X PATCH "http://localhost:8000/api/users/me" \
+  -H "Authorization: Bearer your_token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "newemail@example.com",
+    "full_name": "新的姓名",
+    "password": "newpassword123"
+  }'
+```
+
 ### 创建论文
 
 ```bash
@@ -2262,6 +2347,7 @@ curl -X POST "http://localhost:8000/api/teams/" \
 
 ### 相关文档
 
+- [用户个人信息更新API指南](docs/USER_PROFILE_UPDATE_API.md) - 详细的用户个人信息更新功能说明
 - [文件管理指南](docs/FILE_MANAGEMENT_GUIDE.md) - 详细的文件上传、下载和预览功能说明
 - [管理员工具指南](docs/ADMIN_TOOLS_GUIDE.md)
 - [SQLite 迁移说明](docs/MIGRATION_TO_SQLITE.md)
