@@ -167,6 +167,51 @@
             "OAuth2PasswordBearer": []
           }
         ]
+      },
+      "patch": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Update My Profile",
+        "description": "普通用户更新自己的个人信息",
+        "operationId": "update_my_profile_api_users_me_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserProfileUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
       }
     },
     "/api/users/{user_id}": {
@@ -4785,6 +4830,46 @@
           "full_name"
         ],
         "title": "UserCreate"
+      },
+      "UserProfileUpdate": {
+        "properties": {
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "full_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Name"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "title": "UserProfileUpdate",
+        "description": "普通用户个人信息更新schema - 只允许更新安全字段"
       },
       "UserRead": {
         "properties": {

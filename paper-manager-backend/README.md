@@ -1,19 +1,19 @@
 # Paper Manager Backend
 
-一个用于管理学术论文和参考文献的后端API系统，支持团队协作、论文管理、参考文献管理、分类管理等功能。
+一个用于管理学术论文和参考文献的后端 API 系统，支持团队协作、论文管理、参考文献管理、分类管理等功能。
 
 ## 快速开始
 
 ### 环境要求
 
-- Python 3.8+
-- SQLite 3
-- uv (Python 包管理器)
+可使用 `uv` 包管理器（[官方文档](https://docs.astral.sh/uv/)或 [GitHub](https://github.com/astral-sh/uv)）来管理 Python 依赖，依赖通过 `pyproject.toml` 文件配置。否则，也可以使用 `pip` 来安装依赖，依赖声明在 `requirements.txt` 文件中。
 
 ### 安装依赖
 
+推荐使用 `uv` 来安装依赖：
+
 ```bash
-# 使用 uv 安装依赖
+# 使用 uv 安装依赖（或在稍后使用 uv 运行应用时自动安装）
 uv sync
 
 # 或使用 pip
@@ -28,9 +28,9 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-修改 `.env` 文件中的配置：
+修改 `.env` 文件中的配置，例如：
 
-```env
+```text
 DATABASE_URL=sqlite:///./data/app.db
 SECRET_KEY=your-secret-key-here
 ALGORITHM=HS256
@@ -39,12 +39,22 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 
 ### 运行应用
 
-```bash
-# 开发模式
-uvicorn app.main:app --reload --log-level debug
+通过 `uv` 运行应用：
 
-# 生产模式
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+```bash
+uv run fastapi dev # 将自动安装依赖
+
+# 或者直接使用 uvicorn
+uv run uvicorn app.main:app --reload
+```
+
+或者不使用 uv，直接运行（需在安装依赖的 Python 环境中）：
+
+```bash
+fastapi dev
+
+# 或者
+uvicorn app.main:app --reload
 ```
 
 访问地址：
@@ -56,31 +66,35 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 ```text
 paper-manager-backend/
-├── app/                  # 应用主目录
-│   ├── api/             # API 路由处理
+├── app/                    # 应用主目录
+│   ├── api/                # API 路由处理
 │   │   ├── __init__.py
-│   │   ├── user.py        # 用户相关接口
-│   │   ├── team.py        # 团队相关接口
-│   │   ├── paper.py       # 论文相关接口
-│   │   ├── reference.py   # 参考文献相关接口
-│   │   ├── category.py    # 论文分类相关接口
-│   │   └── reference_category.py  # 参考文献分类相关接口
-│   ├── core/            # 核心配置
-│   │   ├── config_dev.py  # 开发环境配置
-│   │   ├── database.py    # 数据库配置
+│   │   ├── user.py         # 用户相关接口
+│   │   ├── team.py         # 团队相关接口
+│   │   ├── paper.py        # 论文相关接口
+│   │   ├── reference.py    # 参考文献相关接口
+│   │   ├── category.py     # 论文分类相关接口
+│   │   ├── reference_category.py   # 参考文献分类相关接口
+│   │   └── journal.py      # 期刊相关接口
+│   ├── core/               # 核心配置
+│   │   ├── config_dev.py   # 开发环境配置
+│   │   ├── database.py     # 数据库配置
 │   │   └── dependencies.py # 依赖注入
-│   ├── models/          # 数据模型
-│   ├── schemas/         # Pydantic 模型
-│   ├── services/        # 业务逻辑服务
-│   ├── static/          # 静态文件
-│   └── main.py          # 应用入口
-├── data/                # 数据文件
-├── .env.example         # 环境变量示例
-├── .gitignore          # Git 忽略文件
-├── .python-version     # Python 版本配置
-├── MIGRATION_TO_SQLITE.md  # SQLite 迁移说明
-├── pyproject.toml      # 项目配置
-└── uv.lock             # 依赖锁定文件
+│   ├── models/             # 数据模型
+│   ├── schemas/            # Pydantic 模型
+│   ├── services/           # 业务逻辑服务
+│   ├── static/             # 静态文件
+│   └── main.py             # 应用入口
+├── scripts/                # 辅助脚本
+├── data/                   # 数据文件
+├── docs/                   # 相关文档
+├── openapi.json            # OpenAPI 规范文件
+├── .env.example            # 环境变量示例
+├── .gitignore              # Git 忽略文件
+├── .python-version         # Python 版本配置
+├── pyproject.toml          # 项目配置
+├── requirements.txt        # 依赖列表
+└── uv.lock                 # 依赖锁定文件
 ```
 
 ## 2. 数据库表结构
