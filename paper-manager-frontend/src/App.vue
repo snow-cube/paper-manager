@@ -98,6 +98,15 @@
                           <span class="item-icon">📖</span>
                           <span class="item-text">期刊管理</span>
                         </RouterLink>
+                        <RouterLink
+                          v-if="currentUser?.is_superuser"
+                          to="/user-management"
+                          class="nav-dropdown-item"
+                          @click="closeManagementDropdown"
+                        >
+                          <span class="item-icon">👥</span>
+                          <span class="item-text">用户管理</span>
+                        </RouterLink>
                       </div>
                     </transition>
                   </div>
