@@ -1122,6 +1122,7 @@ const handleUpdatePassword = async () => {
 /* 编辑表单 */
 .edit-user-modal {
   max-width: 100%;
+  padding: 1.5rem;
 }
 
 .edit-user-form {
@@ -1318,6 +1319,7 @@ const handleUpdatePassword = async () => {
 /* 修改密码模态框 */
 .password-modal {
   max-width: 100%;
+  padding: 1.5rem;
 }
 
 .password-form {

@@ -194,38 +194,40 @@ onUnmounted(() => {
 
 .modal-slot-wrapper {
   position: relative;
-  padding: 2rem;
 }
 
 .modal-slot-wrapper.has-progress {
   margin-top: -4px; /* 让内容紧贴进度条 */
-  padding-top: 2rem;
 }
 
 .modal-close {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
+  position: sticky;
+  top: var(--space-lg);
+  right: var(--space-lg);
   background: rgba(255, 255, 255, 0.95);
-  border: 1px solid #e2e8f0;
-  width: 2rem;
-  height: 2rem;
+  border: 1px solid var(--primary-200);
+  width: var(--space-2xl);
+  height: var(--space-2xl);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 1.125rem;
-  color: #64748b;
-  transition: all 0.2s ease;
+  font-size: var(--text-lg);
+  color: var(--primary-600);
+  transition: all var(--transition-normal);
   z-index: 13;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(10px);
+  float: right;
+  margin-right: var(--space-lg);
+  margin-top: var(--space-lg);
+  margin-bottom: calc(-1 * var(--space-2xl) - var(--space-lg));
 }
 
 .modal-close:hover {
   background: rgba(255, 255, 255, 1);
-  color: #374151;
+  color: var(--primary-800);
   transform: scale(1.1) rotate(90deg);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
 }
@@ -265,29 +267,25 @@ onUnmounted(() => {
     max-height: 95vh;
   }
   .modal-close {
-    top: 0.75rem;
-    right: 0.75rem;
-    width: 1.75rem;
-    height: 1.75rem;
-    font-size: 1rem;
-  }
-
-  .modal-slot-wrapper {
-    padding: 1.5rem;
+    top: var(--space-md);
+    margin-right: var(--space-md);
+    margin-top: var(--space-md);
+    width: var(--space-xl);
+    height: var(--space-xl);
+    font-size: var(--text-base);
+    margin-bottom: calc(-1 * var(--space-xl) - var(--space-md));
   }
 }
 
 @media (max-width: 480px) {
   .modal-close {
-    top: 0.5rem;
-    right: 0.5rem;
-    width: 1.5rem;
-    height: 1.5rem;
-    font-size: 0.875rem;
-  }
-
-  .modal-slot-wrapper {
-    padding: 1rem;
+    top: var(--space-sm);
+    margin-right: var(--space-sm);
+    margin-top: var(--space-sm);
+    width: 3rem;
+    height: 3rem;
+    font-size: var(--text-lg);
+    margin-bottom: calc(-3rem - var(--space-sm));
   }
 }
 </style>
